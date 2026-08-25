@@ -1,0 +1,66 @@
+# Render Blueprint — deploys backend (FastAPI) + frontend (React) as two separate services
+# See: https://render.com/docs/blueprint-spec
+
+services:
+  # ────────────────────────────────────────────────
+  # 1. BACKEND — FastAPI / Python
+  # ────────────────────────────────────────────────
+  - type: web
+    name: visitsarva-backend
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements-railway.txt"
+    startCommand: "uvicorn server:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: MONGO_URL
+        sync: false          # set manually in Render dashboard
+      - key: DB_NAME
+        value: visitsarva
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL_MINUTES
+        value: "1440"
+      - key: CRM_GATE_PASSWORD
+        sync: false          # set manually in Render dashboard
+      - key: CRM_DEFAULT_EMPLOYEE_PASSWORD
+        sync: false          # set manually in Render dashboard
+      - key: ADMIN_EMAIL
+        sync: false          # set manually in Render dashboard
+      - key: ADMIN_PASSWORD
+        sync: false          # set manually in Render dashboard
+      - key: CORS_ORIGINS
+        sync: false          # will be set after frontend URL is known
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+  # ────────────────────────────────────────────────
+  # 2. FRONTEND — React (Static Site)
+  # ────────────────────────────────────────────────
+  - type: web
+    name: visitsarva-frontend
+    runtime: static
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: build
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_BACKEND_URL
+        sync: false          # set to the visitsarva-backend URL after deploy
+      - key: NODE_VERSION
+        value: "22.12.0"
+      - key: GENERATE_SOURCEMAP
+        value: "false"

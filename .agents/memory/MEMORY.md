@@ -1,0 +1,7 @@
+- [Notification stack](notification-stack.md) — Twilio WhatsApp + Resend email for enquiry alerts; Resend in test-mode requires domain verification or RESEND_NOTIFY_EMAIL override.
+- [Chatbot architecture](chatbot-arch.md) — rule-based intent router + live MongoDB search; emergentintegrations not pip-installable here so no LLM dependency.
+- [Proxy fix](proxy-fix.md) — setupProxy.js (CRA native) replaces craco proxy; @emergentbase/visual-edits middleware blocks POSTs in craco.
+- [Tailwind dark mode](tailwind-dark-mode.md) — vs-* color tokens use rgb(var(--x-rgb)/<alpha-value>) so opacity modifiers survive light/dark toggling via next-themes.
+- [Accent color theming](accent-color-theming.md) — admin-editable accent color works only because all components use vs-gold/vs-primary tokens, never raw hex; runtime override via CSS vars in lib/theme.js.
+- [AI search fallback](ai-search-fallback.md) — smart search uses regex parser (no key needed); LLM mode auto-activates when EMERGENT_LLM_KEY or OPENAI_API_KEY is set.
+- [changes_requested status](changes-requested-status.md) — distinct property status for admin "Request Changes"; seller sees orange badge + feedback; edit resets to pending_verification.

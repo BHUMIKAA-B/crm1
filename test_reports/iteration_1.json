@@ -1,0 +1,42 @@
+{
+  "summary": "End-to-end testing of VisitSarva MVP. Backend pytest suite: 30/30 passed covering auth (register/login/refresh/me, admin-self-register rejection, bad password 401), public properties (list+filters+featured+detail+404), seller CRUD (create returns pending_verification w/ listed_by, list, update resets to pending, buyer cannot create -> 403), admin (buyer/seller blocked 403, stats keys, pending queue, verify->published verified via public detail, reject flow), enquiries (anonymous + counter increment + 404 on unknown), services (auth-only /my + create), saved properties save/unsave/list, and AI endpoints (smart-search returns summary/filters/results/count; listing-assistant returns reply+extracted JSON with at least category). Frontend Playwright: Landing all 7 sections visible; login flows for admin/seller/buyer redirect to correct dashboards; properties list filters work (URL updates, results change, clear works); property detail loads and enquiry form submits successfully; AI smart search from landing navigates to /properties?smart=1 and shows banner + results; services request submits with toast; seller new listing AI assistant chat populates category (title empty for this prompt but flow proceeds); listing created -> visible as pending; admin pending tab + approve removes from queue.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminDashboard stats card #1 (pending listings)", "issue": "First stats card renders blank (icon/label missing) while other 3 cards (Published/Users/Enquiries) render correctly. The number is also not visible. Likely a missing icon import or conditional render bug for the 'pending' stat.", "selector": "data-testid not present on stat card", "priority": "MEDIUM"},
+      {"component": "PropertiesList <option> tags", "issue": "React hydration console warning: '<span> cannot be a child of <option>'. Caused by emergent's dynamic instrumentation injecting <span> inside option labels from .map(). Non-blocking but appears in console for every option-rendering page.", "selector": "[data-testid='filter-bedrooms'] option", "priority": "LOW"},
+      {"component": "AI Listing Assistant autofill", "issue": "For prompt 'I want to list a 3 BHK apartment in Whitefield Bangalore, 1850 sqft, asking 1.45 crore', only category was autofilled in UI; title field remained empty (backend extracted JSON did include title in pytest run). UI may not be merging all extracted fields into the form on first AI turn — verify the merge logic in NewListing.jsx.", "selector": "[data-testid='listing-title']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "AdminDashboard", "issues": ["First stats card empty — visual asymmetry against the other 3 populated cards."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix AdminDashboard 'pending listings' stats card rendering (missing icon/label/value).",
+    "Investigate NewListing.jsx form merge — ensure title (and other) fields are populated from extracted JSON when provided by AI on first turn.",
+    "Optional: suppress or restructure <option> children to avoid hydration warning."
+  ],
+  "critical_code_review_comments": [
+    "auth_router.refresh-token uses body: dict instead of a Pydantic model — accept any JSON; consider RefreshTokenRequest model for validation.",
+    "properties_router has no rate limiting on /api/enquiries — could be abused; consider basic IP throttling.",
+    "ai_router catches all Exception then returns 502 — fine, but consider logging the underlying error for observability.",
+    "seller_router.update_listing silently flips status to pending_verification even on minor edits (e.g., description). This matches the requirement but should be documented in UI to set seller expectations.",
+    "models.py PropertyImage stores base64 data URLs — fine for MVP but storing large strings in Mongo will inflate documents; flag for migration to object storage later."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/__init__.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "~92%"},
+  "test_credentials": "Admin: admin@visitsarva.in / VisitSarva@2025; Seller: demo.seller@visitsarva.in / Demo@2025; Buyer: demo.buyer@visitsarva.in / Demo@2025 (all from /app/memory/test_credentials.md).",
+  "seed_data_creation": "Tests created multiple TEST_-prefixed listings (verified/rejected/pending) via seller account and a few TEST_ enquiries/services. They remain in DB intentionally so the next agent has fixtures. AI assistant flow also created one fresh pending listing that was auto-approved during the admin test (now published).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite at /app/backend/tests/backend_test.py covers all critical APIs and currently passes 30/30. Frontend critical flows all work; only known UI issues are: (1) admin dashboard first stats card blank, (2) AI listing assistant title autofill miss in UI, (3) console hydration warning for <option><span>. After fixes, re-run pytest and re-check admin dashboard render + seller new-listing AI autofill in NewListing.jsx.",
+  "rca_of_the_issue": "AdminDashboard pending stats card likely uses a different prop/icon than the other three cards (a copy-paste miss); inspect StatCard rendering for the 'pending_listings' entry. NewListing AI autofill miss: handler probably guards against empty string but the AI may have placed title in a slightly different key — verify _extract_json output vs form merge keys in NewListing.jsx."
+}

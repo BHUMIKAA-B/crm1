@@ -1,0 +1,106 @@
+{
+  "theme": "DARK",
+  "archetype": "Archetype 5 (Luxury) with Earthy Undertones",
+  "mood": "Majestic, grounded, trustworthy, opulent. Blending Indian heritage with modern, world-class luxury real estate aesthetic.",
+  "colors": {
+    "background": "#0A0908",
+    "surface": "#1A1816",
+    "surface_glass": "bg-black/60 backdrop-blur-2xl border-white/10",
+    "primary": "#C89B5F",
+    "primary_hover": "#DCC197",
+    "secondary": "#8A4F3D",
+    "text_primary": "#F5F0EA",
+    "text_secondary": "#A39B92",
+    "border": "#2A2623"
+  },
+  "typography": {
+    "heading_font": "Cormorant Garamond",
+    "body_font": "Outfit",
+    "hierarchy": {
+      "h1": "text-5xl md:text-6xl lg:text-7xl tracking-tighter font-light leading-tight",
+      "h2": "text-4xl md:text-5xl tracking-tight font-light leading-snug",
+      "h3": "text-2xl md:text-3xl font-medium",
+      "body": "text-base leading-relaxed tracking-wide text-[#A39B92]",
+      "overline": "text-xs uppercase tracking-[0.2em] text-[#C89B5F]"
+    }
+  },
+  "layout": {
+    "spacing": "Generous spacing. py-24 to py-32 for sections. gap-12 for grids.",
+    "grid_system": "Bento grids with asymmetry. Avoid standard 3-column equal boxes. Use span-2 and span-1 variations.",
+    "container": "max-w-7xl mx-auto px-6 md:px-12"
+  },
+  "motion": {
+    "scroll": "Lenis smooth scroll is MANDATORY for a premium feel.",
+    "elements": "Use framer-motion for staggered fade-ups. Subtle image scale on hover (scale-105 with duration-700 ease-out).",
+    "hover": "High-end luxury feel: slow transitions, slight brightness increase on text, slow image zoom in property cards."
+  },
+  "components": {
+    "navigation": "Crystal glassmorphism sticky header (bg-black/60 backdrop-blur-2xl). Logo left, links center, CTA right.",
+    "hero": "Full-bleed background video or image. Black/40 to Black/70 gradient overlay. H1 left-aligned with overline.",
+    "buttons": "Primary: Solid #C89B5F with black text. Secondary: Transparent with #2A2623 border and #F5F0EA text. Square or slightly rounded (rounded-sm) edges. NEVER pill-shaped.",
+    "cards": "Property cards must be flat (no heavy shadows). 1px border (#2A2623). Image wrapper overflow-hidden. Text outside or cleanly overlaid at the bottom with a dark gradient.",
+    "forms": "Inputs should have flat transparent backgrounds, border-b only or subtle #2A2623 full borders. Focus state #C89B5F.",
+    "icons": "Use lucide-react with thin stroke widths. Keep them minimal."
+  },
+  "image_urls": {
+    "hero": [
+      {
+        "url": "https://images.pexels.com/photos/31817157/pexels-photo-31817157.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Elegant modern villa with scenic views, to be used for the Hero Section background."
+      }
+    ],
+    "featured_properties": [
+      {
+        "url": "https://images.pexels.com/photos/36676879/pexels-photo-36676879.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Luxury Villa image for residential property card.",
+        "category": "residential"
+      },
+      {
+        "url": "https://images.pexels.com/photos/11861957/pexels-photo-11861957.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Sleek glass facade for commercial property card.",
+        "category": "commercial"
+      },
+      {
+        "url": "https://images.pexels.com/photos/11518541/pexels-photo-11518541.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Misty valley at sunset for plots and land property card.",
+        "category": "plots"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1748063578185-3d68121b11ff?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODl8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjB2aWxsYSUyMG1vZGVybiUyMGV2ZW5pbmd8ZW58MHx8fHwxNzgwNjUwNjA4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Modern house exterior glowing with lights.",
+        "category": "residential"
+      }
+    ],
+    "testimonials": [
+      {
+        "url": "https://images.pexels.com/photos/7580994/pexels-photo-7580994.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Confident man, for testimonial 1."
+      },
+      {
+        "url": "https://images.pexels.com/photos/7580837/pexels-photo-7580837.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Confident woman in suit, for testimonial 2."
+      }
+    ],
+    "about": [
+      {
+        "url": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODl8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjB2aWxsYSUyMG1vZGVybiUyMGV2ZW5pbmd8ZW58MHx8fHwxNzgwNjUwNjA4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Nighttime blue body of water in front of a building, use as secondary visual in About/Story section."
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Install and use 'Cormorant Garamond' (serif) for headings and 'Outfit' (sans-serif) for body text. Add them to index.html from Google Fonts.",
+    "Use framer-motion to create an elegant, staggered reveal for property cards.",
+    "For the hero background image, use a gradient overlay 'bg-gradient-to-b from-black/40 via-black/70 to-[#0A0908]' so the text is fully accessible.",
+    "Do NOT use standard card components from shadcn with heavy shadows or border radii. Use sharp corners (rounded-none or rounded-sm) and thin 1px borders (#2A2623) to emulate an editorial, high-end feel.",
+    "Every interactive element MUST have a 'data-testid' attribute (e.g., 'contact-submit-button', 'property-card-link').",
+    "Do NOT use the color teal or purple anywhere.",
+    "Structure the layout aggressively using the 'Bento Grid Protocol' (asymmetry, span-2 vs span-1) in the 'Why Choose Us' or 'Services' section.",
+    "For the 'Stats' section, use a 'Grid Borders' surface strategy (border-collapse look with 1px borders between items)."
+  ],
+  "accessibility": {
+    "contrast": "Ensure #F5F0EA text on #0A0908 meets APCA guidelines. Large text (#C89B5F) over dark backgrounds passes AA. Never use transparent headers without a scrim.",
+    "motion": "Respect prefers-reduced-motion in Framer Motion configurations.",
+    "interactive": "Include explicit hover/focus states for all buttons and inputs. E.g., focus:ring-1 focus:ring-[#C89B5F]."
+  }
+}
