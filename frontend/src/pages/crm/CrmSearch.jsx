@@ -82,10 +82,10 @@ export default function CrmSearch() {
               </h2>
               <div className="divide-y divide-gray-100">
                 {results.customers.map((c) => (
-                  <div key={c.id} className="py-2 px-2">
-                    <p className="font-semibold text-sm text-gray-900">{c.name} ({c.phone})</p>
+                  <Link key={c.id} to={`/crm/customers/${c.id}`} className="block py-2 px-2 hover:bg-gray-50/50 rounded">
+                    <p className="font-semibold text-sm text-purple-600 hover:underline">{c.name} ({c.phone})</p>
                     <p className="text-xs text-gray-500">Type: {c.type} · {c.email || ""}</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

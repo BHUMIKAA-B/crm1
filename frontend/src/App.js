@@ -35,6 +35,7 @@ import CrmDashboard from "@/pages/crm/CrmDashboard";
 import CrmLeads from "@/pages/crm/CrmLeads";
 import CrmLeadDetail from "@/pages/crm/CrmLeadDetail";
 import CrmCustomers from "@/pages/crm/CrmCustomers";
+import CrmCustomerDetail from "@/pages/crm/CrmCustomerDetail";
 import CrmRequirements from "@/pages/crm/CrmRequirements";
 import CrmProperties from "@/pages/crm/CrmProperties";
 import CrmOwners from "@/pages/crm/CrmOwners";
@@ -166,6 +167,7 @@ function AnimatedRoutes() {
           <Route path="leads" element={<CrmLeads />} />
           <Route path="leads/:id" element={<CrmLeadDetail />} />
           <Route path="customers" element={<CrmCustomers />} />
+          <Route path="customers/:id" element={<CrmCustomerDetail />} />
           <Route path="requirements" element={<CrmRequirements />} />
           <Route path="properties" element={<CrmProperties />} />
           <Route path="owners" element={<CrmOwners />} />
