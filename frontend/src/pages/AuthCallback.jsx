@@ -40,6 +40,7 @@ const AuthCallback = () => {
         navigate("/login");
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
   return <div className="min-h-screen flex items-center justify-center">Signing you in…</div>;

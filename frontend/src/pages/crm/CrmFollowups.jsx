@@ -23,6 +23,7 @@ export default function CrmFollowups() {
 
   useEffect(() => {
     fetchFollowups();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const handleStatusChange = async (id, newStatus) => {

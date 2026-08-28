@@ -24,6 +24,7 @@ export default function AdminProperties({ categoryFilter, title = "Properties" }
       .then(({ data }) => setItems(data || []))
       .finally(() => setLoading(false));
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); setSelected(new Set()); setPage(1); }, [categoryFilter]);
 
   const filtered = useMemo(() => {
