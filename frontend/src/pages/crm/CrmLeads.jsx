@@ -5,7 +5,7 @@ import { useCrmAuthStore } from "../../store/crmAuthStore";
 import { canAssignLeads, statusBadgeClass } from "../../lib/crmPermissions";
 import toast from "react-hot-toast";
 import {
-  Plus, Search, Filter, RefreshCw, User, Phone, MapPin,
+  Plus, Search, Filter, RefreshCw, User, Users, Phone, MapPin,
   ChevronDown, ChevronRight, X,
 } from "lucide-react";
 

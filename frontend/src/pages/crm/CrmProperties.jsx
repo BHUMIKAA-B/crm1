@@ -50,7 +50,7 @@ export default function CrmProperties() {
       setMatchingResults(res.data);
     } catch {
       toast.error("Failed to match properties");
-    } fontally: {
+    } finally {
       setMatchingLoading(false);
     }
   };

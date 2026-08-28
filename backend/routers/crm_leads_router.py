@@ -43,7 +43,10 @@ async def check_duplicate_lead(phone: Optional[str] = None, email: Optional[str]
         "existing_lead": active_lead
     }
 
+
+@router.post("")
 async def create_lead(lead_in: LeadCreate, emp: dict = Depends(get_current_employee)):
+
     # 1. Check for duplicates using phone number if customer info is provided
     cust_id = lead_in.customer_id
     if not cust_id and lead_in.customer:
