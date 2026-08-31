@@ -58,17 +58,18 @@ from fastapi.staticfiles import StaticFiles
 
 def _find_build_dir() -> Path:
     candidates = [
-        ROOT_DIR / "static_build",
         ROOT_DIR.parent / "frontend" / "build",
-        Path.cwd() / "backend" / "static_build",
         Path.cwd() / "frontend" / "build",
-        Path("/app/backend/static_build"),
         Path("/app/frontend/build"),
+        ROOT_DIR / "static_build",
+        Path.cwd() / "backend" / "static_build",
+        Path("/app/backend/static_build"),
     ]
     for c in candidates:
         if c.exists() and (c / "index.html").exists():
             return c
     return ROOT_DIR / "static_build"
+
 
 BUILD_DIR = _find_build_dir()
 

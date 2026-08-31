@@ -90,4 +90,4 @@ credentials.json
 
 # Temporary static build bundles
 static_build/
-backend/static_build/
+
