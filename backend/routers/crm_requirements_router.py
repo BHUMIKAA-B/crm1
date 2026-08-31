@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Optional
 import db
 from crm_models import RequirementCreate, Requirement, now_iso, new_id
-from services.rbac_service import get_current_employee
+from services.rbac_service import get_current_employee, enforce_customer_access
 
 router = APIRouter(prefix="/api/crm/requirements", tags=["crm_requirements"])
 
 @router.post("")
 async def create_requirement(req_in: RequirementCreate, emp: dict = Depends(get_current_employee)):
+    enforce_customer_access(emp)
     new_req = Requirement(**req_in.model_dump())
     doc = new_req.model_dump()
     await db.requirements().insert_one(doc)
@@ -15,6 +16,7 @@ async def create_requirement(req_in: RequirementCreate, emp: dict = Depends(get_
 
 @router.get("")
 async def list_requirements(customer_id: Optional[str] = None, emp: dict = Depends(get_current_employee)):
+    enforce_customer_access(emp)
     query = {}
     if customer_id:
         query["customer_id"] = customer_id
@@ -28,9 +30,11 @@ async def list_requirements(customer_id: Optional[str] = None, emp: dict = Depen
 
 @router.get("/{req_id}")
 async def get_requirement(req_id: str, emp: dict = Depends(get_current_employee)):
+    enforce_customer_access(emp)
     req = await db.requirements().find_one({"id": req_id}, {"_id": 0})
     if not req:
         raise HTTPException(status_code=404, detail="Requirement not found")
     cust = await db.customers().find_one({"id": req["customer_id"]}, {"_id": 0})
     req["customer"] = cust
     return req
+

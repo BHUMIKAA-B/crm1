@@ -119,14 +119,12 @@ async def list_leads(
         
     # RBAC logic
     role = emp["role"]
-    if role == "executive" or role == "trainee":
+    if role in ["executive", "trainee"]:
         # Can only see their own leads
         query["assigned_to"] = emp["id"]
     elif role == "team_lead":
         # Can see their leads and their team's leads
-        team = await db.employees().find({"reporting_manager": emp["id"]}).to_list(length=None)
-        team_ids = [t["id"] for t in team]
-        team_ids.append(emp["id"])
+        team_ids = await get_team_member_ids(emp)
         query["assigned_to"] = {"$in": team_ids}
     # founder, dpo, and bdo can see all leads
 

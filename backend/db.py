@@ -143,3 +143,8 @@ def crm_notifications():
 def crm_settings():
     return get_db()["crm_settings"]
 
+
+def teams():
+    return get_db()["teams"]
+
+

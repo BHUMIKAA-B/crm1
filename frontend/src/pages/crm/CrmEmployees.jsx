@@ -215,7 +215,7 @@ export default function CrmEmployees() {
                     {emp.created_at ? new Date(emp.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap">
-                    {["founder", "admin"].includes(employee?.role) && emp.id !== employee?.id && (
+                    {["founder", "admin", "bdo", "team_lead"].includes(employee?.role) && emp.id !== employee?.id && (
                       <div className="flex gap-1.5">
                         {emp.status !== "active" && (
                           <button onClick={() => updateStatus(emp.id, "active")}
@@ -226,7 +226,7 @@ export default function CrmEmployees() {
                         {emp.status === "active" && (
                           <button onClick={() => updateStatus(emp.id, "suspended")}
                             className="px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 rounded hover:bg-amber-100">
-                            Suspend
+                            Deactivate
                           </button>
                         )}
                         {emp.status !== "exited" && (
@@ -241,6 +241,7 @@ export default function CrmEmployees() {
                       <span className="text-xs text-gray-400 italic">You</span>
                     )}
                   </td>
+
                 </tr>
               ))}
             </tbody>

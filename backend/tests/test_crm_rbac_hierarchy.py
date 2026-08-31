@@ -104,9 +104,9 @@ def test_rule_11_team_lead_creation_requires_team_scope():
 
 
 # ---------------------------------------------------------------------------
-# Rule 12 — BDO, Executive, Trainee CANNOT create any employee (all return 403)
+# Rule 12 — Executive, Trainee, DPO CANNOT create any employee (all return 403)
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("non_creator_role", ["bdo", "executive", "trainee"])
+@pytest.mark.parametrize("non_creator_role", ["executive", "trainee"])
 def test_rule_12_non_creators_cannot_create_any_employee(non_creator_role):
     all_roles = ["founder", "dpo", "bdo", "team_lead", "executive", "trainee"]
     for target in all_roles:
@@ -146,11 +146,6 @@ def test_trainee_cannot_access_audit_logs():
     assert can_access_audit_logs(emp) is False
 
 
-def test_bdo_cannot_access_audit_logs():
-    emp = {"role": "bdo"}
-    assert can_access_audit_logs(emp) is False
-
-
 def test_founder_can_access_audit_logs():
     emp = {"role": "founder"}
     assert can_access_audit_logs(emp) is True
@@ -165,6 +160,12 @@ def test_founder_allowed_roles_complete():
         assert r in roles, f"Founder should be able to create {r}"
 
 
+def test_bdo_allowed_roles_complete():
+    roles = allowed_target_roles_for_creator("bdo")
+    for r in ["team_lead", "executive", "trainee"]:
+        assert r in roles, f"BDO should be able to create {r}"
+
+
 def test_team_lead_allowed_roles_exact():
     roles = allowed_target_roles_for_creator("team_lead")
     assert set(roles) == {"executive", "trainee"}, (
@@ -173,7 +174,8 @@ def test_team_lead_allowed_roles_exact():
 
 
 def test_non_creator_allowed_roles_empty():
-    for role in ["bdo", "executive", "trainee", "dpo"]:
+    for role in ["executive", "trainee", "dpo"]:
         assert allowed_target_roles_for_creator(role) == [], (
             f"{role} should have no allowed target roles"
         )
+

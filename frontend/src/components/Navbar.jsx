@@ -128,15 +128,6 @@ const Navbar = () => {
           {!isAuthed ? (
             <>
               <ThemeToggle />
-              {/* CRM Button — unauthenticated desktop */}
-              <Link
-                to="/crm-access"
-                data-testid="nav-crm-btn"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-sm hover:shadow transition-all duration-300 transform hover:-translate-y-0.5"
-              >
-                <Building2 size={14} />
-                CRM Portal
-              </Link>
               <Link
                 to="/login"
                 data-testid="nav-login"
@@ -156,15 +147,6 @@ const Navbar = () => {
             <>
               <ThemeToggle />
               <NotificationsDropdown />
-              {/* CRM Button — authenticated desktop */}
-              <Link
-                to="/crm-access"
-                data-testid="nav-crm-btn-authed"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-sm hover:shadow transition-all duration-300 transform hover:-translate-y-0.5"
-              >
-                <Building2 size={14} />
-                CRM Portal
-              </Link>
               <div className="relative" ref={userRef}>
                 <button
                   onClick={() => setMenu((s) => !s)}
@@ -271,17 +253,7 @@ const Navbar = () => {
               <MessageCircle size={16} className="text-vs-gold" />
               <span>AI Assistant</span>
             </NavLink>
-            <div className="border-t border-vs-border my-4" />
-            {/* CRM Button — mobile menu */}
-            <Link
-              to="/crm-access"
-              data-testid="nav-crm-btn-mobile"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2 py-2.5 text-sm font-semibold text-vs-text-secondary hover:text-vs-gold transition-colors"
-            >
-              <Building2 size={15} className="text-vs-gold" />
-              CRM
-            </Link>
+
             <div className="border-t border-vs-border my-4" />
             <div className="flex items-center justify-between py-1">
               <span className="text-sm font-medium text-vs-text-secondary">Appearance</span>

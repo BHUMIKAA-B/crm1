@@ -19,6 +19,8 @@ async def create_employee(body: EmployeeCreate, emp: dict = Depends(get_current_
     allowed_target_roles = []
     if creator_role in ["founder", "admin"]:
         allowed_target_roles = ["dpo", "bdo", "team_lead", "executive", "trainee"]
+    elif creator_role == "bdo":
+        allowed_target_roles = ["team_lead", "executive", "trainee"]
     elif creator_role == "team_lead":
         allowed_target_roles = ["executive", "trainee"]
     else:
@@ -45,7 +47,7 @@ async def create_employee(body: EmployeeCreate, emp: dict = Depends(get_current_
         reporting_mgr = emp["id"]
     else:
         team_id = body.team_id or (emp["id"] if body.role in ["executive", "trainee"] else None)
-        reporting_mgr = body.reporting_manager or (emp["id"] if creator_role in ["founder", "admin"] else None)
+        reporting_mgr = body.reporting_manager or (emp["id"] if creator_role in ["founder", "admin", "bdo"] else None)
 
     existing = await db.employees().find_one({"email": body.email.strip().lower()})
     if existing:
@@ -60,7 +62,7 @@ async def create_employee(body: EmployeeCreate, emp: dict = Depends(get_current_
         email=body.email.strip().lower(),
         phone=body.phone.strip(),
         role=body.role,
-        department=body.department or ("Sales Team" if creator_role == "team_lead" else "Operations"),
+        department=body.department or ("Sales Team" if creator_role in ["team_lead", "bdo"] else "Operations"),
         team_id=team_id,
         reporting_manager=reporting_mgr,
         created_by=emp["id"],
@@ -102,7 +104,7 @@ async def list_employees(emp: dict = Depends(get_current_employee)):
             mgr = await db.employees().find_one({"id": e["reporting_manager"]}, {"_id": 0, "name": 1})
             e["reporting_manager_name"] = mgr.get("name") if mgr else e["reporting_manager"]
 
-    if role not in ["founder", "admin", "team_lead", "dpo"]:
+    if role not in ["founder", "admin", "bdo", "team_lead", "dpo"]:
         # Strip sensitive fields for basic view
         employees = [
             {"id": e["id"], "name": e["name"], "role": e["role"], "employee_id": e.get("employee_id"), "department": e.get("department")}
@@ -117,9 +119,15 @@ async def get_employee(employee_id: str, emp: dict = Depends(get_current_employe
     if not target:
         raise HTTPException(status_code=404, detail="Employee not found")
 
-    # Only Founder/Admin or the employee themselves can view full details
-    if emp["role"] not in WRITE_ROLES and emp["id"] != employee_id:
-        raise HTTPException(status_code=403, detail="Not authorised")
+    # Founder/Admin/BDO or Team Lead (for own member) or employee themselves can view full details
+    role = emp["role"]
+    if role not in ["founder", "admin", "bdo"] and emp["id"] != employee_id:
+        if role == "team_lead":
+            team_id = emp.get("team_id") or emp["id"]
+            if target.get("team_id") != team_id and target.get("reporting_manager") != emp["id"]:
+                raise HTTPException(status_code=403, detail="Not authorised")
+        else:
+            raise HTTPException(status_code=403, detail="Not authorised")
 
     return target
 
@@ -127,27 +135,40 @@ async def get_employee(employee_id: str, emp: dict = Depends(get_current_employe
 @router.patch("/{employee_id}/status")
 async def update_employee_status(
     employee_id: str,
-    status: str,
+    status: Optional[str] = None,
+    body: Optional[dict] = None,
     emp: dict = Depends(get_current_employee),
 ):
-    if emp["role"] not in WRITE_ROLES:
-        raise HTTPException(status_code=403, detail="Only Founder/Admin can change employee status")
+    new_status = status or (body.get("status") if body else None)
+    role = emp["role"]
+    if role not in ["founder", "admin", "bdo", "team_lead"]:
+        raise HTTPException(status_code=403, detail="Not authorized to change employee status")
 
-    allowed = {"active", "suspended", "exited"}
-    if status not in allowed:
+    target = await db.employees().find_one({"id": employee_id})
+    if not target:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    if role == "team_lead":
+        team_id = emp.get("team_id") or emp["id"]
+        if target.get("team_id") != team_id and target.get("reporting_manager") != emp["id"]:
+            raise HTTPException(status_code=403, detail="Team Lead can only modify status for team members")
+
+    allowed = {"active", "suspended", "inactive", "exited"}
+    if new_status not in allowed:
         raise HTTPException(status_code=422, detail=f"Status must be one of {allowed}")
 
     await db.employees().update_one(
         {"id": employee_id},
-        {"$set": {"status": status, "updated_at": now_iso()}},
+        {"$set": {"status": new_status, "updated_at": now_iso()}},
     )
 
     from crm_models import AuditLog
     log = AuditLog(who=emp["id"], action="update_employee_status", entity="employee",
-                   entity_id=employee_id, field="status", new_value=status)
+                   entity_id=employee_id, field="status", new_value=new_status)
     await db.audit_logs().insert_one(log.model_dump())
 
-    return {"message": f"Employee status updated to {status}"}
+    return {"message": f"Employee status updated to {new_status}"}
+
 
 
 @router.get("/{employee_id}/performance")

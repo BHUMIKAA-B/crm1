@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Optional
 import db
 from crm_models import SiteVisit, SiteVisitFeedback, now_iso, new_id, AuditLog
-from services.rbac_service import get_current_employee
+from services.rbac_service import get_current_employee, get_team_member_ids
 
 router = APIRouter(prefix="/api/crm/site-visits", tags=["crm_site_visits"])
 
@@ -21,6 +21,7 @@ async def schedule_site_visit(data: dict, emp: dict = Depends(get_current_employ
     )
     doc = visit.model_dump()
     doc["visit_id"] = display_id
+    doc["created_by"] = emp["id"]
     await db.site_visits().insert_one(doc)
     
     await db.audit_logs().insert_one(AuditLog(who=emp["id"], action="schedule_office_visit", entity="office_visit", entity_id=visit.id).model_dump())
@@ -30,8 +31,13 @@ async def schedule_site_visit(data: dict, emp: dict = Depends(get_current_employ
 async def list_site_visits(status: Optional[str] = None, emp: dict = Depends(get_current_employee)):
     query = {}
     role = emp["role"]
-    if role in ["executive", "trainee"]:
-        query["employee_id"] = emp["id"]
+    if role in ["executive", "trainee", "dpo"]:
+        query["$or"] = [{"employee_id": emp["id"]}, {"created_by": emp["id"]}]
+    elif role == "team_lead":
+        member_ids = await get_team_member_ids(emp)
+        query["$or"] = [{"employee_id": {"$in": member_ids}}, {"created_by": {"$in": member_ids}}]
+    # Founder, Admin, and BDO see all site/office visits
+
     if status:
         query["status"] = status
         
@@ -54,6 +60,16 @@ async def get_site_visit(visit_id: str, emp: dict = Depends(get_current_employee
     visit = await db.site_visits().find_one({"$or": [{"id": visit_id}, {"visit_id": visit_id}]}, {"_id": 0})
     if not visit:
         raise HTTPException(status_code=404, detail="Site visit not found")
+        
+    role = emp["role"]
+    if role in ["executive", "trainee", "dpo"]:
+        if visit.get("employee_id") != emp["id"] and visit.get("created_by") != emp["id"]:
+            raise HTTPException(status_code=403, detail="Not authorized to view this office visit")
+    elif role == "team_lead":
+        member_ids = await get_team_member_ids(emp)
+        if visit.get("employee_id") not in member_ids and visit.get("created_by") not in member_ids:
+            raise HTTPException(status_code=403, detail="Not authorized to view this office visit")
+
     cust = await db.customers().find_one({"id": visit["customer_id"]}, {"_id": 0})
     visit["customer"] = cust
     return visit
@@ -64,6 +80,11 @@ async def submit_site_visit_feedback(visit_id: str, feedback: SiteVisitFeedback,
     if not visit:
         raise HTTPException(status_code=404, detail="Site visit not found")
         
+    role = emp["role"]
+    if role in ["executive", "trainee"]:
+        if visit.get("employee_id") != emp["id"] and visit.get("created_by") != emp["id"]:
+            raise HTTPException(status_code=403, detail="Not authorized to submit feedback for this office visit")
+
     fb_doc = feedback.model_dump()
     await db.site_visits().update_one(
         {"id": visit["id"]},
@@ -75,4 +96,5 @@ async def submit_site_visit_feedback(visit_id: str, feedback: SiteVisitFeedback,
     )
     
     await db.audit_logs().insert_one(AuditLog(who=emp["id"], action="site_visit_feedback", entity="site_visit", entity_id=visit["id"]).model_dump())
-    return {"message": "Site visit feedback submitted"}
+    return {"message": "Office visit feedback submitted"}
+

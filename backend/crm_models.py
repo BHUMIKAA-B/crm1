@@ -46,6 +46,22 @@ class EmployeeLogin(BaseModel):
     email: EmailStr
     password: str
 
+# ---------- Team ----------
+class Team(BaseModel):
+    id: str = Field(default_factory=new_id)
+    team_id: str
+    name: str
+    team_leader_id: str
+    status: Literal["active", "inactive"] = "active"
+    created_by: str
+    created_at: str = Field(default_factory=now_iso)
+    updated_at: str = Field(default_factory=now_iso)
+
+class TeamCreate(BaseModel):
+    name: str
+    team_leader_id: str
+
+
 # ---------- Customer ----------
 class Customer(BaseModel):
     id: str = Field(default_factory=new_id)
@@ -204,20 +220,53 @@ class PropertyOwner(BaseModel):
     email: Optional[EmailStr] = None
     address: str = ""
     properties_owned: List[str] = [] # List of Property IDs
-    assigned_employee: str # Employee ID
+    assigned_employee: Optional[str] = None # Employee ID
+    team_id: Optional[str] = None # Team ID
+    source: Literal["manual_crm", "public_website"] = "manual_crm"
+    created_by: Optional[str] = None # Employee ID
+    status: Literal["active", "inactive"] = "active"
     notes: str = ""
     created_at: str = Field(default_factory=now_iso)
+    updated_at: str = Field(default_factory=now_iso)
 
 class Broker(BaseModel):
     id: str = Field(default_factory=new_id)
     broker_id: str # VS-BROK-000001
     name: str
     phone: str
+    company: str = ""
     area: str = ""
     specialization: str = ""
     reliability: int = 3 # 1-5
-    assigned_employee: str # Employee ID
+    assigned_employee: Optional[str] = None # Employee ID
+    created_by: Optional[str] = None # Employee ID
+    status: Literal["active", "inactive"] = "active"
+    notes: str = ""
     created_at: str = Field(default_factory=now_iso)
+    updated_at: str = Field(default_factory=now_iso)
+
+class CommissionEnroll(BaseModel):
+    executive_id: str
+    deal_id: str
+    amount: float
+    percentage: float = 0.0
+    notes: str = ""
+
+class CommissionRecord(BaseModel):
+    id: str = Field(default_factory=new_id)
+    commission_id: str # VS-COMM-000001
+    executive_id: str
+    team_id: str
+    deal_id: str
+    property_id: Optional[str] = None
+    amount: float
+    percentage: float = 0.0
+    status: Literal["enrolled", "approved", "disbursed", "cancelled"] = "enrolled"
+    notes: str = ""
+    enrolled_by: str # Employee ID of Team Leader / Founder
+    created_at: str = Field(default_factory=now_iso)
+    updated_at: str = Field(default_factory=now_iso)
+
 
 class SiteVisitFeedback(BaseModel):
     interested: bool

@@ -43,10 +43,43 @@ export function canManageEmployees(role) {
   return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.TEAM_LEAD].includes(role);
 }
 
+/** CAN see customer database & requirements (Founder & BDO only). */
+export function canAccessCustomers(role) {
+  return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.BDO].includes(role);
+}
+
+/** CAN see broker section (Founder & BDO only). */
+export function canAccessBrokers(role) {
+  return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.BDO].includes(role);
+}
+
+/** CAN access owner section (Founder, BDO, Team Lead). */
+export function canAccessOwners(role) {
+  return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.BDO, ROLES.TEAM_LEAD].includes(role);
+}
+
+/** CAN manage or view teams (Founder, BDO, Team Lead). */
+export function canAccessTeams(role) {
+  return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.BDO, ROLES.TEAM_LEAD].includes(role);
+}
+
+/** CAN enroll commissions (Founder, BDO, Team Lead). */
+export function canEnrollCommission(role) {
+  return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.BDO, ROLES.TEAM_LEAD].includes(role);
+}
+
+/** CAN view audit logs (Founder, Admin, BDO, Team Lead, DPO). */
+export function canAccessAuditLogs(role) {
+  return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.BDO, ROLES.TEAM_LEAD, ROLES.DPO].includes(role);
+}
+
 /** Allowed target roles that `userRole` can create in employee management. */
 export function allowedCreatableRoles(role) {
   if ([ROLES.FOUNDER, ROLES.ADMIN].includes(role)) {
     return [ROLES.DPO, ROLES.BDO, ROLES.TEAM_LEAD, ROLES.EXECUTIVE, ROLES.TRAINEE];
+  }
+  if (role === ROLES.BDO) {
+    return [ROLES.TEAM_LEAD, ROLES.EXECUTIVE, ROLES.TRAINEE];
   }
   if (role === ROLES.TEAM_LEAD) {
     return [ROLES.EXECUTIVE, ROLES.TRAINEE];
@@ -56,13 +89,14 @@ export function allowedCreatableRoles(role) {
 
 /** CAN create deals. */
 export function canCreateDeals(role) {
-  return [ROLES.TEAM_LEAD, ROLES.BDO, ROLES.FOUNDER, ROLES.ADMIN].includes(role);
+  return [ROLES.TEAM_LEAD, ROLES.BDO, ROLES.FOUNDER, ROLES.ADMIN, ROLES.EXECUTIVE].includes(role);
 }
 
 /** CAN view all leads (not just own). */
 export function canViewAllLeads(role) {
   return [ROLES.TEAM_LEAD, ROLES.BDO, ROLES.DPO, ROLES.FOUNDER, ROLES.ADMIN].includes(role);
 }
+
 
 /** Returns the role display label. */
 export function roleLabel(role) {

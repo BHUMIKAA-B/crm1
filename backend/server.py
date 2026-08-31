@@ -32,6 +32,7 @@ from routers.crm_deals_router import router as crm_deals_router
 from routers.crm_customers_router import router as crm_customers_router
 from routers.crm_tasks_router import router as crm_tasks_router
 from routers.crm_employees_router import router as crm_employees_router
+from routers.crm_teams_router import router as crm_teams_router
 from routers.crm_reports_router import router as crm_reports_router
 from routers.crm_search_router import router as crm_search_router
 from routers.crm_requirements_router import router as crm_requirements_router
@@ -111,6 +112,7 @@ app.include_router(crm_requirements_router)
 app.include_router(crm_tasks_router)
 app.include_router(crm_followups_router)
 app.include_router(crm_employees_router)
+app.include_router(crm_teams_router)
 app.include_router(crm_properties_router)
 app.include_router(crm_owners_router)
 app.include_router(crm_brokers_router)

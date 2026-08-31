@@ -56,9 +56,51 @@ def can_access_dpo_records(employee: dict) -> bool:
 def allowed_target_roles_for_creator(creator_role: str) -> List[str]:
     if creator_role in ["founder", "admin"]:
         return ["dpo", "bdo", "team_lead", "executive", "trainee"]
+    elif creator_role == "bdo":
+        return ["team_lead", "executive", "trainee"]
     elif creator_role == "team_lead":
         return ["executive", "trainee"]
     return []
+
+async def get_team_member_ids(employee: dict) -> List[str]:
+    """Retrieve all employee IDs that belong to the employee's team scope."""
+    emp_id = employee["id"]
+    team_id = employee.get("team_id") or emp_id
+    
+    query = {"$or": [{"reporting_manager": emp_id}, {"team_id": team_id}, {"id": emp_id}]}
+    cursor = db.employees().find(query, {"_id": 0, "id": 1})
+    members = await cursor.to_list(length=1000)
+    member_ids = list({m["id"] for m in members})
+    if emp_id not in member_ids:
+        member_ids.append(emp_id)
+    return member_ids
+
+async def build_scope_query(employee: dict, field_name: str = "assigned_to") -> dict:
+    """Build a MongoDB query filter enforcing strict role/team data scoping."""
+    role = employee.get("role")
+    if role in ["founder", "admin", "bdo"]:
+        return {}
+    elif role == "team_lead":
+        member_ids = await get_team_member_ids(employee)
+        return {field_name: {"$in": member_ids}}
+    else: # executive, trainee, dpo
+        return {field_name: employee["id"]}
+
+def enforce_customer_access(employee: dict) -> None:
+    """Customer data and customer requirements are visible ONLY to Founder and BDO."""
+    if employee.get("role") not in ["founder", "admin", "bdo"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Customer data and requirements are restricted to Founder and BDO."
+        )
+
+def enforce_broker_access(employee: dict) -> None:
+    """Broker section access is restricted strictly to Founder and BDO."""
+    if employee.get("role") not in ["founder", "admin", "bdo"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Broker section access is restricted to Founder and BDO."
+        )
 
 def sanitize_deal_for_employee(deal: dict, employee: dict) -> dict:
     d = dict(deal)
@@ -77,4 +119,5 @@ def sanitize_deal_for_employee(deal: dict, employee: dict) -> dict:
         d["employee_commission_share"] = None
         d["broker_commission_share"] = None
     return d
+
 

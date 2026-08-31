@@ -2,11 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import crmApi from "../../api/crmClient";
 import { useCrmAuthStore } from "../../store/crmAuthStore";
-import { canAssignLeads, statusBadgeClass } from "../../lib/crmPermissions";
+import { canAssignLeads, statusBadgeClass, formatCurrency } from "../../lib/crmPermissions";
 import toast from "react-hot-toast";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Clock, ChevronRight,
-  Edit2, UserCheck, RefreshCw,
+  Edit2, UserCheck, RefreshCw, Handshake, X
 } from "lucide-react";
 
 const STATUSES = [
@@ -53,21 +53,32 @@ export default function CrmLeadDetail() {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [properties, setProperties] = useState([]);
+
+  // Deal creation modal state on TOKEN RECEIVED status
+  const [showDealModal, setShowDealModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState("");
+  const [dealValue, setDealValue] = useState("");
+  const [expectedComm, setExpectedComm] = useState("");
+  const [selectedPropId, setSelectedPropId] = useState("");
+  const [submittingDeal, setSubmittingDeal] = useState(false);
 
   const fetch = useCallback(async () => {
     try {
       setLoading(true);
-      const [leadRes, empRes] = await Promise.all([
+      const [leadRes, empRes, propRes] = await Promise.all([
         crmApi.get(`/leads/${id}`),
         crmApi.get("/employees"),
+        crmApi.get("/properties"),
       ]);
       setLead(leadRes.data);
-      setEmployees(empRes.data);
+      setEmployees(empRes.data || []);
+      setProperties(propRes.data || []);
     } catch (err) {
       if (err.response?.status === 403) {
         toast.error("You don't have permission to view this lead.");
       } else {
-        toast.error("Failed to load lead");
+        toast.error("Failed to load lead details");
       }
     } finally {
       setLoading(false);
@@ -76,16 +87,56 @@ export default function CrmLeadDetail() {
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  const handleStatusClick = (newStatus) => {
+    if (newStatus === "token" || newStatus === "token_received" || newStatus === "agreement" || newStatus === "registration") {
+      setPendingStatus(newStatus);
+      setShowDealModal(true);
+    } else {
+      updateStatus(newStatus);
+    }
+  };
+
   const updateStatus = async (newStatus) => {
     setUpdatingStatus(true);
     try {
       await crmApi.patch(`/leads/${id}/status`, null, { params: { status: newStatus } });
-      toast.success("Status updated");
+      toast.success(`Status updated to ${newStatus.replace(/_/g, " ")}`);
       setLead((l) => ({ ...l, status: newStatus }));
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to update");
+      toast.error(err.response?.data?.detail || "Failed to update status");
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleCreateDealWithStatus = async (e) => {
+    e.preventDefault();
+    if (!dealValue || !selectedPropId) {
+      toast.error("Please enter Deal Value and select Property");
+      return;
+    }
+    setSubmittingDeal(true);
+    try {
+      // 1. Update lead status to token/pendingStatus
+      await crmApi.patch(`/leads/${id}/status`, null, { params: { status: pendingStatus } });
+
+      // 2. Create deal record
+      const dealPayload = {
+        customer_id: lead.customer_id,
+        property_id: selectedPropId,
+        final_deal_value: parseFloat(dealValue),
+        expected_commission: parseFloat(expectedComm || "0"),
+        assigned_employee: lead.assigned_to
+      };
+      const dealRes = await crmApi.post("/deals", dealPayload);
+      toast.success(dealRes.data?.message || "Token Received status set & Deal created successfully!");
+      
+      setShowDealModal(false);
+      fetch();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to initiate deal workflow");
+    } finally {
+      setSubmittingDeal(false);
     }
   };
 
@@ -157,13 +208,13 @@ export default function CrmLeadDetail() {
 
           {/* Update Status */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Update Status</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Update Lead Workflow Status</h2>
             <div className="flex flex-wrap gap-2">
               {STATUSES.map((s) => (
                 <button
                   key={s}
                   disabled={updatingStatus || lead.status === s}
-                  onClick={() => updateStatus(s)}
+                  onClick={() => handleStatusClick(s)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                     lead.status === s
                       ? "bg-blue-600 text-white border-blue-600 shadow-sm"
@@ -198,12 +249,14 @@ export default function CrmLeadDetail() {
                   <p className="text-xs text-gray-500">{cust.phone}</p>
                 </div>
               </div>
-              <Link
-                to={`/crm/customers/${cust.id}`}
-                className="block text-center text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 py-2 rounded-lg transition-colors"
-              >
-                View Customer Profile →
-              </Link>
+              {["founder", "admin", "bdo"].includes(employee?.role) && (
+                <Link
+                  to={`/crm/customers/${cust.id}`}
+                  className="block text-center text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 py-2 rounded-lg transition-colors"
+                >
+                  View Customer Profile →
+                </Link>
+              )}
             </div>
           )}
 
@@ -231,6 +284,73 @@ export default function CrmLeadDetail() {
           )}
         </div>
       </div>
+
+      {/* Deal Details Modal (Triggered on Token Received) */}
+      {showDealModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Handshake className="w-5 h-5 text-amber-500" />
+                <h2 className="text-lg font-bold text-gray-900">Initiate Deal Details</h2>
+              </div>
+              <button onClick={() => setShowDealModal(false)}><X className="w-5 h-5 text-gray-400 hover:text-gray-600" /></button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Lead status is updating to <strong>{pendingStatus?.toUpperCase()}</strong>. Enter deal specifications to create the Deal record.
+            </p>
+            <form onSubmit={handleCreateDealWithStatus} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Select Property *</label>
+                <select
+                  required value={selectedPropId} onChange={(e) => setSelectedPropId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 bg-white"
+                >
+                  <option value="">Select Property...</option>
+                  {properties.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title} - {formatCurrency(p.price)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Final Deal Value (₹) *</label>
+                <input
+                  type="number" required min="0" value={dealValue} onChange={(e) => setDealValue(e.target.value)}
+                  placeholder="e.g. 15000000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Expected Company Commission (₹)</label>
+                <input
+                  type="number" min="0" value={expectedComm} onChange={(e) => setExpectedComm(e.target.value)}
+                  placeholder="e.g. 300000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button" onClick={() => setShowDealModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit" disabled={submittingDeal}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                >
+                  {submittingDeal ? "Processing..." : "Create Deal & Update Status"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,13 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 import db
 from crm_models import CustomerCreate, Customer, now_iso
-from services.rbac_service import get_current_employee
+from services.rbac_service import get_current_employee, enforce_customer_access
 
 router = APIRouter(prefix="/api/crm/customers", tags=["crm_customers"])
 
 
 @router.post("")
 async def create_customer(body: CustomerCreate, emp: dict = Depends(get_current_employee)):
+    enforce_customer_access(emp)
     # Duplicate phone check
     existing = await db.customers().find_one({"phone": body.phone})
     if existing:
@@ -29,17 +30,8 @@ async def list_customers(
     q: Optional[str] = None,
     emp: dict = Depends(get_current_employee),
 ):
-    role = emp["role"]
+    enforce_customer_access(emp)
     query: dict = {}
-
-    # Restrict non-senior roles to customers of leads they own
-    if role in ["executive", "trainee"]:
-        # find customer IDs from their leads
-        my_leads = await db.leads().find(
-            {"assigned_to": emp["id"]}, {"customer_id": 1}
-        ).to_list(length=500)
-        cust_ids = list({l["customer_id"] for l in my_leads})
-        query["id"] = {"$in": cust_ids}
 
     if q:
         query["$or"] = [
@@ -55,18 +47,10 @@ async def list_customers(
 
 @router.get("/{customer_id}")
 async def get_customer(customer_id: str, emp: dict = Depends(get_current_employee)):
+    enforce_customer_access(emp)
     cust = await db.customers().find_one({"id": customer_id}, {"_id": 0})
     if not cust:
         raise HTTPException(status_code=404, detail="Customer not found")
-
-    role = emp["role"]
-    if role in ["executive", "trainee"]:
-        # Verify this employee owns a lead for this customer
-        lead = await db.leads().find_one(
-            {"customer_id": customer_id, "assigned_to": emp["id"]}
-        )
-        if not lead:
-            raise HTTPException(status_code=403, detail="Not authorised")
 
     # Enrich with leads & requirements
     leads = await db.leads().find(
@@ -80,3 +64,4 @@ async def get_customer(customer_id: str, emp: dict = Depends(get_current_employe
     ).to_list(length=20)
 
     return {**cust, "leads": leads, "requirements": reqs, "site_visits": visits}
+

@@ -70,8 +70,16 @@ const Footer = () => (
         <div>© {new Date().getFullYear()} VisitSarva. All rights reserved.</div>
         <div className="flex items-center gap-6">
           <span className="tracking-wider">India · Zero Brokerage Platform</span>
+          <Link
+            to="/crm-access"
+            data-testid="footer-employee-access"
+            className="text-vs-text-muted hover:text-vs-gold text-xs transition-colors duration-300 flex items-center gap-1 opacity-70 hover:opacity-100"
+          >
+            <span>Employee Access</span>
+          </Link>
         </div>
       </div>
+
     </div>
   </footer>
 );

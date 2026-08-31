@@ -1,17 +1,46 @@
-# Role-Based Access Control (RBAC)
+# Role-Based Access Control (RBAC) & Scoping Specifications
 
-The CRM uses a robust RBAC mechanism enforced at the API layer.
+VisitSarva CRM enforces strict role-based access control (RBAC) and team-based data scoping at the API layer in `backend/services/rbac_service.py`.
 
-## Roles
-1. **TRAINEE**: Lowest access. Can only see their own assigned leads, properties, and tasks. No financial visibility.
-2. **EXECUTIVE**: Core salesperson. Owns leads and handles them through to deals. Can only see their own commissions.
-3. **TEAM LEAD**: Manages a team of executives/trainees. Can reassign leads among their team. Sees their team's data.
-4. **BDO (Business Development Officer)**: Focuses on acquisitions, brokers, owners, and large partnerships.
-5. **FOUNDER / ADMIN**: Unrestricted global access. Has complete view of all leads, financial records, total revenue, and can manage employees.
+## Roles & Organizational Hierarchy
 
-## Implementation
-RBAC is implemented in `backend/services/rbac_service.py` via FastAPI dependency injection:
-- `get_current_employee` decodes the internal JWT.
-- `require_employee_roles` restricts endpoints to specific roles.
+1. **FOUNDER / ADMIN**
+   - Organization-wide access to all data (Leads, Customers, Requirements, Teams, Properties, Owners, Brokers, Deals, Office Visits, Commissions, Reports, Audit Logs, Employees).
+   - Creation of DPO, BDO, Team Lead, Executive, and Trainee accounts.
+   - Account activation and deactivation.
+   - Manual entry of Owners and Brokers.
 
-Data sanitization occurs on the model serialization step (e.g. `sanitize_deal_for_employee`) where sensitive fields like `actual_commission` are stripped from the response for unauthorized users.
+2. **BDO (Business Development Officer)**
+   - Access to Customers & Requirements database (restricted exclusively to Founder & BDO).
+   - Manual Broker entry and channel partner directory (restricted exclusively to Founder & BDO).
+   - Access to Property Owners directory.
+   - Team Creation & Employee Management for teams under BDO scope.
+   - Full organization-wide lead & deal overview.
+
+3. **TEAM LEADER**
+   - Creation & management of Executive and Trainee accounts within their own team.
+   - Account activation/deactivation for team members.
+   - Manual entry of Property Owners (`source: "manual_crm"`) for their team.
+   - Office Visit feedback oversight for team members.
+   - Commission enrollment for Executives in their own team.
+   - Lead & Deal access scoped to their team member accounts (`get_team_member_ids`).
+
+4. **EXECUTIVE**
+   - Handles assigned leads, office visits, negotiations, and deals.
+   - Enters feedback for assigned Office Visits (`/api/crm/site-visits/{id}/feedback`).
+   - Access restricted to assigned records and own team scope.
+   - No access to Customer database, Requirements database, or Broker directory.
+
+5. **TRAINEE**
+   - Learner role with access strictly limited to assigned leads, tasks, and properties.
+   - No access to financial figures, commission enrollment, customer database, or broker directory.
+
+6. **DPO (Data Protection Officer)**
+   - Access to Audit Logs (`/api/crm/audit-logs`), compliance records, and security features.
+   - No customer database access or employee account creation permissions.
+
+## Data Scoping Mechanics
+
+- `get_team_member_ids(employee)` computes all employee IDs under a Team Leader or BDO.
+- MongoDB queries filter lead, deal, office visit, and owner records using `$in: member_ids` or `$or: [{"assigned_to": {"$in": member_ids}}, ...]`.
+- Customer Database & Brokers APIs throw `HTTPException(403)` unless `employee["role"] in ["founder", "admin", "bdo"]`.

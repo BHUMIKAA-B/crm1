@@ -13,25 +13,27 @@ import { roleLabel, roleBadgeClass } from "../../lib/crmPermissions";
 const NAV = [
   { name: "Dashboard", to: "/crm/dashboard", icon: LayoutDashboard, roles: null },
   { name: "Leads", to: "/crm/leads", icon: Users, roles: null },
-  { name: "Customers", to: "/crm/customers", icon: UserCheck, roles: null },
-  { name: "Requirements", to: "/crm/requirements", icon: FileText, roles: null },
+  { name: "Customers", to: "/crm/customers", icon: UserCheck, roles: ["bdo", "founder", "admin"] },
+  { name: "Requirements", to: "/crm/requirements", icon: FileText, roles: ["bdo", "founder", "admin"] },
+  { name: "Teams", to: "/crm/teams", icon: Users, roles: ["team_lead", "bdo", "founder", "admin"] },
   { name: "Properties", to: "/crm/properties", icon: Building2, roles: null },
-  { name: "Owners", to: "/crm/owners", icon: Shield, roles: ["bdo", "founder", "admin"] },
+  { name: "Owners", to: "/crm/owners", icon: Shield, roles: ["team_lead", "bdo", "founder", "admin"] },
   { name: "Brokers", to: "/crm/brokers", icon: Building, roles: ["bdo", "founder", "admin"] },
   { name: "Tasks", to: "/crm/tasks", icon: CalendarCheck, roles: null },
   { name: "Follow-ups", to: "/crm/followups", icon: Clock, roles: null },
   { name: "Office Visits", to: "/crm/site-visits", icon: ClipboardList, roles: null },
   { name: "Property Shares", to: "/crm/property-shares", icon: Share2, roles: null },
   { name: "Negotiations", to: "/crm/negotiations", icon: MessageSquare, roles: null },
-  { name: "Deals", to: "/crm/deals", icon: Handshake, roles: ["team_lead", "bdo", "founder", "admin"] },
+  { name: "Deals", to: "/crm/deals", icon: Handshake, roles: ["executive", "team_lead", "bdo", "founder", "admin"] },
   { name: "Documents", to: "/crm/documents", icon: FolderGit2, roles: null },
   { name: "Payments", to: "/crm/payments", icon: CreditCard, roles: ["team_lead", "bdo", "founder", "admin"] },
   { name: "Commissions", to: "/crm/commissions", icon: DollarSign, roles: ["executive", "team_lead", "bdo", "founder", "admin"] },
-  { name: "Reports", to: "/crm/reports", icon: BarChart3, roles: ["team_lead", "bdo", "founder", "admin"] },
-  { name: "Employees", to: "/crm/employees", icon: TrendingUp, roles: ["team_lead", "founder", "admin"] },
-  { name: "Audit Logs", to: "/crm/audit-logs", icon: ShieldAlert, roles: ["founder", "admin"] },
+  { name: "Reports", to: "/crm/reports", icon: BarChart3, roles: ["executive", "team_lead", "bdo", "founder", "admin"] },
+  { name: "Employees", to: "/crm/employees", icon: TrendingUp, roles: ["team_lead", "bdo", "founder", "admin"] },
+  { name: "Audit Logs", to: "/crm/audit-logs", icon: ShieldAlert, roles: ["team_lead", "bdo", "dpo", "founder", "admin"] },
   { name: "Settings", to: "/crm/settings", icon: Settings, roles: ["founder", "admin"] },
 ];
+
 
 
 export default function CrmLayout() {
