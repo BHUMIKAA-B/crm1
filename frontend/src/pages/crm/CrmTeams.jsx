@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import crmApi from "../../api/crmClient";
 import { useCrmAuthStore } from "../../store/crmAuthStore";
-import { Users, Plus, Shield, Search, RefreshCw, UserCheck, Layers, Award, Pencil, UserPlus, X } from "lucide-react";
+import {
+  Users, Plus, Shield, Search, RefreshCw, UserCheck, Layers, Award,
+  Pencil, UserPlus, X, Trash2, UserMinus, PlusCircle
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 function OrgHierarchyVisual({ currentRole }) {
@@ -189,7 +192,7 @@ function CreateTeamLeaderModal({ onClose, onSuccess, currentUserId }) {
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
@@ -211,11 +214,187 @@ function CreateTeamLeaderModal({ onClose, onSuccess, currentUserId }) {
   );
 }
 
-function EditTeamModal({ team, onClose, onSuccess, canReassignLeader, employees }) {
+function CreateMemberAccountModal({ team, onClose, onSuccess, currentUserId }) {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "executive",
+    department: "Sales Team",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const payload = {
+        ...form,
+        team_id: team.id,
+        reporting_manager: team.team_leader_id || currentUserId,
+      };
+      const res = await crmApi.post("/employees", payload);
+      toast.success(`Account ${res.data.employee_id || ""} created and assigned to ${team.name}!`);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to create account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-bold text-gray-900">Create New Team Member Account</h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name *</label>
+            <input
+              type="text"
+              required
+              value={form.name}
+              onChange={set("name")}
+              placeholder="e.g. Suresh V"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Work Email *</label>
+            <input
+              type="email"
+              required
+              value={form.email}
+              onChange={set("email")}
+              placeholder="e.g. suresh@visitsarva.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Phone *</label>
+              <input
+                type="text"
+                required
+                value={form.phone}
+                onChange={set("phone")}
+                placeholder="+919876543210"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Role *</label>
+              <select
+                value={form.role}
+                onChange={set("role")}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-white"
+              >
+                <option value="executive">Executive</option>
+                <option value="trainee">Trainee</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Password *</label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={form.password}
+              onChange={set("password")}
+              placeholder="Set secure password"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              {loading ? "Creating..." : "Create & Add Member"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditTeamModal({ team, onClose, onSuccess, canReassignLeader, employees, currentUserId }) {
   const [name, setName] = useState(team.name || "");
   const [status, setStatus] = useState(team.status || "active");
   const [teamLeaderId, setTeamLeaderId] = useState(team.team_leader_id || "");
+  const [members, setMembers] = useState(team.members || []);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedAddEmpId, setSelectedAddEmpId] = useState("");
+  const [addingMember, setAddingMember] = useState(false);
+  const [showCreateMemberModal, setShowCreateMemberModal] = useState(false);
+
+  // Available employees to add: roles 'executive' or 'trainee' not already in this team
+  const memberIds = new Set(members.map((m) => m.id));
+  const availableEmployees = employees.filter(
+    (e) => ["executive", "trainee"].includes(e.role) && !memberIds.has(e.id)
+  );
+
+  const handleAddMember = async (empIdToAdd) => {
+    const targetId = empIdToAdd || selectedAddEmpId;
+    if (!targetId) {
+      toast.error("Please select an employee to add.");
+      return;
+    }
+    setAddingMember(true);
+    try {
+      await crmApi.post(`/teams/${team.id}/members`, { employee_id: targetId });
+      toast.success("Team member added successfully!");
+      setSelectedAddEmpId("");
+      onSuccess();
+      const res = await crmApi.get(`/teams/${team.id}`);
+      setMembers(res.data.members || []);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to add member to team");
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId, memberName) => {
+    if (!window.confirm(`Are you sure you want to remove ${memberName} from ${team.name}?`)) {
+      return;
+    }
+    try {
+      await crmApi.delete(`/teams/${team.id}/members/${memberId}`);
+      toast.success(`${memberName} removed from team`);
+      onSuccess();
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to remove team member");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -245,11 +424,24 @@ function EditTeamModal({ team, onClose, onSuccess, canReassignLeader, employees 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      {showCreateMemberModal && (
+        <CreateMemberAccountModal
+          team={team}
+          onClose={() => setShowCreateMemberModal(false)}
+          onSuccess={async () => {
+            onSuccess();
+            const res = await crmApi.get(`/teams/${team.id}`);
+            setMembers(res.data.members || []);
+          }}
+          currentUserId={currentUserId}
+        />
+      )}
+
+      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
           <div className="flex items-center gap-2">
             <Pencil className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-gray-900">Edit Team Details</h2>
+            <h2 className="text-lg font-bold text-gray-900">Edit Team Details & Members</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
@@ -257,27 +449,29 @@ function EditTeamModal({ team, onClose, onSuccess, canReassignLeader, employees 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Team Name *</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Team Name *</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Team Status *</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-white"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Team Status *</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-white"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
           </div>
 
           {canReassignLeader && (
@@ -296,6 +490,81 @@ function EditTeamModal({ team, onClose, onSuccess, canReassignLeader, employees 
               </select>
             </div>
           )}
+
+          {/* Manage Members Section */}
+          <div className="border-t border-gray-100 pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                Team Members ({members.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowCreateMemberModal(true)}
+                className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                + Create New Member Account
+              </button>
+            </div>
+
+            {/* List current members */}
+            {members.length === 0 ? (
+              <p className="text-xs text-gray-400 italic bg-gray-50 p-3 rounded-lg text-center">
+                No members currently assigned to this team.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {members.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200 text-xs">
+                    <div>
+                      <span className="font-semibold text-gray-900">{m.name}</span>
+                      <span className="text-gray-400 ml-2">({m.email})</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded font-medium text-[10px] ${
+                        m.role === "executive" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                      }`}>
+                        {m.role === "executive" ? "Executive" : "Trainee"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMember(m.id, m.name)}
+                      className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                      title="Remove from team"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add Existing Member Selector */}
+            <div className="bg-blue-50/60 p-3 rounded-xl border border-blue-100 space-y-2 mt-2">
+              <label className="block text-xs font-semibold text-blue-900">Add Existing Member to Team</label>
+              <div className="flex gap-2">
+                <select
+                  value={selectedAddEmpId}
+                  onChange={(e) => setSelectedAddEmpId(e.target.value)}
+                  className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-100 bg-white"
+                >
+                  <option value="">Select Executive or Trainee...</option>
+                  {availableEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.role}) - {emp.employee_id || emp.email}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => handleAddMember()}
+                  disabled={!selectedAddEmpId || addingMember}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
+                >
+                  {addingMember ? "Adding..." : "Add"}
+                </button>
+              </div>
+            </div>
+          </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
             <button
@@ -398,6 +667,19 @@ export default function CrmTeams() {
     }
   };
 
+  const handleRemoveMemberDirect = async (teamId, memberId, memberName) => {
+    if (!window.confirm(`Are you sure you want to remove ${memberName} from this team?`)) {
+      return;
+    }
+    try {
+      await crmApi.delete(`/teams/${teamId}/members/${memberId}`);
+      toast.success(`${memberName} removed from team`);
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to remove member");
+    }
+  };
+
   const filteredTeams = teams.filter((t) => {
     const term = searchTerm.toLowerCase();
     return (
@@ -428,6 +710,7 @@ export default function CrmTeams() {
           onSuccess={loadData}
           canReassignLeader={["founder", "admin", "bdo"].includes(role)}
           employees={employees}
+          currentUserId={employee?.id}
         />
       )}
 
@@ -528,10 +811,10 @@ export default function CrmTeams() {
                       {canEditThisTeam && (
                         <button
                           onClick={() => setEditingTeam(team)}
-                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
                         >
                           <Pencil className="w-3.5 h-3.5" />
-                          Edit Details
+                          Edit Details & Members
                         </button>
                       )}
                     </div>
@@ -559,7 +842,15 @@ export default function CrmTeams() {
                       <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         Team Members ({team.members?.length ?? team.member_count ?? 0})
                       </span>
-                      <UserCheck className="w-4 h-4 text-emerald-600" />
+                      {canEditThisTeam && (
+                        <button
+                          onClick={() => setEditingTeam(team)}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add Member
+                        </button>
+                      )}
                     </div>
 
                     {team.members && team.members.length > 0 ? (
@@ -570,11 +861,23 @@ export default function CrmTeams() {
                               <span className="font-semibold text-gray-900">{m.name}</span>
                               <span className="text-gray-400 ml-2">({m.email})</span>
                             </div>
-                            <span className={`px-2 py-0.5 rounded font-medium text-[11px] ${
-                              m.role === "executive" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
-                            }`}>
-                              {m.role === "executive" ? "Executive" : m.role === "trainee" ? "Trainee" : m.role}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded font-medium text-[11px] ${
+                                m.role === "executive" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                              }`}>
+                                {m.role === "executive" ? "Executive" : m.role === "trainee" ? "Trainee" : m.role}
+                              </span>
+                              {canEditThisTeam && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveMemberDirect(team.id, m.id, m.name)}
+                                  className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Remove from team"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -663,6 +966,8 @@ export default function CrmTeams() {
       )}
     </div>
   );
+}
+ );
 }
 
 

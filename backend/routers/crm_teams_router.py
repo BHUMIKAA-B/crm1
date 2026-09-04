@@ -160,3 +160,94 @@ async def update_team(team_id: str, body: dict, emp: dict = Depends(get_current_
     await db.audit_logs().insert_one(audit.model_dump())
 
     return {"message": "Team updated successfully"}
+
+
+@router.post("/{team_id}/members")
+async def add_team_member(team_id: str, body: dict, emp: dict = Depends(get_current_employee)):
+    role = emp["role"]
+    team = await db.teams().find_one({"$or": [{"id": team_id}, {"team_id": team_id}]})
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if role not in ["founder", "admin", "bdo"]:
+        if role == "team_lead":
+            if team.get("team_leader_id") != emp["id"] and team.get("id") != emp.get("team_id"):
+                raise HTTPException(status_code=403, detail="Team Leaders can only add members to their own team.")
+        else:
+            raise HTTPException(status_code=403, detail="Not authorized to add team members.")
+
+    target_emp_id = body.get("employee_id")
+    if not target_emp_id:
+        raise HTTPException(status_code=422, detail="employee_id is required.")
+
+    target = await db.employees().find_one({"$or": [{"id": target_emp_id}, {"employee_id": target_emp_id}]})
+    if not target:
+        raise HTTPException(status_code=404, detail="Target employee not found.")
+
+    if target.get("role") not in ["executive", "trainee"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Cannot add role '{target.get('role')}' to team. Only Executive and Trainee roles are permitted."
+        )
+
+    await db.employees().update_one(
+        {"id": target["id"]},
+        {"$set": {
+            "team_id": team["id"],
+            "reporting_manager": team["team_leader_id"],
+            "updated_at": now_iso()
+        }}
+    )
+
+    audit = AuditLog(
+        who=emp["id"],
+        action="add_team_member",
+        entity="team",
+        entity_id=team["id"],
+        field="member_id",
+        new_value=target["id"]
+    )
+    await db.audit_logs().insert_one(audit.model_dump())
+
+    return {"message": f"Employee '{target.get('name')}' added to team '{team.get('name')}' successfully."}
+
+
+@router.delete("/{team_id}/members/{employee_id}")
+async def remove_team_member(team_id: str, employee_id: str, emp: dict = Depends(get_current_employee)):
+    role = emp["role"]
+    team = await db.teams().find_one({"$or": [{"id": team_id}, {"team_id": team_id}]})
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if role not in ["founder", "admin", "bdo"]:
+        if role == "team_lead":
+            if team.get("team_leader_id") != emp["id"] and team.get("id") != emp.get("team_id"):
+                raise HTTPException(status_code=403, detail="Team Leaders can only remove members from their own team.")
+        else:
+            raise HTTPException(status_code=403, detail="Not authorized to remove team members.")
+
+    target = await db.employees().find_one({"$or": [{"id": employee_id}, {"employee_id": employee_id}]})
+    if not target:
+        raise HTTPException(status_code=404, detail="Target employee not found.")
+
+    # Remove team assignment
+    await db.employees().update_one(
+        {"id": target["id"]},
+        {"$set": {
+            "team_id": None,
+            "reporting_manager": None,
+            "updated_at": now_iso()
+        }}
+    )
+
+    audit = AuditLog(
+        who=emp["id"],
+        action="remove_team_member",
+        entity="team",
+        entity_id=team["id"],
+        field="member_id",
+        old_value=target["id"]
+    )
+    await db.audit_logs().insert_one(audit.model_dump())
+
+    return {"message": f"Employee '{target.get('name')}' removed from team '{team.get('name')}'."}
