@@ -101,8 +101,8 @@ export default function CrmTeams() {
     setLoading(true);
     try {
       const [teamsRes, empRes] = await Promise.all([
-        crmApi.get("/api/crm/teams"),
-        crmApi.get("/api/crm/employees"),
+        crmApi.get("/teams"),
+        crmApi.get("/employees"),
       ]);
       const fetchedTeams = teamsRes.data || [];
       const fetchedEmps = empRes.data || [];
@@ -111,7 +111,7 @@ export default function CrmTeams() {
       const enrichedTeams = await Promise.all(
         fetchedTeams.map(async (t) => {
           try {
-            const detailRes = await crmApi.get(`/api/crm/teams/${t.id}`);
+            const detailRes = await crmApi.get(`/teams/${t.id}`);
             return detailRes.data;
           } catch {
             return t;
@@ -140,7 +140,7 @@ export default function CrmTeams() {
     }
     setSubmitting(true);
     try {
-      const res = await crmApi.post("/api/crm/teams", {
+      const res = await crmApi.post("/teams", {
         name: name.trim(),
         team_leader_id: teamLeaderId,
       });
