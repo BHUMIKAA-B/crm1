@@ -9,7 +9,7 @@ load_dotenv(ROOT_DIR / ".env")
 
 import db
 from crm_models import (
-    Employee, Customer, Requirement, Lead, PropertyOwner, Broker,
+    Employee, Team, Customer, Requirement, Lead, PropertyOwner, Broker,
     SiteVisit, SiteVisitFeedback, Deal, Negotiation, Task, Followup,
     CrmDocument, Payment, Notification, AuditLog, now_iso
 )
@@ -64,23 +64,74 @@ async def seed_crm():
             emp_ids[u["role"]] = existing["id"]
             print(f"Updated password for: {u['role']} - {u['email']}")
             
-    # Set reporting managers, team_id, created_by
+    # ── Organizational Hierarchy & Team Achievers Setup ───────
     founder_id = emp_ids.get("founder")
-    team_lead_id = emp_ids.get("team_lead")
     bdo_id = emp_ids.get("bdo")
+    team_lead_id = emp_ids.get("team_lead")
     exec_id = emp_ids.get("executive")
     trainee_id = emp_ids.get("trainee")
 
-    if founder_id:
+    # 1. BDO reports to Founder
+    if bdo_id and founder_id:
+        await db.employees().update_one(
+            {"id": bdo_id},
+            {"$set": {"reporting_manager": founder_id, "created_by": founder_id}}
+        )
+
+    # 2. Verify / Seed TEAM ACHIEVERS team
+    team_achievers = await db.teams().find_one({"name": "TEAM ACHIEVERS"})
+    if not team_achievers and team_lead_id:
+        team_obj = Team(
+            team_id="VS-TEAM-000001",
+            name="TEAM ACHIEVERS",
+            team_leader_id=team_lead_id,
+            created_by=bdo_id or founder_id,
+            status="active"
+        )
+        await db.teams().insert_one(team_obj.model_dump())
+        team_achievers_id = team_obj.id
+        print("Created sample team: TEAM ACHIEVERS")
+    elif team_achievers:
+        team_achievers_id = team_achievers["id"]
         if team_lead_id:
-            await db.employees().update_one({"id": team_lead_id}, {"$set": {"reporting_manager": founder_id, "created_by": founder_id}})
-        if bdo_id:
-            await db.employees().update_one({"id": bdo_id}, {"$set": {"reporting_manager": founder_id, "created_by": founder_id}})
+            await db.teams().update_one(
+                {"id": team_achievers_id},
+                {"$set": {"team_leader_id": team_lead_id}}
+            )
+    else:
+        team_achievers_id = None
+
+    # 3. Team Leader reports to BDO & is linked to TEAM ACHIEVERS
+    if team_lead_id:
+        await db.employees().update_one(
+            {"id": team_lead_id},
+            {"$set": {
+                "reporting_manager": bdo_id or founder_id,
+                "team_id": team_achievers_id,
+                "created_by": bdo_id or founder_id
+            }}
+        )
+
+    # 4. Executive and Trainee report to Team Leader & belong to TEAM ACHIEVERS
     if team_lead_id:
         if exec_id:
-            await db.employees().update_one({"id": exec_id}, {"$set": {"reporting_manager": team_lead_id, "team_id": team_lead_id, "created_by": team_lead_id}})
+            await db.employees().update_one(
+                {"id": exec_id},
+                {"$set": {
+                    "reporting_manager": team_lead_id,
+                    "team_id": team_achievers_id,
+                    "created_by": team_lead_id
+                }}
+            )
         if trainee_id:
-            await db.employees().update_one({"id": trainee_id}, {"$set": {"reporting_manager": team_lead_id, "team_id": team_lead_id, "created_by": team_lead_id}})
+            await db.employees().update_one(
+                {"id": trainee_id},
+                {"$set": {
+                    "reporting_manager": team_lead_id,
+                    "team_id": team_achievers_id,
+                    "created_by": team_lead_id
+                }}
+            )
             
     # ── Customers & Requirements ─────────────────────────────
     if await db.customers().count_documents({}) == 0:

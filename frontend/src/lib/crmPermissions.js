@@ -40,7 +40,7 @@ export function canAssignLeads(role) {
 
 /** CAN create employees. */
 export function canManageEmployees(role) {
-  return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.TEAM_LEAD].includes(role);
+  return [ROLES.FOUNDER, ROLES.ADMIN, ROLES.BDO, ROLES.TEAM_LEAD].includes(role);
 }
 
 /** CAN see customer database & requirements (Founder & BDO only). */
