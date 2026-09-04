@@ -120,19 +120,27 @@ async def get_team(team_id: str, emp: dict = Depends(get_current_employee)):
 
 @router.patch("/{team_id}")
 async def update_team(team_id: str, body: dict, emp: dict = Depends(get_current_employee)):
-    if emp["role"] not in ["founder", "admin", "bdo"]:
-        raise HTTPException(status_code=403, detail="Only Founder, Admin, and BDO can modify teams.")
-
+    role = emp["role"]
     team = await db.teams().find_one({"$or": [{"id": team_id}, {"team_id": team_id}]})
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
+    if role not in ["founder", "admin", "bdo"]:
+        if role == "team_lead":
+            if team.get("team_leader_id") != emp["id"] and team.get("id") != emp.get("team_id"):
+                raise HTTPException(status_code=403, detail="Team Leaders can only modify their own team details.")
+        else:
+            raise HTTPException(status_code=403, detail="Only Founder, Admin, BDO, and Team Leader can modify teams.")
+
     upd = {"updated_at": now_iso()}
-    if "name" in body and body["name"].strip():
+    if "name" in body and isinstance(body["name"], str) and body["name"].strip():
         upd["name"] = body["name"].strip()
     if "status" in body and body["status"] in ["active", "inactive"]:
         upd["status"] = body["status"]
+
     if "team_leader_id" in body and body["team_leader_id"]:
+        if role not in ["founder", "admin", "bdo"]:
+            raise HTTPException(status_code=403, detail="Only Founder, Admin, and BDO can reassign team leaders.")
         new_leader_id = body["team_leader_id"]
         leader = await db.employees().find_one({"id": new_leader_id})
         if not leader:
