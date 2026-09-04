@@ -35,26 +35,22 @@ async def create_employee(body: EmployeeCreate, emp: dict = Depends(get_current_
             detail=f"Role '{creator_role}' cannot create employees with role '{body.role}'. Permitted roles: {allowed_target_roles}."
         )
 
-    # Team Lead scoping enforcement: Team Lead can ONLY create members for their own team
+    # Team Lead scoping enforcement: always assign to the Team Lead's own team
     if creator_role == "team_lead":
-        team_doc = await db.teams().find_one({
-            "$or": [
-                {"team_leader_id": emp["id"]},
-                {"id": emp.get("team_id")},
-                {"team_id": emp.get("team_id")}
-            ]
-        })
+        # Look up the team led by this employee
+        team_doc = await db.teams().find_one(
+            {"team_leader_id": emp["id"]}
+        )
+        if not team_doc:
+            # fallback: find by team_id stored on employee record
+            team_id_val = emp.get("team_id")
+            if team_id_val:
+                team_doc = await db.teams().find_one(
+                    {"$or": [{"id": team_id_val}, {"team_id": team_id_val}]}
+                )
         if not team_doc:
             raise HTTPException(status_code=400, detail="Team Lead does not have an assigned team.")
-
-        allowed_team_ids = {team_doc["id"], team_doc.get("team_id"), emp.get("team_id"), emp["id"]}
-        allowed_team_ids.discard(None)
-
-        if body.team_id and body.team_id not in allowed_team_ids:
-            raise HTTPException(
-                status_code=403,
-                detail="Team Lead cannot assign employees to a different team."
-            )
+        # Always override to the actual team — do NOT validate what the frontend sent
         team_id = team_doc["id"]
         reporting_mgr = emp["id"]
     else:
@@ -100,29 +96,31 @@ async def list_employees(emp: dict = Depends(get_current_employee)):
     
     query = {}
     if role == "team_lead":
-        team_doc = await db.teams().find_one({
-            "$or": [
-                {"team_leader_id": emp["id"]},
-                {"id": emp.get("team_id")},
-                {"team_id": emp.get("team_id")}
-            ]
-        })
-        team_id = team_doc["id"] if team_doc else (emp.get("team_id") or emp["id"])
-        team_alt_id = team_doc.get("team_id") if team_doc else None
+        # Find team where this employee is the leader
+        team_doc = await db.teams().find_one({"team_leader_id": emp["id"]})
+        if not team_doc:
+            team_id_val = emp.get("team_id")
+            if team_id_val:
+                team_doc = await db.teams().find_one(
+                    {"$or": [{"id": team_id_val}, {"team_id": team_id_val}]}
+                )
 
-        team_id_conditions = [team_id, emp.get("team_id"), emp["id"]]
-        if team_alt_id:
-            team_id_conditions.append(team_alt_id)
+        team_uuid = team_doc["id"] if team_doc else None
+        team_display_id = team_doc.get("team_id") if team_doc else None
+
+        # Build inclusive list of team id variants
+        valid_team_ids = list(filter(None, [team_uuid, team_display_id, emp.get("team_id"), emp["id"]]))
 
         query = {
             "$or": [
                 {"reporting_manager": emp["id"]},
-                {"team_id": {"$in": [t for t in team_id_conditions if t]}},
+                {"team_id": {"$in": valid_team_ids}},
                 {"id": emp["id"]},
-                {
-                    "role": {"$in": ["executive", "trainee"]},
-                    "$or": [{"team_id": None}, {"team_id": ""}, {"team_id": {"$exists": False}}]
-                }
+                # Also include unassigned executives/trainees so they can be added to the team
+                {"$and": [
+                    {"role": {"$in": ["executive", "trainee"]}},
+                    {"$or": [{"team_id": None}, {"team_id": ""}, {"team_id": {"$exists": False}}]}
+                ]}
             ]
         }
 

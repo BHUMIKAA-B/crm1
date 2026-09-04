@@ -65,9 +65,32 @@ def allowed_target_roles_for_creator(creator_role: str) -> List[str]:
 async def get_team_member_ids(employee: dict) -> List[str]:
     """Retrieve all employee IDs that belong to the employee's team scope."""
     emp_id = employee["id"]
-    team_id = employee.get("team_id") or emp_id
-    
-    query = {"$or": [{"reporting_manager": emp_id}, {"team_id": team_id}, {"id": emp_id}]}
+
+    # First try to find the team this employee leads
+    team_doc = await db.teams().find_one({"team_leader_id": emp_id})
+    if not team_doc:
+        # Fallback: look up by stored team_id field
+        team_id_val = employee.get("team_id")
+        if team_id_val:
+            team_doc = await db.teams().find_one(
+                {"$or": [{"id": team_id_val}, {"team_id": team_id_val}]}
+            )
+
+    # Build a list of all team id variants to match against
+    team_ids_to_check = list(filter(None, [
+        team_doc["id"] if team_doc else None,
+        team_doc.get("team_id") if team_doc else None,
+        employee.get("team_id"),
+        emp_id,
+    ]))
+
+    query = {
+        "$or": [
+            {"reporting_manager": emp_id},
+            {"team_id": {"$in": team_ids_to_check}},
+            {"id": emp_id},
+        ]
+    }
     cursor = db.employees().find(query, {"_id": 0, "id": 1})
     members = await cursor.to_list(length=1000)
     member_ids = list({m["id"] for m in members})
