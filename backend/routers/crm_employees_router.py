@@ -36,14 +36,26 @@ async def create_employee(body: EmployeeCreate, emp: dict = Depends(get_current_
         )
 
     # Team Lead scoping enforcement: Team Lead can ONLY create members for their own team
-    team_lead_team_id = emp.get("team_id") or emp["id"]
     if creator_role == "team_lead":
-        if body.team_id and body.team_id != team_lead_team_id:
+        team_doc = await db.teams().find_one({
+            "$or": [
+                {"team_leader_id": emp["id"]},
+                {"id": emp.get("team_id")},
+                {"team_id": emp.get("team_id")}
+            ]
+        })
+        if not team_doc:
+            raise HTTPException(status_code=400, detail="Team Lead does not have an assigned team.")
+
+        allowed_team_ids = {team_doc["id"], team_doc.get("team_id"), emp.get("team_id"), emp["id"]}
+        allowed_team_ids.discard(None)
+
+        if body.team_id and body.team_id not in allowed_team_ids:
             raise HTTPException(
                 status_code=403,
                 detail="Team Lead cannot assign employees to a different team."
             )
-        team_id = team_lead_team_id
+        team_id = team_doc["id"]
         reporting_mgr = emp["id"]
     else:
         team_id = body.team_id or (emp["id"] if body.role in ["executive", "trainee"] else None)
@@ -88,9 +100,31 @@ async def list_employees(emp: dict = Depends(get_current_employee)):
     
     query = {}
     if role == "team_lead":
-        # Team lead sees team members (reporting_manager == emp.id or team_id == emp.team_id or self)
-        team_id = emp.get("team_id") or emp["id"]
-        query = {"$or": [{"reporting_manager": emp["id"]}, {"team_id": team_id}, {"id": emp["id"]}]}
+        team_doc = await db.teams().find_one({
+            "$or": [
+                {"team_leader_id": emp["id"]},
+                {"id": emp.get("team_id")},
+                {"team_id": emp.get("team_id")}
+            ]
+        })
+        team_id = team_doc["id"] if team_doc else (emp.get("team_id") or emp["id"])
+        team_alt_id = team_doc.get("team_id") if team_doc else None
+
+        team_id_conditions = [team_id, emp.get("team_id"), emp["id"]]
+        if team_alt_id:
+            team_id_conditions.append(team_alt_id)
+
+        query = {
+            "$or": [
+                {"reporting_manager": emp["id"]},
+                {"team_id": {"$in": [t for t in team_id_conditions if t]}},
+                {"id": emp["id"]},
+                {
+                    "role": {"$in": ["executive", "trainee"]},
+                    "$or": [{"team_id": None}, {"team_id": ""}, {"team_id": {"$exists": False}}]
+                }
+            ]
+        }
 
     cursor = db.employees().find(query, projection).sort("name", 1)
     employees = await cursor.to_list(length=500)

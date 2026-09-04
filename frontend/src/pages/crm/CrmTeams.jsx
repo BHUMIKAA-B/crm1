@@ -358,7 +358,10 @@ function EditTeamModal({ team, onClose, onSuccess, canReassignLeader, employees,
   // Available employees to add: roles 'executive' or 'trainee' not already in this team
   const memberIds = new Set(members.map((m) => m.id));
   const availableEmployees = employees.filter(
-    (e) => ["executive", "trainee"].includes(e.role) && !memberIds.has(e.id)
+    (e) =>
+      ["executive", "trainee"].includes(e.role) &&
+      !memberIds.has(e.id) &&
+      (e.id !== team.team_leader_id)
   );
 
   const handleAddMember = async (empIdToAdd) => {
