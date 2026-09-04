@@ -967,7 +967,5 @@ export default function CrmTeams() {
     </div>
   );
 }
- );
-}
 
 
