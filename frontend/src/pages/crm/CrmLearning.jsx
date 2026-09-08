@@ -663,6 +663,75 @@ export default function CrmLearning() {
                 />
               </div>
 
+              {/* Recipient Selector ("Share With" - Replaces Category) */}
+              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-indigo-600" /> Share With (Select Registered CRM Users) <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                    {selectedRecipients.length} users selected
+                  </span>
+                </div>
+
+                {/* Recipient Search & Select All */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search users by name, role, email..."
+                      value={recipientSearch}
+                      onChange={(e) => setRecipientSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAll}
+                    className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                  >
+                    {isAllSelected ? "Deselect All" : "Select All"}
+                  </button>
+                </div>
+
+                {/* Registered CRM Employee List with Checkboxes */}
+                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white divide-y divide-gray-100 shadow-inner">
+                  {filteredEmployeesForSelector.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-gray-400">No matching registered CRM users found</div>
+                  ) : (
+                    filteredEmployeesForSelector.map(empItem => {
+                      const isChecked = selectedRecipients.includes(empItem.id);
+                      return (
+                        <div
+                          key={empItem.id}
+                          onClick={() => handleToggleRecipient(empItem.id)}
+                          className={`p-2.5 flex items-center justify-between cursor-pointer transition text-xs ${
+                            isChecked ? "bg-indigo-50/60 font-medium" : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            {isChecked ? (
+                              <CheckSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                            ) : (
+                              <Square className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                            )}
+                            <div>
+                              <p className="font-semibold text-gray-900">{empItem.name}</p>
+                              <p className="text-[11px] text-gray-500">{empItem.email || empItem.employee_id}</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                            {empItem.role}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
               {/* Content Type Selector Tabs */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Content Type</label>
@@ -745,74 +814,6 @@ export default function CrmLearning() {
                 />
               </div>
 
-              {/* Recipient Selector ("Share With") */}
-              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-indigo-600" /> Share With (Select CRM Users) <span className="text-red-500">*</span>
-                  </label>
-                  <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                    {selectedRecipients.length} users selected
-                  </span>
-                </div>
-
-                {/* Recipient Search & Select All */}
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search users by name, role, email..."
-                      value={recipientSearch}
-                      onChange={(e) => setRecipientSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleToggleSelectAll}
-                    className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap"
-                  >
-                    {isAllSelected ? "Deselect All" : "Select All"}
-                  </button>
-                </div>
-
-                {/* Employee List with Checkboxes */}
-                <div className="max-h-44 overflow-y-auto border border-gray-200 rounded-lg bg-white divide-y divide-gray-100">
-                  {filteredEmployeesForSelector.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-gray-400">No matching CRM users found</div>
-                  ) : (
-                    filteredEmployeesForSelector.map(empItem => {
-                      const isChecked = selectedRecipients.includes(empItem.id);
-                      return (
-                        <div
-                          key={empItem.id}
-                          onClick={() => handleToggleRecipient(empItem.id)}
-                          className={`p-2.5 flex items-center justify-between cursor-pointer transition text-xs ${
-                            isChecked ? "bg-indigo-50/60" : "hover:bg-gray-50"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            {isChecked ? (
-                              <CheckSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                            ) : (
-                              <Square className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                            )}
-                            <div>
-                              <p className="font-semibold text-gray-900">{empItem.name}</p>
-                              <p className="text-[11px] text-gray-500">{empItem.email || empItem.employee_id}</p>
-                            </div>
-                          </div>
-                          <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
-                            {empItem.role}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
 
               {/* Publish immediately checkbox */}
               <div className="flex items-center gap-2 pt-1">
