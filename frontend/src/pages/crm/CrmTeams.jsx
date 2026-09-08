@@ -8,6 +8,114 @@ import {
 import toast from "react-hot-toast";
 
 function OrgHierarchyVisual({ currentRole }) {
+  const [hierData, setHierData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    crmApi.get("/org/hierarchy")
+      .then((r) => setHierData(r.data))
+      .catch(() => setHierData(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const roleColor = {
+    founder: "bg-amber-500/20 border-amber-400/40 text-amber-200",
+    bdo: "bg-orange-500/20 border-orange-400/40 text-orange-200",
+    team_lead: "bg-purple-500/20 border-purple-400/40 text-purple-200",
+    executive: "bg-blue-500/20 border-blue-400/40 text-blue-200",
+    trainee: "bg-emerald-500/20 border-emerald-400/40 text-emerald-200",
+  };
+  const roleLabel = { founder: "FOUNDER", bdo: "BDO", team_lead: "TEAM LEADER", executive: "EXECUTIVE", trainee: "TRAINEE" };
+
+  const renderFounderTree = (node) => (
+    <div key={node.id} className="flex flex-col items-center w-full">
+      {/* Founder */}
+      <div className={`px-6 py-2.5 ${roleColor.founder} border rounded-xl font-bold text-sm shadow-lg backdrop-blur-sm flex items-center gap-2`}>
+        <Award className="w-4 h-4 text-amber-400" />
+        <span>FOUNDER</span>
+        <span className="text-xs font-normal text-amber-300/80">({node.name})</span>
+      </div>
+
+      {node.children && node.children.length > 0 && (
+        <>
+          <div className="w-0.5 h-6 bg-slate-600 my-1" />
+          {node.children.map((bdo) => renderBdoTree(bdo))}
+        </>
+      )}
+    </div>
+  );
+
+  const renderBdoTree = (bdo) => (
+    <div key={bdo.id} className="flex flex-col items-center w-full">
+      <div className={`px-6 py-2.5 ${roleColor.bdo} border rounded-xl font-bold text-sm shadow-lg backdrop-blur-sm flex items-center gap-2`}>
+        <Shield className="w-4 h-4 text-orange-400" />
+        <span>BDO</span>
+        <span className="text-xs font-normal text-orange-300/80">({bdo.name})</span>
+      </div>
+
+      {bdo.children && bdo.children.length > 0 && (
+        <>
+          <div className="w-0.5 h-6 bg-slate-600 my-1" />
+          <div className="flex flex-wrap justify-center gap-6 w-full">
+            {bdo.children.map((team) => renderTeamTree(team))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const renderTeamTree = (team) => {
+    const executives = (team.members || []).filter((m) => m.role === "executive");
+    const trainees = (team.members || []).filter((m) => m.role === "trainee");
+    return (
+      <div key={team.id} className="flex flex-col items-center">
+        {/* Team badge + Team Leader */}
+        <div className="w-full max-w-xs bg-slate-800/80 border border-purple-500/30 rounded-xl p-3 flex flex-col items-center text-center shadow-lg">
+          <span className="text-xs font-semibold uppercase tracking-wider text-purple-400 bg-purple-950/60 px-3 py-0.5 rounded-full border border-purple-500/30 mb-2">
+            {team.name}
+          </span>
+          <div className={`px-5 py-1.5 ${roleColor.team_lead} border rounded-lg font-bold text-sm flex items-center gap-2`}>
+            <Users className="w-4 h-4 text-purple-300" />
+            <span>TEAM LEADER</span>
+            {team.team_leader && (
+              <span className="text-xs font-normal text-purple-300/80">({team.team_leader.name})</span>
+            )}
+          </div>
+        </div>
+
+        {/* Members */}
+        {(executives.length > 0 || trainees.length > 0) && (
+          <>
+            <div className="w-0.5 h-4 bg-slate-600 my-1" />
+            <div className="w-2/3 h-0.5 bg-slate-600" />
+            <div className="flex justify-between w-2/3">
+              {executives.length > 0 && <div className="w-0.5 h-4 bg-slate-600" />}
+              {trainees.length > 0 && <div className="w-0.5 h-4 bg-slate-600" />}
+            </div>
+            <div className="flex items-start justify-center gap-4 flex-wrap">
+              {executives.map((m) => (
+                <div key={m.id} className={`px-4 py-2 ${roleColor.executive} border rounded-xl text-center shadow-md min-w-24`}>
+                  <div className="font-bold text-xs">EXECUTIVE</div>
+                  <div className="text-[11px] text-blue-300/80">{m.name}</div>
+                </div>
+              ))}
+              {trainees.map((m) => (
+                <div key={m.id} className={`px-4 py-2 ${roleColor.trainee} border rounded-xl text-center shadow-md min-w-24`}>
+                  <div className="font-bold text-xs">TRAINEE</div>
+                  <div className="text-[11px] text-emerald-300/80">{m.name}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderBdoOnlyTree = (bdo) => renderBdoTree(bdo);
+
+  const renderTeamOnlyTree = (team) => renderTeamTree(team);
+
   return (
     <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-6 text-white shadow-xl mb-6">
       <div className="flex items-center justify-between border-b border-slate-700/60 pb-4 mb-6">
@@ -17,7 +125,7 @@ function OrgHierarchyVisual({ currentRole }) {
             <h2 className="text-lg font-bold text-white tracking-wide">Organizational Reporting Structure</h2>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Enforced Role Hierarchy: Founder → BDO → Team Leader → Executive & Trainee
+            Enforced Role Hierarchy: Founder → BDO → Team Leader → Executive &amp; Trainee
           </p>
         </div>
         <span className="text-xs px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full font-mono uppercase">
@@ -25,64 +133,27 @@ function OrgHierarchyVisual({ currentRole }) {
         </span>
       </div>
 
-      {/* Visual Hierarchy Diagram */}
-      <div className="flex flex-col items-center justify-center space-y-4 py-2">
-        {/* Level 1: FOUNDER */}
-        <div className="flex flex-col items-center">
-          <div className="px-6 py-2.5 bg-amber-500/20 border border-amber-400/40 text-amber-200 rounded-xl font-bold text-sm shadow-lg backdrop-blur-sm flex items-center gap-2">
-            <Award className="w-4 h-4 text-amber-400" />
-            <span>FOUNDER</span>
-            <span className="text-xs font-normal text-amber-300/80">(sanjayj@visitsarva.com)</span>
-          </div>
-          <div className="w-0.5 h-6 bg-slate-600 my-1" />
+      {loading ? (
+        <div className="flex items-center justify-center py-8 text-slate-400 text-sm">
+          <RefreshCw className="w-4 h-4 animate-spin mr-2" /> Loading hierarchy...
         </div>
-
-        {/* Level 2: BDO */}
-        <div className="flex flex-col items-center">
-          <div className="px-6 py-2.5 bg-orange-500/20 border border-orange-400/40 text-orange-200 rounded-xl font-bold text-sm shadow-lg backdrop-blur-sm flex items-center gap-2">
-            <Shield className="w-4 h-4 text-orange-400" />
-            <span>BDO</span>
-            <span className="text-xs font-normal text-orange-300/80">(lakshmi@visitsarva.com)</span>
-          </div>
-          <div className="w-0.5 h-6 bg-slate-600 my-1" />
+      ) : !hierData || hierData.hierarchy.length === 0 ? (
+        <div className="text-center py-8 text-slate-400 text-sm">No hierarchy data available.</div>
+      ) : (
+        <div className="flex flex-col items-center justify-center space-y-4 py-2 overflow-x-auto">
+          {hierData.viewer_role === "founder" || hierData.viewer_role === "admin"
+            ? hierData.hierarchy.map((node) => renderFounderTree(node))
+            : hierData.viewer_role === "bdo"
+            ? hierData.hierarchy.map((node) => renderBdoOnlyTree(node))
+            : hierData.hierarchy.map((node) => renderTeamOnlyTree(node))
+          }
         </div>
-
-        {/* Level 3: TEAM ACHIEVERS / TEAM LEADER */}
-        <div className="flex flex-col items-center w-full max-w-lg">
-          <div className="w-full bg-slate-800/80 border border-purple-500/30 rounded-xl p-3 flex flex-col items-center text-center shadow-lg">
-            <span className="text-xs font-semibold uppercase tracking-wider text-purple-400 bg-purple-950/60 px-3 py-0.5 rounded-full border border-purple-500/30 mb-2">
-              TEAM ACHIEVERS
-            </span>
-            <div className="px-5 py-1.5 bg-purple-500/20 border border-purple-400/40 text-purple-200 rounded-lg font-bold text-sm flex items-center gap-2">
-              <Users className="w-4 h-4 text-purple-300" />
-              <span>TEAM LEADER</span>
-              <span className="text-xs font-normal text-purple-300/80">(varun@visitsarva.com)</span>
-            </div>
-          </div>
-
-          {/* Connection lines down to Members */}
-          <div className="w-0.5 h-6 bg-slate-600 my-1" />
-          <div className="w-2/3 h-0.5 bg-slate-600" />
-          <div className="flex justify-between w-2/3">
-            <div className="w-0.5 h-4 bg-slate-600" />
-            <div className="w-0.5 h-4 bg-slate-600" />
-          </div>
-        </div>
-
-        {/* Level 4: EXECUTIVE & TRAINEE */}
-        <div className="flex items-center justify-center gap-6 w-full max-w-lg">
-          <div className="flex-1 px-4 py-2 bg-blue-500/20 border border-blue-400/40 text-blue-200 rounded-xl text-center shadow-md">
-            <div className="font-bold text-xs">EXECUTIVE</div>
-            <div className="text-[11px] text-blue-300/80">Ramachari</div>
-          </div>
-          <div className="flex-1 px-4 py-2 bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 rounded-xl text-center shadow-md">
-            <div className="font-bold text-xs">TRAINEE</div>
-            <div className="text-[11px] text-emerald-300/80">Rehan</div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
+}
+
+
 }
 
 function CreateTeamLeaderModal({ onClose, onSuccess, currentUserId }) {
