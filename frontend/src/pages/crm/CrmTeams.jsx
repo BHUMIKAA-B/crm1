@@ -153,9 +153,6 @@ function OrgHierarchyVisual({ currentRole }) {
   );
 }
 
-
-}
-
 function CreateTeamLeaderModal({ onClose, onSuccess, currentUserId }) {
   const [form, setForm] = useState({
     name: "",
