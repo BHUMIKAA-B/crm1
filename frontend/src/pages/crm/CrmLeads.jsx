@@ -24,8 +24,8 @@ const STATUSES = [
 
 function StatusBadge({ status }) {
   const formatted = status
-    ?.replace("site_visit_planned", "Office Visit Planned")
-    ?.replace("site_visit_completed", "Office Visit Completed")
+    ?.replace("site_visit_planned", "Site Visit Planned")
+    ?.replace("site_visit_completed", "Site Visit Completed")
     ?.replace(/_/g, " ")
     ?.replace(/\b\w/g, (c) => c.toUpperCase());
   return (

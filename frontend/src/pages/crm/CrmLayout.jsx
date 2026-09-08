@@ -6,7 +6,7 @@ import {
   Settings, LogOut, Search, Bell, ChevronDown, Menu, X,
   TrendingUp, Handshake, UserCheck, BarChart3, ClipboardList,
   Shield, Building, Clock, Share2, MessageSquare, FolderGit2,
-  CreditCard, DollarSign, ShieldAlert
+  CreditCard, DollarSign, ShieldAlert, GraduationCap
 } from "lucide-react";
 import { roleLabel, roleBadgeClass } from "../../lib/crmPermissions";
 
@@ -21,7 +21,7 @@ const NAV = [
   { name: "Brokers", to: "/crm/brokers", icon: Building, roles: ["bdo", "founder", "admin"] },
   { name: "Tasks", to: "/crm/tasks", icon: CalendarCheck, roles: null },
   { name: "Follow-ups", to: "/crm/followups", icon: Clock, roles: null },
-  { name: "Office Visits", to: "/crm/site-visits", icon: ClipboardList, roles: null },
+  { name: "Site Visits", to: "/crm/site-visits", icon: ClipboardList, roles: null },
   { name: "Property Shares", to: "/crm/property-shares", icon: Share2, roles: null },
   { name: "Negotiations", to: "/crm/negotiations", icon: MessageSquare, roles: null },
   { name: "Deals", to: "/crm/deals", icon: Handshake, roles: ["executive", "team_lead", "bdo", "founder", "admin"] },
@@ -30,6 +30,7 @@ const NAV = [
   { name: "Commissions", to: "/crm/commissions", icon: DollarSign, roles: ["executive", "team_lead", "bdo", "founder", "admin"] },
   { name: "Reports", to: "/crm/reports", icon: BarChart3, roles: ["executive", "team_lead", "bdo", "founder", "admin"] },
   { name: "Employees", to: "/crm/employees", icon: TrendingUp, roles: ["team_lead", "bdo", "founder", "admin"] },
+  { name: "Learning", to: "/crm/learning", icon: GraduationCap, roles: null },
   { name: "Audit Logs", to: "/crm/audit-logs", icon: ShieldAlert, roles: ["team_lead", "bdo", "dpo", "founder", "admin"] },
   { name: "Settings", to: "/crm/settings", icon: Settings, roles: ["founder", "admin"] },
 ];

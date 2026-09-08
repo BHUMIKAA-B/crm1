@@ -76,17 +76,52 @@ export default function CrmReports() {
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  const handleDownload = async () => {
+    try {
+      const response = await crmApi.get("/reports/export", { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      const filename = role === "team_lead"
+        ? "Complete_Team_Report.csv"
+        : role === "bdo"
+        ? "All_Team_Reports.csv"
+        : "All_Teams_Report.csv";
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Report downloaded successfully");
+    } catch {
+      toast.error("Failed to download report");
+    }
+  };
+
+  const getDownloadLabel = () => {
+    if (role === "team_lead") return "Download Complete Team Report";
+    if (role === "bdo") return "Download All Team Reports";
+    return "Download All Teams Report";
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
           <p className="text-sm text-gray-500">Real-time data from your CRM</p>
         </div>
-        <button onClick={fetch} disabled={loading}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50">
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleDownload}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm"
+          >
+            <ArrowUpRight className="w-4 h-4" /> {getDownloadLabel()}
+          </button>
+          <button onClick={fetch} disabled={loading}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

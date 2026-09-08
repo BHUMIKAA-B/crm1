@@ -148,3 +148,11 @@ def teams():
     return get_db()["teams"]
 
 
+def learning_content():
+    return get_db()["learning_content"]
+
+
+def learning_security_events():
+    return get_db()["learning_security_events"]
+
+

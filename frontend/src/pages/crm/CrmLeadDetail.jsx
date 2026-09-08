@@ -172,7 +172,7 @@ export default function CrmLeadDetail() {
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{cust?.name || "Unknown Customer"}</h1>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2 ${statusBadgeClass(lead.status)}`}>
-                  {lead.status?.replace("site_visit_planned", "Office Visit Planned").replace("site_visit_completed", "Office Visit Completed").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                  {lead.status?.replace("site_visit_planned", "Site Visit Planned").replace("site_visit_completed", "Site Visit Completed").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
                 </span>
               </div>
               <span className="font-mono text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg">

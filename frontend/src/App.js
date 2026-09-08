@@ -53,6 +53,7 @@ import CrmCommissions from "@/pages/crm/CrmCommissions";
 import CrmReports from "@/pages/crm/CrmReports";
 import CrmEmployees from "@/pages/crm/CrmEmployees";
 import CrmAuditLogs from "@/pages/crm/CrmAuditLogs";
+import CrmLearning from "@/pages/crm/CrmLearning";
 import CrmSettings from "@/pages/crm/CrmSettings";
 import CrmSearch from "@/pages/crm/CrmSearch";
 import RequireCrmGateway from "@/components/RequireCrmGateway";
@@ -186,6 +187,7 @@ function AnimatedRoutes() {
           <Route path="reports" element={<CrmReports />} />
           <Route path="employees" element={<CrmEmployees />} />
           <Route path="audit-logs" element={<CrmAuditLogs />} />
+          <Route path="learning" element={<CrmLearning />} />
           <Route path="settings" element={<CrmSettings />} />
           <Route path="search" element={<CrmSearch />} />
         </Route>

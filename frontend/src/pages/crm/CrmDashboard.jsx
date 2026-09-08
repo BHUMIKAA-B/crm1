@@ -137,7 +137,7 @@ export default function CrmDashboard() {
             color="purple"
           />
           <StatCard
-            title="Office Visits Today"
+            title="Site Visits Today"
             value={summary?.site_visits_today}
             icon={Building2}
             color="green"

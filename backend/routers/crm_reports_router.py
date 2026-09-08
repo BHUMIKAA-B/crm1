@@ -161,3 +161,39 @@ async def get_audit_logs(
     cursor = db.audit_logs().find(query, {"_id": 0}).sort("timestamp", -1).limit(500)
     logs = await cursor.to_list(length=500)
     return logs
+
+
+@router.get("/export")
+async def export_report(emp: dict = Depends(get_current_employee)):
+    """Export team or org-wide report depending on role scope."""
+    from services.rbac_service import get_team_member_ids
+    role = emp["role"]
+    
+    if role in ["founder", "admin"]:
+        emps = await db.employees().find({}, {"_id": 0}).to_list(length=1000)
+    elif role == "bdo":
+        tls = await db.employees().find({"reporting_manager": emp["id"]}, {"_id": 0}).to_list(length=100)
+        tl_ids = [t["id"] for t in tls] + [emp["id"]]
+        team_members = await db.employees().find({"$or": [{"reporting_manager": {"$in": tl_ids}}, {"id": {"$in": tl_ids}}]}, {"_id": 0}).to_list(length=1000)
+        emps = team_members
+    elif role == "team_lead":
+        member_ids = await get_team_member_ids(emp)
+        emps = await db.employees().find({"id": {"$in": member_ids}}, {"_id": 0}).to_list(length=1000)
+    else:
+        emps = await db.employees().find({}, {"_id": 0}).to_list(length=1000)
+
+    emp_ids = [e["id"] for e in emps]
+
+    leads = await db.leads().find({"$or": [{"assigned_to": {"$in": emp_ids}}, {"created_by": {"$in": emp_ids}}]}, {"_id": 0}).to_list(length=2000)
+
+    csv_lines = ["Lead ID,Customer ID,Source,Status,Assigned To,Created By,Created At"]
+    for l in leads:
+        csv_lines.append(f'"{l.get("lead_id")}","{l.get("customer_id")}","{l.get("source")}","{l.get("status")}","{l.get("assigned_to")}","{l.get("created_by")}","{l.get("created_at")}"')
+
+    csv_content = "\n".join(csv_lines)
+    from fastapi.responses import Response
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=VisitSarva_Report_{role}_{datetime.now().strftime('%Y%m%d')}.csv"}
+    )

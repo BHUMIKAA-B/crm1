@@ -90,6 +90,10 @@ async def create_lead(lead_in: LeadCreate, emp: dict = Depends(get_current_emplo
     lead_id_str = f"VS-LEAD-{(count + 1):06d}"
 
     assigned_to = lead_in.assigned_to or emp["id"]
+    
+    # Obtain creator / assignee team_id to stamp on the lead record
+    assignee_emp = await db.employees().find_one({"id": assigned_to})
+    team_id_val = (assignee_emp.get("team_id") if assignee_emp else None) or emp.get("team_id")
 
     new_lead = Lead(
         lead_id=lead_id_str,
@@ -102,6 +106,9 @@ async def create_lead(lead_in: LeadCreate, emp: dict = Depends(get_current_emplo
     )
     
     lead_doc = new_lead.model_dump()
+    if team_id_val:
+        lead_doc["team_id"] = team_id_val
+
     await db.leads().insert_one(lead_doc)
     
     await _log_audit(emp["id"], "create", "lead", new_lead.id)
@@ -113,6 +120,7 @@ async def list_leads(
     status: Optional[str] = None,
     emp: dict = Depends(get_current_employee)
 ):
+    from services.rbac_service import get_team_member_ids
     query = {}
     if status:
         query["status"] = status
@@ -125,7 +133,11 @@ async def list_leads(
     elif role == "team_lead":
         # Can see their leads and their team's leads
         team_ids = await get_team_member_ids(emp)
-        query["assigned_to"] = {"$in": team_ids}
+        query["$or"] = [
+            {"assigned_to": {"$in": team_ids}},
+            {"created_by": {"$in": team_ids}},
+            {"team_id": emp.get("team_id")}
+        ]
     # founder, dpo, and bdo can see all leads
 
     leads_cursor = db.leads().find(query).sort("created_at", -1).limit(100)
@@ -143,6 +155,7 @@ async def list_leads(
 
 @router.get("/{lead_id}")
 async def get_lead(lead_id: str, emp: dict = Depends(get_current_employee)):
+    from services.rbac_service import get_team_member_ids
     lead = await db.leads().find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -150,13 +163,16 @@ async def get_lead(lead_id: str, emp: dict = Depends(get_current_employee)):
     # RBAC check
     role = emp["role"]
     if role in ["executive", "trainee"]:
-        if lead["assigned_to"] != emp["id"]:
+        if lead["assigned_to"] != emp["id"] and lead.get("created_by") != emp["id"]:
             raise HTTPException(status_code=403, detail="Not authorized to view this lead")
     elif role == "team_lead":
-        team = await db.employees().find({"reporting_manager": emp["id"]}).to_list(length=None)
-        team_ids = [t["id"] for t in team]
-        team_ids.append(emp["id"])
-        if lead["assigned_to"] not in team_ids:
+        team_ids = await get_team_member_ids(emp)
+        allowed = (
+            lead["assigned_to"] in team_ids or
+            lead.get("created_by") in team_ids or
+            (emp.get("team_id") and lead.get("team_id") == emp.get("team_id"))
+        )
+        if not allowed:
             raise HTTPException(status_code=403, detail="Not authorized to view this lead")
             
     cust = await db.customers().find_one({"id": lead["customer_id"]}, {"_id": 0})

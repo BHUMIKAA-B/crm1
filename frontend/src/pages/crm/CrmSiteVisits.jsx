@@ -50,16 +50,16 @@ export default function CrmSiteVisits() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Office Visits & Customer Feedback</h1>
-          <p className="text-sm text-gray-500">Track office visits and capture detailed feedback</p>
+          <h1 className="text-2xl font-bold text-gray-900">Site Visits & Customer Feedback</h1>
+          <p className="text-sm text-gray-500">Log site visits, record customer feedback and rate property interest.</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading office visits...</div>
+        <div className="text-center py-12 text-gray-500">Loading site visits...</div>
       ) : visits.length === 0 ? (
         <div className="bg-white rounded-xl p-12 text-center text-gray-500 border border-gray-100">
-          No office visits scheduled.
+          No site visits scheduled.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

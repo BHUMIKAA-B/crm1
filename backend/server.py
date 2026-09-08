@@ -49,6 +49,7 @@ from routers.crm_notifications_router import router as crm_notifications_router
 from routers.crm_audit_logs_router import router as crm_audit_logs_router
 from routers.crm_settings_router import router as crm_settings_router
 from routers.crm_org_router import router as crm_org_router
+from routers.crm_learning_router import router as crm_learning_router
 
 
 app = FastAPI(title="VisitSarva API")
@@ -131,6 +132,7 @@ app.include_router(crm_search_router)
 app.include_router(crm_audit_logs_router)
 app.include_router(crm_settings_router)
 app.include_router(crm_org_router)
+app.include_router(crm_learning_router)
 
 
 
