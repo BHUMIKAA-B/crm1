@@ -152,7 +152,20 @@ def learning_content():
     return get_db()["learning_content"]
 
 
+def learning_recipients():
+    return get_db()["learning_recipients"]
+
+
 def learning_security_events():
     return get_db()["learning_security_events"]
+
+
+def get_gridfs_bucket():
+    database = get_db()
+    if hasattr(database, "get_gridfs_bucket"):
+        return database.get_gridfs_bucket()
+    from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+    return AsyncIOMotorGridFSBucket(database, bucket_name="learning_files")
+
 
 

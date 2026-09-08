@@ -394,3 +394,34 @@ class Notification(BaseModel):
     is_read: bool = False
     created_at: str = Field(default_factory=now_iso)
 
+# ---------- Learning Content ----------
+LearningContentType = Literal["video", "image", "pdf", "document", "text"]
+
+class LearningContent(BaseModel):
+    id: str = Field(default_factory=new_id)
+    title: str
+    content_type: LearningContentType
+    description: str = ""
+    file_id: Optional[str] = None
+    file_name: Optional[str] = None
+    file_size: Optional[int] = None
+    mime_type: Optional[str] = None
+    text_content: Optional[str] = None
+    recipients: List[str] = []
+    created_by: str
+    created_by_name: Optional[str] = None
+    created_by_role: Optional[str] = None
+    is_published: bool = True
+    created_at: str = Field(default_factory=now_iso)
+    updated_at: str = Field(default_factory=now_iso)
+
+class LearningRecipient(BaseModel):
+    id: str = Field(default_factory=new_id)
+    learning_content_id: str
+    user_id: str
+    assigned_at: str = Field(default_factory=now_iso)
+    first_viewed_at: Optional[str] = None
+    last_viewed_at: Optional[str] = None
+    view_count: int = 0
+
+

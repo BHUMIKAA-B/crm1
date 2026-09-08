@@ -87,10 +87,54 @@ class AsyncCollectionMock:
         return AsyncCursorMock(cursor)
 
 
+class MockGridFSBucket:
+    def __init__(self):
+        import uuid
+        self._files = {}
+        self._uuid = uuid
+
+    async def upload_from_stream(self, filename, source, metadata=None):
+        file_id = str(self._uuid.uuid4())
+        if hasattr(source, "read"):
+            data = source.read()
+            if hasattr(data, "__await__"):
+                data = await data
+        else:
+            data = source
+        self._files[file_id] = {
+            "filename": filename,
+            "data": data,
+            "metadata": metadata or {}
+        }
+        return file_id
+
+    async def open_download_stream(self, file_id):
+        file_id_str = str(file_id)
+        if file_id_str not in self._files:
+            from gridfs.errors import NoFile
+            raise NoFile(f"File {file_id_str} not found in mock GridFS")
+        item = self._files[file_id_str]
+        data = item["data"]
+        class MockDownloadStream:
+            def __init__(self, d):
+                self._d = d
+            async def read(self, length=-1):
+                return self._d
+        return MockDownloadStream(data)
+
+    async def delete(self, file_id):
+        self._files.pop(str(file_id), None)
+
+
 class AsyncDatabaseMock:
     def __init__(self, db_name="visitsarva"):
         self._client = mongomock.MongoClient()
         self._db = self._client[db_name]
+        self._gridfs = MockGridFSBucket()
 
     def __getitem__(self, collection_name):
         return AsyncCollectionMock(self._db[collection_name])
+
+    def get_gridfs_bucket(self):
+        return self._gridfs
+
