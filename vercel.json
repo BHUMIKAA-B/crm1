@@ -9,7 +9,8 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build"
+        "distDir": "build",
+        "buildCommand": "rm -rf node_modules/.cache build && REACT_APP_CACHE_BUST=20260909_v5 CI=false npm run build"
       }
     }
   ],
