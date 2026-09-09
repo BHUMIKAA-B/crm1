@@ -10,7 +10,7 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "build",
-        "buildCommand": "CI=false npm run build"
+        "buildCommand": "rm -rf node_modules/.cache build && CI=false npm run build"
       }
     }
   ],
@@ -33,21 +33,25 @@
     },
     {
       "src": "/static/(.*)",
-      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
-      "dest": "/static/$1"
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      },
+      "dest": "frontend/static/$1"
     },
     {
       "src": "/favicon.ico",
-      "dest": "/favicon.ico"
+      "dest": "frontend/favicon.ico"
     },
     {
       "src": "/manifest.json",
-      "dest": "/manifest.json"
+      "dest": "frontend/manifest.json"
     },
     {
       "src": "/(.*)",
-      "headers": { "Cache-Control": "no-cache, no-store, must-revalidate" },
-      "dest": "/index.html"
+      "headers": {
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      },
+      "dest": "frontend/index.html"
     }
   ]
 }
