@@ -81,7 +81,7 @@ async def root_spa():
     target_dir = _find_build_dir()
     index_file = target_dir / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
     return JSONResponse({"app": "VisitSarva", "tagline": "Buy property, pay no brokerage."})
 
 
@@ -166,7 +166,7 @@ async def serve_spa(full_path: str):
             return FileResponse(file_path)
         index_file = target_dir / "index.html"
         if index_file.exists():
-            return FileResponse(index_file)
+            return FileResponse(index_file, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
     return JSONResponse({"app": "VisitSarva", "tagline": "Buy property, pay no brokerage."})
 
 
