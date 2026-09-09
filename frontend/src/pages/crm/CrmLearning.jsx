@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import {
   GraduationCap, Plus, Play, ShieldAlert, Trash2, Edit, CheckCircle, XCircle,
   Search, Video, FileText, Image as ImageIcon, Download, Users, CheckSquare, Square,
-  X, File, Clock, Upload, Eye, FileSpreadsheet, Presentation
+  X, File, Clock, Upload, Eye, FileSpreadsheet, Presentation, ChevronDown
 } from "lucide-react";
 
 export default function CrmLearning() {
@@ -38,8 +38,21 @@ export default function CrmLearning() {
   const [selectedRecipients, setSelectedRecipients] = useState([]);
   const [isPublished, setIsPublished] = useState(true);
 
-  // Recipient selector search
+  // Recipient selector dropdown state & ref
   const [recipientSearch, setRecipientSearch] = useState("");
+  const [recipientDropdownOpen, setRecipientDropdownOpen] = useState(false);
+  const recipientDropdownRef = useRef(null);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (recipientDropdownRef.current && !recipientDropdownRef.current.contains(e.target)) {
+        setRecipientDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Security Protection States
   const [isBlurred, setIsBlurred] = useState(false);
@@ -663,73 +676,101 @@ export default function CrmLearning() {
                 />
               </div>
 
-              {/* Recipient Selector ("Share With" - Replaces Category) */}
-              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-indigo-600" /> Share With (Select Registered CRM Users) <span className="text-red-500">*</span>
-                  </label>
-                  <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                    {selectedRecipients.length} users selected
+              {/* Share With / Select Registered CRM Users Dropdown (Replaces Category Dropdown) */}
+              <div className="relative" ref={recipientDropdownRef}>
+                <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-indigo-600" /> Share With (Registered CRM Members) <span className="text-red-500">*</span>
                   </span>
-                </div>
-
-                {/* Recipient Search & Select All */}
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search users by name, role, email..."
-                      value={recipientSearch}
-                      onChange={(e) => setRecipientSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleToggleSelectAll}
-                    className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap"
-                  >
-                    {isAllSelected ? "Deselect All" : "Select All"}
-                  </button>
-                </div>
-
-                {/* Registered CRM Employee List with Checkboxes */}
-                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white divide-y divide-gray-100 shadow-inner">
-                  {filteredEmployeesForSelector.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-gray-400">No matching registered CRM users found</div>
-                  ) : (
-                    filteredEmployeesForSelector.map(empItem => {
-                      const isChecked = selectedRecipients.includes(empItem.id);
-                      return (
-                        <div
-                          key={empItem.id}
-                          onClick={() => handleToggleRecipient(empItem.id)}
-                          className={`p-2.5 flex items-center justify-between cursor-pointer transition text-xs ${
-                            isChecked ? "bg-indigo-50/60 font-medium" : "hover:bg-gray-50"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            {isChecked ? (
-                              <CheckSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                            ) : (
-                              <Square className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                            )}
-                            <div>
-                              <p className="font-semibold text-gray-900">{empItem.name}</p>
-                              <p className="text-[11px] text-gray-500">{empItem.email || empItem.employee_id}</p>
-                            </div>
-                          </div>
-                          <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
-                            {empItem.role}
-                          </span>
-                        </div>
-                      );
-                    })
+                  {selectedRecipients.length > 0 && (
+                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                      {selectedRecipients.length} members selected
+                    </span>
                   )}
-                </div>
+                </label>
+
+                {/* Dropdown Field Trigger Button */}
+                <button
+                  type="button"
+                  onClick={() => setRecipientDropdownOpen(!recipientDropdownOpen)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-left flex items-center justify-between focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm hover:border-indigo-400 transition min-h-[42px]"
+                >
+                  <span className="truncate text-gray-700 font-medium">
+                    {selectedRecipients.length === 0 ? (
+                      <span className="text-gray-400 font-normal">Select registered CRM members to send content...</span>
+                    ) : (
+                      <span className="text-xs text-gray-900 font-medium">
+                        {employeesList
+                          .filter(e => selectedRecipients.includes(e.id))
+                          .map(e => e.name)
+                          .join(", ")}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-500 ml-2 flex-shrink-0 transition-transform ${recipientDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* Dropdown Menu Popover */}
+                {recipientDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 p-3 space-y-2 max-h-64 overflow-y-auto">
+                    {/* Search & Actions inside Dropdown */}
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search CRM members..."
+                          value={recipientSearch}
+                          onChange={(e) => setRecipientSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleToggleSelectAll}
+                        className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 whitespace-nowrap"
+                      >
+                        {isAllSelected ? "Deselect All" : "Select All"}
+                      </button>
+                    </div>
+
+                    {/* List of Registered CRM Users */}
+                    <div className="divide-y divide-gray-100 max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-white">
+                      {filteredEmployeesForSelector.length === 0 ? (
+                        <div className="p-3 text-center text-xs text-gray-400">No matching registered members found</div>
+                      ) : (
+                        filteredEmployeesForSelector.map(empItem => {
+                          const isChecked = selectedRecipients.includes(empItem.id);
+                          return (
+                            <div
+                              key={empItem.id}
+                              onClick={() => handleToggleRecipient(empItem.id)}
+                              className={`p-2 flex items-center justify-between cursor-pointer transition text-xs ${
+                                isChecked ? "bg-indigo-50/90 font-semibold text-indigo-950" : "hover:bg-gray-50 text-gray-800"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {isChecked ? (
+                                  <CheckSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                                )}
+                                <div>
+                                  <p className="font-semibold">{empItem.name}</p>
+                                  <p className="text-[10px] text-gray-500">{empItem.email || empItem.employee_id}</p>
+                                </div>
+                              </div>
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                                {empItem.role}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Content Type Selector Tabs */}
