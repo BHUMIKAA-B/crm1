@@ -4,54 +4,12 @@
     {
       "src": "api/index.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build",
-        "buildCommand": "rm -rf node_modules/.cache build && REACT_APP_CACHE_BUST=20260909_v5 CI=false npm run build"
-      }
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/health",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/docs",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/openapi.json",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/static/(.*)",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      },
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/manifest.json"
-    },
-    {
       "src": "/(.*)",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate"
-      },
-      "dest": "/index.html"
+      "dest": "api/index.py"
     }
   ]
 }
