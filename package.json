@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "cd frontend && npm run build && node -e \"require('fs').cpSync('build', '../build', {recursive: true})\""
+    "build": "cd frontend && npm run build && node -e \"require('fs').cpSync('build', '../build', {recursive: true}); require('fs').cpSync('build', '../backend/static_build', {recursive: true})\""
   }
 }
