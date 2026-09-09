@@ -93,7 +93,7 @@ async def health():
 
 @app.get("/api/")
 async def api_root():
-    return {"app": "VisitSarva", "tagline": "Buy property, pay no brokerage.", "version": "v_2026_09_09_test"}
+    return {"app": "VisitSarva", "tagline": "Buy property, pay no brokerage."}
 
 
 app.include_router(auth_router)
