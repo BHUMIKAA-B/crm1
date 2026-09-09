@@ -831,11 +831,11 @@ export default function CrmLearning() {
                 </div>
               )}
 
-              {/* Share With Employees Dropdown */}
+              {/* List of Registered CRM Employees Dropdown */}
               <div className="relative" ref={recipientDropdownRef}>
                 <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-indigo-600" /> Share With Employees <span className="text-red-500">*</span>
+                    <Users className="w-3.5 h-3.5 text-indigo-600" /> List of Employees (Registered CRM Members) <span className="text-red-500">*</span>
                   </span>
                   {selectedRecipients.length > 0 && (
                     <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
@@ -852,7 +852,7 @@ export default function CrmLearning() {
                 >
                   <span className="truncate text-gray-700 font-medium">
                     {selectedRecipients.length === 0 ? (
-                      <span className="text-gray-400 font-normal">Select Employees ▼</span>
+                      <span className="text-gray-400 font-normal">Select Employees from CRM List ▼</span>
                     ) : (
                       <span className="text-xs text-gray-900 font-semibold">
                         {selectedRecipients.length} Employees Selected (Click to change)
@@ -870,7 +870,7 @@ export default function CrmLearning() {
                         <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
                         <input
                           type="text"
-                          placeholder="Search employees..."
+                          placeholder="Search employees by name or role..."
                           value={recipientSearch}
                           onChange={(e) => setRecipientSearch(e.target.value)}
                           className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50"
@@ -885,6 +885,10 @@ export default function CrmLearning() {
                         {isAllSelected ? "Deselect All" : "Select All"}
                       </button>
                     </div>
+
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider px-1 pt-1">
+                      List of CRM System Employees:
+                    </p>
 
                     {/* List of Registered CRM Users */}
                     <div className="divide-y divide-gray-100 max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-white">
@@ -927,8 +931,8 @@ export default function CrmLearning() {
               {/* Removable Employee Chips */}
               {selectedRecipients.length > 0 && (
                 <div className="space-y-1">
-                  <label className="block text-[11px] font-semibold text-gray-500">Selected Employees:</label>
-                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
+                  <label className="block text-[11px] font-semibold text-gray-500">Target Recipients (Selected Employees):</label>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 bg-gray-50 rounded-lg border border-gray-100">
                     {employeesList
                       .filter(e => selectedRecipients.includes(e.id))
                       .map(e => (
@@ -970,6 +974,45 @@ export default function CrmLearning() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* SCREENSHOT & SECURITY PROTECTION OVERLAY */}
+      {isBlurred && (
+        <div className="fixed inset-0 z-[99999] bg-slate-950/85 backdrop-blur-2xl flex items-center justify-center p-6 text-center animate-in fade-in duration-200 select-none">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-red-100 space-y-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+              <ShieldAlert className="w-10 h-10 animate-bounce" />
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900">
+              SCREENSHOT ATTEMPT DETECTED!
+            </h2>
+
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Screenshots, screen capture, and tab switching are strictly prohibited on
+              <span className="font-bold text-indigo-600"> VisitSarva CRM</span> to protect
+              confidential training materials and internal employee documents.
+            </p>
+
+            <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs font-semibold text-red-700">
+              {securityWarning || "Screen capture or window focus lost. Screen blurred for compliance."}
+            </div>
+
+            <p className="text-[11px] text-gray-400">
+              All screenshot attempts are logged and reported to System Administrators for compliance review.
+            </p>
+
+            <button
+              onClick={() => {
+                setIsBlurred(false);
+                setSecurityWarning("");
+              }}
+              className="w-full py-3 bg-indigo-600 text-white font-semibold text-sm rounded-xl hover:bg-indigo-700 transition shadow-md"
+            >
+              I Understand & Acknowledge
+            </button>
           </div>
         </div>
       )}
