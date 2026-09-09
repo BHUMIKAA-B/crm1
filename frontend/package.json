@@ -76,7 +76,7 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "vercel-build": "CI=false craco build",
+    "vercel-build": "CI=false REACT_APP_BUILD_VERSION=20260909v3 craco build",
     "test": "craco test"
   },
   "browserslist": {
