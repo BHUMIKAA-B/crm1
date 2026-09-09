@@ -10,7 +10,7 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "build",
-        "buildCommand": "rm -rf node_modules/.cache build && CI=false npm run build"
+        "buildCommand": "CI=false npm run build"
       }
     }
   ],
