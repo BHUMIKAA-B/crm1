@@ -30,10 +30,11 @@ export default function CrmLearning() {
   const [editingItem, setEditingItem] = useState(null);
 
   // Modal Form State
-  const [contentTypeTab, setContentTypeTab] = useState("file"); // 'file' | 'text'
+  const [contentTypeTab, setContentTypeTab] = useState("file"); // 'file' | 'url' | 'text'
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [textContent, setTextContent] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedRecipients, setSelectedRecipients] = useState([]);
   const [isPublished, setIsPublished] = useState(true);
@@ -170,6 +171,7 @@ export default function CrmLearning() {
     setTitle("");
     setDescription("");
     setTextContent("");
+    setVideoUrl("");
     setSelectedFile(null);
     setContentTypeTab("file");
     setSelectedRecipients([]);
@@ -184,10 +186,11 @@ export default function CrmLearning() {
     setTitle(item.title || "");
     setDescription(item.description || "");
     setTextContent(item.text_content || "");
+    setVideoUrl(item.video_url || "");
     setSelectedFile(null);
-    setContentTypeTab(item.content_type === "text" ? "text" : "file");
+    setContentTypeTab(item.video_url ? "url" : item.content_type === "text" ? "text" : "file");
     setSelectedRecipients(item.recipients || []);
-    setIsPublished(item.is_published !== false);
+    setIsPublished(true);
     setRecipientSearch("");
     setShowModal(true);
   };
@@ -211,6 +214,11 @@ export default function CrmLearning() {
       return;
     }
 
+    if (contentTypeTab === "url" && !videoUrl.trim()) {
+      toast.error("Please enter a video or content URL");
+      return;
+    }
+
     if (contentTypeTab === "text" && !textContent.trim()) {
       toast.error("Text content is required");
       return;
@@ -220,11 +228,12 @@ export default function CrmLearning() {
     try {
       const formData = new FormData();
       formData.append("title", title.trim());
-      formData.append("content_type", contentTypeTab === "text" ? "text" : "video"); // Content type will be auto-detected by backend for files
+      formData.append("content_type", contentTypeTab === "text" ? "text" : contentTypeTab === "url" ? "video" : "file");
       formData.append("description", description.trim());
       formData.append("text_content", textContent);
+      if (videoUrl.trim()) formData.append("video_url", videoUrl.trim());
       formData.append("recipients", JSON.stringify(selectedRecipients));
-      formData.append("is_published", isPublished);
+      formData.append("is_published", "true");
 
       if (selectedFile) {
         formData.append("file", selectedFile);
@@ -448,16 +457,41 @@ export default function CrmLearning() {
               {/* Video Player */}
               {activeItem.content_type === "video" && (
                 <div className="w-full aspect-video flex items-center justify-center bg-black">
-                  <video
-                    ref={videoRef}
-                    src={`/api/crm/learning/files/${activeItem.file_id}`}
-                    controls
-                    controlsList="nodownload noremoteplayback"
-                    disablePictureInPicture
-                    onPlay={() => logSecurityEvent("VIDEO_PLAY", activeItem.id)}
-                    onPause={() => logSecurityEvent("VIDEO_PAUSE", activeItem.id)}
-                    className="w-full h-full object-contain"
-                  />
+                  {activeItem.video_url ? (
+                    activeItem.video_url.includes("youtube.com") || activeItem.video_url.includes("youtu.be") ? (
+                      <iframe
+                        src={
+                          activeItem.video_url.includes("youtu.be/")
+                            ? activeItem.video_url.replace("youtu.be/", "www.youtube.com/embed/").split("?")[0]
+                            : activeItem.video_url.replace("watch?v=", "embed/").split("&")[0]
+                        }
+                        title={activeItem.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full rounded-lg border-0"
+                      />
+                    ) : (
+                      <video
+                        ref={videoRef}
+                        src={activeItem.video_url}
+                        controls
+                        controlsList="nodownload noremoteplayback"
+                        disablePictureInPicture
+                        className="w-full h-full object-contain"
+                      />
+                    )
+                  ) : (
+                    <video
+                      ref={videoRef}
+                      src={`/api/crm/learning/files/${activeItem.file_id}`}
+                      controls
+                      controlsList="nodownload noremoteplayback"
+                      disablePictureInPicture
+                      onPlay={() => logSecurityEvent("VIDEO_PLAY", activeItem.id)}
+                      onPause={() => logSecurityEvent("VIDEO_PAUSE", activeItem.id)}
+                      className="w-full h-full object-contain"
+                    />
+                  )}
                 </div>
               )}
 
@@ -646,13 +680,13 @@ export default function CrmLearning() {
         </div>
       )}
 
-      {/* Redesigned Upload / Edit Modal (Founder & BDO only) */}
+      {/* ADD / EDIT LEARNING CONTENT MODAL (Founder & BDO only) */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h2 className="text-lg font-bold text-gray-900">
-                {editingItem ? "Edit Learning Content" : "Create Learning Content"}
+                {editingItem ? "EDIT LEARNING CONTENT" : "ADD LEARNING CONTENT"}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -665,31 +699,152 @@ export default function CrmLearning() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Title <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="e.g. Property Documentation & Title Deed Verification"
+                  placeholder="e.g. Sales Training & Property Documentation"
                 />
               </div>
 
-              {/* Share With / Select Registered CRM Users Dropdown (Replaces Category Dropdown) */}
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Short description of what recipients will learn..."
+                />
+              </div>
+
+              {/* Content Mode Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Content Source & Format <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setContentTypeTab("file")}
+                    className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1 ${
+                      contentTypeTab === "file"
+                        ? "bg-white text-indigo-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    <Upload className="w-3.5 h-3.5" /> Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentTypeTab("url")}
+                    className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1 ${
+                      contentTypeTab === "url"
+                        ? "bg-white text-indigo-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    <Video className="w-3.5 h-3.5" /> Video / URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentTypeTab("text")}
+                    className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1 ${
+                      contentTypeTab === "text"
+                        ? "bg-white text-indigo-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5" /> Text Content
+                  </button>
+                </div>
+              </div>
+
+              {/* File Input */}
+              {contentTypeTab === "file" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Select File {editingItem ? "(Leave blank to keep existing file)" : "<span className='text-red-500'>*</span>"}
+                  </label>
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-indigo-400 transition bg-slate-50/50">
+                    <input
+                      type="file"
+                      id="learning-file-upload"
+                      onChange={(e) => setSelectedFile(e.target.files[0])}
+                      className="hidden"
+                    />
+                    <label htmlFor="learning-file-upload" className="cursor-pointer flex flex-col items-center gap-1">
+                      <Upload className="w-8 h-8 text-indigo-500" />
+                      <span className="text-xs font-semibold text-indigo-600">
+                        {selectedFile ? selectedFile.name : "Click to select file (Video, Image, PDF, Document)"}
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        Supports MP4, WebM, MOV, JPG, PNG, WEBP, PDF, DOCX, PPTX, XLSX, TXT (Max 100MB)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Video URL Input */}
+              {contentTypeTab === "url" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Video Source URL / Link <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="url"
+                    required={contentTypeTab === "url"}
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="e.g. https://youtu.be/... or https://domain.com/video.mp4"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Paste YouTube, Vimeo, MP4 URL, or direct content link.
+                  </p>
+                </div>
+              )}
+
+              {/* Text Content */}
+              {contentTypeTab === "text" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Text Content <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    rows={5}
+                    required={contentTypeTab === "text"}
+                    value={textContent}
+                    onChange={(e) => setTextContent(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-sans"
+                    placeholder="Enter training guidelines, steps, client scripts, or instructions here..."
+                  />
+                </div>
+              )}
+
+              {/* Share With Employees Dropdown */}
               <div className="relative" ref={recipientDropdownRef}>
                 <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-indigo-600" /> Share With (Registered CRM Members) <span className="text-red-500">*</span>
+                    <Users className="w-3.5 h-3.5 text-indigo-600" /> Share With Employees <span className="text-red-500">*</span>
                   </span>
                   {selectedRecipients.length > 0 && (
                     <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                      {selectedRecipients.length} members selected
+                      {selectedRecipients.length} selected
                     </span>
                   )}
                 </label>
 
-                {/* Dropdown Field Trigger Button */}
+                {/* Dropdown Trigger Button */}
                 <button
                   type="button"
                   onClick={() => setRecipientDropdownOpen(!recipientDropdownOpen)}
@@ -697,13 +852,10 @@ export default function CrmLearning() {
                 >
                   <span className="truncate text-gray-700 font-medium">
                     {selectedRecipients.length === 0 ? (
-                      <span className="text-gray-400 font-normal">Select registered CRM members to send content...</span>
+                      <span className="text-gray-400 font-normal">Select Employees ▼</span>
                     ) : (
-                      <span className="text-xs text-gray-900 font-medium">
-                        {employeesList
-                          .filter(e => selectedRecipients.includes(e.id))
-                          .map(e => e.name)
-                          .join(", ")}
+                      <span className="text-xs text-gray-900 font-semibold">
+                        {selectedRecipients.length} Employees Selected (Click to change)
                       </span>
                     )}
                   </span>
@@ -713,13 +865,12 @@ export default function CrmLearning() {
                 {/* Dropdown Menu Popover */}
                 {recipientDropdownOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 p-3 space-y-2 max-h-64 overflow-y-auto">
-                    {/* Search & Actions inside Dropdown */}
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
                         <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
                         <input
                           type="text"
-                          placeholder="Search CRM members..."
+                          placeholder="Search employees..."
                           value={recipientSearch}
                           onChange={(e) => setRecipientSearch(e.target.value)}
                           className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50"
@@ -738,7 +889,7 @@ export default function CrmLearning() {
                     {/* List of Registered CRM Users */}
                     <div className="divide-y divide-gray-100 max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-white">
                       {filteredEmployeesForSelector.length === 0 ? (
-                        <div className="p-3 text-center text-xs text-gray-400">No matching registered members found</div>
+                        <div className="p-3 text-center text-xs text-gray-400">No matching registered employees found</div>
                       ) : (
                         filteredEmployeesForSelector.map(empItem => {
                           const isChecked = selectedRecipients.includes(empItem.id);
@@ -773,116 +924,46 @@ export default function CrmLearning() {
                 )}
               </div>
 
-              {/* Content Type Selector Tabs */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Content Type</label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setContentTypeTab("file")}
-                    className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-                      contentTypeTab === "file"
-                        ? "bg-white text-indigo-600 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    <Upload className="w-3.5 h-3.5" /> Upload File (Video/Image/PDF/Doc)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setContentTypeTab("text")}
-                    className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-                      contentTypeTab === "text"
-                        ? "bg-white text-indigo-600 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    <FileText className="w-3.5 h-3.5" /> Text Content
-                  </button>
-                </div>
-              </div>
-
-              {/* File Input */}
-              {contentTypeTab === "file" && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Upload Content File {editingItem ? "(Leave blank to keep existing file)" : "<span className='text-red-500'>*</span>"}
-                  </label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-indigo-400 transition bg-slate-50/50">
-                    <input
-                      type="file"
-                      id="learning-file-upload"
-                      onChange={(e) => setSelectedFile(e.target.files[0])}
-                      className="hidden"
-                    />
-                    <label htmlFor="learning-file-upload" className="cursor-pointer flex flex-col items-center gap-1">
-                      <Upload className="w-8 h-8 text-indigo-500" />
-                      <span className="text-xs font-semibold text-indigo-600">
-                        {selectedFile ? selectedFile.name : "Click to select a file from your computer"}
-                      </span>
-                      <span className="text-[11px] text-gray-400">
-                        Supports MP4, WebM, MOV, JPG, PNG, WEBP, PDF, DOCX, PPTX, XLSX, TXT (Max 100MB)
-                      </span>
-                    </label>
+              {/* Removable Employee Chips */}
+              {selectedRecipients.length > 0 && (
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500">Selected Employees:</label>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
+                    {employeesList
+                      .filter(e => selectedRecipients.includes(e.id))
+                      .map(e => (
+                        <span
+                          key={e.id}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-800 text-xs font-semibold rounded-lg border border-indigo-200 shadow-xs"
+                        >
+                          {e.name} <span className="text-[10px] opacity-75">({e.role})</span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleRecipient(e.id)}
+                            className="text-indigo-400 hover:text-indigo-900 hover:bg-indigo-100 rounded p-0.5 transition"
+                            title={`Remove ${e.name}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
                   </div>
                 </div>
               )}
-
-              {/* Text Content */}
-              {contentTypeTab === "text" && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Text Content <span className="text-red-500">*</span></label>
-                  <textarea
-                    rows={5}
-                    required
-                    value={textContent}
-                    onChange={(e) => setTextContent(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-sans"
-                    placeholder="Enter training guidelines, steps, client scripts, or instructions here..."
-                  />
-                </div>
-              )}
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Summary / Description</label>
-                <textarea
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="Short description of what recipients will learn..."
-                />
-              </div>
-
-
-              {/* Publish immediately checkbox */}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="is_published_cb"
-                  checked={isPublished}
-                  onChange={(e) => setIsPublished(e.target.checked)}
-                  className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
-                />
-                <label htmlFor="is_published_cb" className="text-xs font-semibold text-gray-700 cursor-pointer">
-                  Publish immediately to selected recipients
-                </label>
-              </div>
 
               {/* Submit Buttons */}
               <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
+                  className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1.5 shadow-sm transition"
                 >
                   {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                   {editingItem ? "Save Changes" : "Publish Content"}

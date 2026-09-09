@@ -116,9 +116,11 @@ async def list_learning_content(emp: dict = Depends(get_current_employee)):
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_learning_content(
     title: str = Form(...),
-    content_type: str = Form(...),  # 'video', 'image', 'pdf', 'document', 'text'
+    content_type: str = Form("file"),  # 'video', 'image', 'pdf', 'document', 'text', 'file'
     description: str = Form(""),
     text_content: Optional[str] = Form(None),
+    video_url: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),  # Backward compatibility for legacy clients
     recipients: str = Form(...),  # JSON string array of user IDs
     is_published: bool = Form(True),
     file: Optional[UploadFile] = File(None),
@@ -128,7 +130,7 @@ async def create_learning_content(
     if emp["role"] not in ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Founder and BDO can upload/create learning content")
 
-    if not title.strip():
+    if not title or not title.strip():
         raise HTTPException(status_code=400, detail="Title is required.")
 
     # Parse recipients list
@@ -148,10 +150,9 @@ async def create_learning_content(
     if content_type == "text":
         if not text_content or not text_content.strip():
             raise HTTPException(status_code=400, detail="Text content cannot be empty.")
-    else:
-        if not file:
-            raise HTTPException(status_code=400, detail="File is required for non-text content.")
-        
+    elif video_url and video_url.strip():
+        final_content_type = "video"
+    elif file:
         file_name = file.filename
         ext = "." + file_name.split(".")[-1].lower() if "." in file_name else ""
         if ext in DANGEROUS_EXTENSIONS:
@@ -176,6 +177,9 @@ async def create_learning_content(
             metadata={"contentType": mime_type, "uploadedBy": emp["id"]}
         )
         file_id = str(file_id)
+    else:
+        if not text_content:
+            raise HTTPException(status_code=400, detail="Please provide a file, video URL, or text content.")
 
     item_id = new_id()
     now = now_iso()
@@ -188,12 +192,14 @@ async def create_learning_content(
         "file_name": file_name,
         "file_size": file_size,
         "mime_type": mime_type,
+        "video_url": video_url.strip() if video_url else None,
+        "category": category if category else None,
         "text_content": text_content if final_content_type == "text" else None,
         "recipients": recipient_ids,
         "created_by": emp["id"],
         "created_by_name": emp.get("name"),
         "created_by_role": emp["role"],
-        "is_published": is_published,
+        "is_published": True,  # Content is targeted strictly to selected recipients
         "created_at": now,
         "updated_at": now
     }
@@ -269,6 +275,8 @@ async def update_learning_content(
     title: str = Form(...),
     description: str = Form(""),
     text_content: Optional[str] = Form(None),
+    video_url: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
     recipients: str = Form(...),
     is_published: bool = Form(True),
     file: Optional[UploadFile] = File(None),
@@ -290,9 +298,11 @@ async def update_learning_content(
         "title": title.strip(),
         "description": description.strip(),
         "recipients": recipient_ids,
-        "is_published": is_published,
+        "is_published": True,
         "updated_at": now_iso()
     }
+    if video_url and video_url.strip():
+        update_fields["video_url"] = video_url.strip()
 
     if existing.get("content_type") == "text":
         if text_content and text_content.strip():
