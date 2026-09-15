@@ -37,8 +37,8 @@ export default function ScreenshotGuard({ children, contentId = null }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      const isPrtScn = e.key === "PrintScreen" || e.keyCode === 44;
-      const isWinShiftS = (e.key === "S" || e.key === "s") && e.shiftKey && (e.metaKey || e.ctrlKey || e.altKey);
+      const isPrtScn = e.key === "PrintScreen" || e.keyCode === 44 || e.code === "PrintScreen";
+      const isWinShiftS = (e.key === "S" || e.key === "s") && (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey);
       const isMacScreenshot = (e.metaKey || e.ctrlKey) && e.shiftKey && ["3", "4", "5"].includes(e.key);
       const isPrint = (e.metaKey || e.ctrlKey) && (e.key === "p" || e.key === "P");
       const isDevToolsScreenshot = e.key === "F12" || ((e.ctrlKey || e.metaKey) && e.shiftKey && ["I", "i", "C", "c", "J", "j", "S", "s"].includes(e.key));
@@ -51,29 +51,43 @@ export default function ScreenshotGuard({ children, contentId = null }) {
     };
 
     const handleKeyUp = (e) => {
-      if (e.key === "PrintScreen" || e.keyCode === 44) {
+      if (e.key === "PrintScreen" || e.keyCode === 44 || e.code === "PrintScreen") {
         e.preventDefault();
         triggerSecurityAlert("PrintScreen keyup");
       }
     };
 
+    const handleWindowBlur = () => {
+      // Snipping Tool or OS screenshot tool steals window focus
+      triggerSecurityAlert("Window lost focus / Screen capture overlay");
+    };
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Turn screen blue when window/tab is hidden or snippet tool takes focus
-        setIsBlueScreen(true);
-        setShowAlertModal(true);
-        setAlertMessage("Protected Content: Window lost focus or screen snippet tool activated.");
+        triggerSecurityAlert("Tab hidden / Window inactive");
       }
+    };
+
+    const handleCopy = (e) => {
+      e.preventDefault();
+      try {
+        e.clipboardData.setData("text/plain", "Screenshots and copying are prohibited on VisitSarva CRM.");
+      } catch (err) {}
+      triggerSecurityAlert("Clipboard copy blocked");
     };
 
     window.addEventListener("keydown", handleKeyDown, true);
     window.addEventListener("keyup", handleKeyUp, true);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleWindowBlur, true);
+    document.addEventListener("visibilitychange", handleVisibilityChange, true);
+    window.addEventListener("copy", handleCopy, true);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("keyup", handleKeyUp, true);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleWindowBlur, true);
+      document.removeEventListener("visibilitychange", handleVisibilityChange, true);
+      window.removeEventListener("copy", handleCopy, true);
     };
   }, [triggerSecurityAlert]);
 
@@ -114,12 +128,12 @@ export default function ScreenshotGuard({ children, contentId = null }) {
       {isBlueScreen && (
         <div
           id="screenshot-blue-screen-overlay"
-          className="fixed inset-0 z-[999999] text-white flex flex-col items-center justify-center p-6 select-none transition-all duration-75"
-          style={{ backgroundColor: "#0033cc" }}
+          className="fixed inset-0 z-[9999999] text-white flex flex-col items-center justify-center p-6 select-none transition-all duration-75"
+          style={{ backgroundColor: "#0033cc", width: "100vw", height: "100vh", position: "fixed", top: 0, left: 0 }}
         >
           {/* Main Alert Card inside Blue Screen */}
           {showAlertModal && (
-            <div className="bg-white text-gray-900 rounded-2xl p-8 max-w-md w-full shadow-2xl border-4 border-red-500 text-center animate-bounce-short z-[1000000]">
+            <div className="bg-white text-gray-900 rounded-2xl p-8 max-w-md w-full shadow-2xl border-4 border-red-500 text-center z-[10000000]">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-500">
                 <ShieldAlert className="w-10 h-10 text-red-600" />
               </div>
