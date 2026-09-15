@@ -121,7 +121,8 @@ async def create_learning_content(
     text_content: Optional[str] = Form(None),
     video_url: Optional[str] = Form(None),
     category: Optional[str] = Form(None),  # Backward compatibility for legacy clients
-    recipients: str = Form(...),  # JSON string array of user IDs
+    recipients: Optional[str] = Form(None),  # JSON string array of user IDs (optional — if missing, publishes to all employees)
+    thumbnail_url: Optional[str] = Form(None),  # Thumbnail image URL (optional, for legacy clients)
     is_published: bool = Form(True),
     file: Optional[UploadFile] = File(None),
     emp: dict = Depends(get_current_employee)
@@ -133,13 +134,23 @@ async def create_learning_content(
     if not title or not title.strip():
         raise HTTPException(status_code=400, detail="Title is required.")
 
-    # Parse recipients list
-    try:
-        recipient_ids = json.loads(recipients) if isinstance(recipients, str) else recipients
-        if not isinstance(recipient_ids, list) or len(recipient_ids) == 0:
-            raise HTTPException(status_code=400, detail="Please select at least one recipient.")
-    except Exception:
-        raise HTTPException(status_code=400, detail="Please select at least one valid recipient.")
+    # Parse recipients list — if not provided, auto-assign to ALL active employees
+    recipient_ids = []
+    if recipients and recipients.strip():
+        try:
+            recipient_ids = json.loads(recipients) if isinstance(recipients, str) else recipients
+            if not isinstance(recipient_ids, list):
+                recipient_ids = []
+        except Exception:
+            recipient_ids = []
+
+    # If no recipients specified, publish to all active employees (supports "Publish immediately for all employees")
+    if not recipient_ids:
+        all_emps_cursor = db.employees().find({"status": {"$nin": ["exited", "suspended"]}}, {"_id": 0, "id": 1})
+        all_emps = await all_emps_cursor.to_list(length=5000)
+        recipient_ids = [e["id"] for e in all_emps]
+        if not recipient_ids:
+            raise HTTPException(status_code=400, detail="No active employees found to assign content to.")
 
     file_id = None
     file_name = None
@@ -277,7 +288,8 @@ async def update_learning_content(
     text_content: Optional[str] = Form(None),
     video_url: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
-    recipients: str = Form(...),
+    recipients: Optional[str] = Form(None),
+    thumbnail_url: Optional[str] = Form(None),
     is_published: bool = Form(True),
     file: Optional[UploadFile] = File(None),
     emp: dict = Depends(get_current_employee)
@@ -290,9 +302,22 @@ async def update_learning_content(
     if not existing:
         raise HTTPException(status_code=404, detail="Learning content not found")
 
-    recipient_ids = json.loads(recipients) if isinstance(recipients, str) else recipients
-    if not isinstance(recipient_ids, list) or len(recipient_ids) == 0:
-        raise HTTPException(status_code=400, detail="Please select at least one recipient.")
+    # Parse recipients — auto-assign all employees if not provided
+    recipient_ids = []
+    if recipients and recipients.strip():
+        try:
+            recipient_ids = json.loads(recipients) if isinstance(recipients, str) else recipients
+            if not isinstance(recipient_ids, list):
+                recipient_ids = []
+        except Exception:
+            recipient_ids = []
+
+    if not recipient_ids:
+        all_emps_cursor = db.employees().find({"status": {"$nin": ["exited", "suspended"]}}, {"_id": 0, "id": 1})
+        all_emps = await all_emps_cursor.to_list(length=5000)
+        recipient_ids = [e["id"] for e in all_emps]
+        if not recipient_ids:
+            raise HTTPException(status_code=400, detail="No active employees found to assign content to.")
 
     update_fields = {
         "title": title.strip(),
