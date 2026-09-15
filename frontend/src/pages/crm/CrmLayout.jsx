@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, Navigate, NavLink, useNavigate } from "react-router-dom";
 import { useCrmAuthStore } from "../../store/crmAuthStore";
+import ScreenshotGuard from "../../components/ScreenshotGuard";
 import {
   LayoutDashboard, Users, Building2, CalendarCheck, FileText,
   Settings, LogOut, Search, Bell, ChevronDown, Menu, X,
@@ -188,7 +189,9 @@ export default function CrmLayout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <Outlet />
+          <ScreenshotGuard>
+            <Outlet />
+          </ScreenshotGuard>
         </main>
       </div>
     </div>

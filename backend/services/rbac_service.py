@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional, List
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 import os
@@ -11,15 +11,26 @@ oauth2_scheme_crm = OAuth2PasswordBearer(tokenUrl="/api/crm/auth/login", auto_er
 def _secret() -> str:
     return os.environ.get("JWT_SECRET", "supersecret")
 
-async def get_current_employee(token: Optional[str] = Depends(oauth2_scheme_crm)) -> dict:
-    if not token:
+async def get_current_employee(
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme_crm)
+) -> dict:
+    auth_token = token
+    if not auth_token and request:
+        auth_token = request.query_params.get("token")
+    if not auth_token and request:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            auth_token = auth_header.split(" ")[1]
+
+    if not auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated as employee",
             headers={"WWW-Authenticate": "Bearer"},
         )
     try:
-        payload = jwt.decode(token, _secret(), algorithms=["HS256"])
+        payload = jwt.decode(auth_token, _secret(), algorithms=["HS256"])
         uid = payload.get("sub")
         emp_type = payload.get("type")
         if not uid or emp_type != "employee_access":

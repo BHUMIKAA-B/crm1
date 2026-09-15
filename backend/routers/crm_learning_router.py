@@ -1,5 +1,5 @@
 """CRM Learning & Training router — Founder/BDO targeted content upload/edit/publish, strict recipient authorization, GridFS file streaming, security logging."""
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -238,8 +238,12 @@ async def create_learning_content(
 
 
 @router.get("/files/{file_id}")
-async def stream_learning_file(file_id: str, emp: dict = Depends(get_current_employee)):
-    """Stream stored file securely. Enforces recipient-based authorization."""
+async def stream_learning_file(
+    file_id: str,
+    request: Request,
+    emp: dict = Depends(get_current_employee)
+):
+    """Stream stored file securely. Enforces recipient-based authorization with Range request support for HTML5 video/audio."""
     content_item = await db.learning_content().find_one({"file_id": file_id})
     if not content_item:
         raise HTTPException(status_code=404, detail="File not found")
@@ -254,11 +258,31 @@ async def stream_learning_file(file_id: str, emp: dict = Depends(get_current_emp
         bucket = db.get_gridfs_bucket()
         stream = await bucket.open_download_stream(file_id)
         file_bytes = await stream.read()
+        file_size = len(file_bytes)
         mime_type = content_item.get("mime_type") or "application/octet-stream"
-        
+
+        range_header = request.headers.get("range")
+        if range_header and range_header.startswith("bytes="):
+            parts = range_header.replace("bytes=", "").split("-")
+            start = int(parts[0]) if parts[0] else 0
+            end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
+            if start >= file_size:
+                start = file_size - 1
+            if end >= file_size:
+                end = file_size - 1
+            chunk = file_bytes[start : end + 1]
+            headers = {
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(len(chunk)),
+                "Content-Disposition": f'inline; filename="{content_item.get("file_name", "file")}"',
+            }
+            return Response(content=chunk, status_code=206, media_type=mime_type, headers=headers)
+
         headers = {
+            "Content-Length": str(file_size),
+            "Accept-Ranges": "bytes",
             "Content-Disposition": f'inline; filename="{content_item.get("file_name", "file")}"',
-            "Accept-Ranges": "bytes"
         }
         return Response(content=file_bytes, media_type=mime_type, headers=headers)
     except Exception as e:

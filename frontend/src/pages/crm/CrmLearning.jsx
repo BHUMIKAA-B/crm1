@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 export default function CrmLearning() {
-  const { employee } = useCrmAuthStore();
+  const { employee, accessToken } = useCrmAuthStore();
   const role = employee?.role;
   const isAdmin = ["founder", "bdo"].includes(role);
 
@@ -483,7 +483,7 @@ export default function CrmLearning() {
                   ) : (
                     <video
                       ref={videoRef}
-                      src={`/api/crm/learning/files/${activeItem.file_id}`}
+                      src={`/api/crm/learning/files/${activeItem.file_id}?token=${accessToken}`}
                       controls
                       controlsList="nodownload noremoteplayback"
                       disablePictureInPicture
@@ -499,7 +499,7 @@ export default function CrmLearning() {
               {activeItem.content_type === "image" && (
                 <div className="max-h-[70vh] p-4 flex items-center justify-center overflow-auto bg-slate-950 w-full">
                   <img
-                    src={`/api/crm/learning/files/${activeItem.file_id}`}
+                    src={`/api/crm/learning/files/${activeItem.file_id}?token=${accessToken}`}
                     alt={activeItem.title}
                     className="max-h-[65vh] object-contain rounded-lg shadow-lg"
                   />
@@ -510,7 +510,7 @@ export default function CrmLearning() {
               {activeItem.content_type === "pdf" && (
                 <div className="w-full h-[70vh] bg-slate-950">
                   <iframe
-                    src={`/api/crm/learning/files/${activeItem.file_id}#toolbar=0`}
+                    src={`/api/crm/learning/files/${activeItem.file_id}?token=${accessToken}#toolbar=0`}
                     title={activeItem.title}
                     className="w-full h-full rounded-lg border-0"
                   />
@@ -528,7 +528,7 @@ export default function CrmLearning() {
                     </p>
                   </div>
                   <a
-                    href={`/api/crm/learning/files/${activeItem.file_id}`}
+                    href={`/api/crm/learning/files/${activeItem.file_id}?token=${accessToken}`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition shadow-lg"

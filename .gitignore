@@ -88,6 +88,4 @@ credentials.json
 *.key
 .credentials
 
-# Temporary static build bundles
-static_build/
 
