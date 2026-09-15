@@ -23,7 +23,7 @@ export default function CrmSiteVisits() {
       const res = await crmApi.get("/site-visits");
       setVisits(res.data);
     } catch {
-      toast.error("Failed to load office visits");
+      toast.error("Failed to load site visits");
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,7 @@ export default function CrmSiteVisits() {
     if (!selectedVisit) return;
     try {
       await crmApi.post(`/site-visits/${selectedVisit.id}/feedback`, feedbackForm);
-      toast.success("Office visit feedback submitted!");
+      toast.success("Site visit feedback submitted!");
       setSelectedVisit(null);
       fetchVisits();
     } catch {
@@ -121,7 +121,7 @@ export default function CrmSiteVisits() {
                   onClick={() => setSelectedVisit(v)}
                   className="mt-2 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
                 >
-                  Submit Office Visit Feedback
+                  Submit Site Visit Feedback
                 </button>
               )}
             </div>
@@ -133,7 +133,7 @@ export default function CrmSiteVisits() {
       {selectedVisit && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h2 className="text-lg font-bold text-gray-900">Office Visit Feedback</h2>
+            <h2 className="text-lg font-bold text-gray-900">Site Visit Feedback</h2>
             <p className="text-xs text-gray-500">Customer: {selectedVisit.customer?.name}</p>
 
             <form onSubmit={handleFeedbackSubmit} className="space-y-3">

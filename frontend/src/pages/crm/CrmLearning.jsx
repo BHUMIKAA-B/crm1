@@ -353,6 +353,43 @@ export default function CrmLearning() {
     }
   };
 
+  // Helper to parse video URLs (YouTube watch, shorts, youtu.be, direct MP4, backend file)
+  const getVideoSource = (item) => {
+    if (!item) return { type: "invalid", src: null };
+    const url = item.video_url;
+    if (url && typeof url === "string") {
+      const trimmed = url.trim();
+      const shortsMatch = trimmed.match(/(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/i);
+      if (shortsMatch && shortsMatch[1]) {
+        return {
+          type: "youtube",
+          embedUrl: `https://www.youtube-nocookie.com/embed/${shortsMatch[1]}?rel=0&modestbranding=1&autoplay=0`
+        };
+      }
+      const ytMatch = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
+      if (ytMatch && ytMatch[1]) {
+        return {
+          type: "youtube",
+          embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?rel=0&modestbranding=1&autoplay=0`
+        };
+      }
+      if (trimmed.length > 5) {
+        return { type: "direct", src: trimmed };
+      }
+    }
+    if (item.file_id) {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "";
+      return {
+        type: "direct",
+        src: `${backendUrl}/api/crm/learning/files/${item.file_id}?token=${accessToken}`
+      };
+    }
+    return { type: "invalid", src: null };
+  };
+
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState(null);
+
   return (
     <div className="space-y-6 select-none" onContextMenu={(e) => e.preventDefault()}>
       {/* Header */}
@@ -420,7 +457,7 @@ export default function CrmLearning() {
 
       {/* Active Content Viewer Modal / Player */}
       {activeItem && (
-        <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-slate-900 rounded-2xl max-w-4xl w-full p-6 text-white shadow-2xl relative border border-slate-800 my-auto">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
@@ -431,6 +468,7 @@ export default function CrmLearning() {
               <button
                 onClick={() => {
                   setActiveItem(null);
+                  setMediaError(null);
                   logSecurityEvent("CONTENT_CLOSE");
                 }}
                 className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition"
@@ -440,58 +478,116 @@ export default function CrmLearning() {
             </div>
 
             {/* Viewer Content Body */}
-            <div className={`relative rounded-xl overflow-hidden bg-black flex items-center justify-center ${isBlurred ? "filter blur-xl pointer-events-none" : ""}`}>
-              {/* Dynamic Watermark Overlay */}
-              <div className="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-4 opacity-20 select-none">
-                <div className="text-right text-xs font-mono text-white tracking-widest uppercase">
-                  {employee?.name} ({employee?.email})
+            <div className="relative rounded-xl overflow-hidden bg-black flex items-center justify-center min-h-[300px]">
+
+              {/* SOLID BLUE SECURITY SCREEN OVERLAY IF BLURRED/CAPTURE DETECTED */}
+              {isBlurred ? (
+                <div
+                  className="absolute inset-0 z-50 text-white flex flex-col items-center justify-center p-6 text-center select-none"
+                  style={{ backgroundColor: "#0022cc" }}
+                >
+                  <div className="bg-white text-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl border-4 border-red-500 space-y-3">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+                      <ShieldAlert className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-extrabold text-red-600 tracking-wide uppercase">
+                      SECURITY ALERT: SCREEN CAPTURE DETECTED
+                    </h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Screenshot or screen recording is not permitted in the VisitSarva Learning section. Your access to the protected content has been temporarily paused.
+                    </p>
+                    <div className="p-2.5 bg-red-50 rounded-lg text-xs font-medium text-red-800 border border-red-200">
+                      {securityWarning || "Screen capture event logged."}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsBlurred(false);
+                        setSecurityWarning("");
+                      }}
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md"
+                    >
+                      Return to Learning
+                    </button>
+                  </div>
                 </div>
-                <div className="text-center text-xs font-mono text-white tracking-widest opacity-40">
-                  CONFIDENTIAL — VISITSARVA CRM — {employee?.id}
+              ) : null}
+
+              {/* Dynamic Watermark Overlay */}
+              <div className="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-4 opacity-25 select-none">
+                <div className="text-right text-xs font-mono text-white tracking-widest uppercase">
+                  {employee?.name} ({employee?.email || "RESTRICTED"})
+                </div>
+                <div className="text-center text-xs font-mono text-white tracking-widest opacity-60">
+                  CONFIDENTIAL — VISITSARVA CRM — {employee?.id || employee?.employee_id || "VS-AUTH"}
                 </div>
                 <div className="text-left text-xs font-mono text-white tracking-widest">
-                  RESTRICTED ACCESS CONTENT
+                  RESTRICTED ACCESS CONTENT — DO NOT CAPTURE OR SHARE
                 </div>
               </div>
 
               {/* Video Player */}
               {activeItem.content_type === "video" && (
-                <div className="w-full aspect-video flex items-center justify-center bg-black">
-                  {activeItem.video_url ? (
-                    activeItem.video_url.includes("youtube.com") || activeItem.video_url.includes("youtu.be") ? (
-                      <iframe
-                        src={
-                          activeItem.video_url.includes("youtu.be/")
-                            ? activeItem.video_url.replace("youtu.be/", "www.youtube.com/embed/").split("?")[0]
-                            : activeItem.video_url.replace("watch?v=", "embed/").split("&")[0]
-                        }
-                        title={activeItem.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="w-full h-full rounded-lg border-0"
-                      />
-                    ) : (
-                      <video
-                        ref={videoRef}
-                        src={activeItem.video_url}
-                        controls
-                        controlsList="nodownload noremoteplayback"
-                        disablePictureInPicture
-                        className="w-full h-full object-contain"
-                      />
-                    )
-                  ) : (
-                    <video
-                      ref={videoRef}
-                      src={`/api/crm/learning/files/${activeItem.file_id}?token=${accessToken}`}
-                      controls
-                      controlsList="nodownload noremoteplayback"
-                      disablePictureInPicture
-                      onPlay={() => logSecurityEvent("VIDEO_PLAY", activeItem.id)}
-                      onPause={() => logSecurityEvent("VIDEO_PAUSE", activeItem.id)}
-                      className="w-full h-full object-contain"
-                    />
-                  )}
+                <div className="w-full aspect-video flex items-center justify-center bg-black relative">
+                  {(() => {
+                    const videoSrc = getVideoSource(activeItem);
+                    if (videoSrc.type === "youtube") {
+                      return (
+                        <iframe
+                          src={videoSrc.embedUrl}
+                          title={activeItem.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full rounded-lg border-0"
+                        />
+                      );
+                    } else if (videoSrc.type === "direct" && videoSrc.src) {
+                      return (
+                        <>
+                          {isMediaLoading && (
+                            <div className="absolute inset-0 z-10 bg-black/60 flex items-center justify-center text-white text-xs font-semibold gap-2">
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Loading video stream...
+                            </div>
+                          )}
+                          {mediaError ? (
+                            <div className="p-6 text-center text-amber-400 text-xs flex flex-col items-center gap-2 max-w-sm">
+                              <ShieldAlert className="w-8 h-8 text-amber-400" />
+                              <p className="font-semibold">{mediaError}</p>
+                            </div>
+                          ) : (
+                            <video
+                              ref={videoRef}
+                              src={videoSrc.src}
+                              controls
+                              controlsList="nodownload noremoteplayback"
+                              disablePictureInPicture
+                              playsInline
+                              preload="metadata"
+                              onLoadStart={() => {
+                                setIsMediaLoading(true);
+                                setMediaError(null);
+                              }}
+                              onLoadedMetadata={() => setIsMediaLoading(false)}
+                              onCanPlay={() => setIsMediaLoading(false)}
+                              onPlay={() => logSecurityEvent("VIDEO_PLAY", activeItem.id)}
+                              onPause={() => logSecurityEvent("VIDEO_PAUSE", activeItem.id)}
+                              onError={() => {
+                                setIsMediaLoading(false);
+                                setMediaError("Unable to load this learning video. Please try again or contact the administrator.");
+                              }}
+                              className="w-full h-full object-contain"
+                            />
+                          )}
+                        </>
+                      );
+                    } else {
+                      return (
+                        <div className="p-6 text-center text-slate-400 text-xs">
+                          Invalid or unsupported learning content.
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
               )}
 

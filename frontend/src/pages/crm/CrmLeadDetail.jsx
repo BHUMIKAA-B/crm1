@@ -221,7 +221,7 @@ export default function CrmLeadDetail() {
                       : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
                   }`}
                 >
-                  {s.replace("site_visit_planned", "Office Visit Planned").replace("site_visit_completed", "Office Visit Completed").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                  {s.replace("site_visit_planned", "Site Visit Planned").replace("site_visit_completed", "Site Visit Completed").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
                 </button>
               ))}
             </div>

@@ -165,7 +165,7 @@ export default function CrmDashboard() {
             link="/crm/tasks?filter=today"
           />
           <StatCard
-            title="Office Visits Today"
+            title="Site Visits Today"
             value={summary?.site_visits_today}
             icon={CalendarCheck}
             color="green"
