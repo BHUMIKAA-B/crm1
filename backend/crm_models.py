@@ -182,26 +182,45 @@ class Task(BaseModel):
     id: str = Field(default_factory=new_id)
     title: str
     description: str = ""
+    task_date: Optional[str] = None   # The date this task is assigned for (daily goal date)
     due_date: str
     due_time: Optional[str] = None
     priority: TaskPriority = "medium"
     status: TaskStatus = "pending"
     assigned_to: str # Employee ID
+    team_id: Optional[str] = None     # Team the task belongs to (derived from creator)
     related_entity_type: Optional[str] = None # lead, customer, property, deal
     related_entity_id: Optional[str] = None
     created_by: str
+    progress: int = 0                 # 0-100 percent completion
+    completion_note: Optional[str] = None
+    completed_at: Optional[str] = None
     created_at: str = Field(default_factory=now_iso)
     updated_at: str = Field(default_factory=now_iso)
 
 class TaskCreate(BaseModel):
     title: str
     description: str = ""
+    task_date: Optional[str] = None   # Date the daily goal is for
     due_date: str
     due_time: Optional[str] = None
     priority: TaskPriority = "medium"
     assigned_to: Optional[str] = None
     related_entity_type: Optional[str] = None
     related_entity_id: Optional[str] = None
+
+class TaskProgressUpdate(BaseModel):
+    progress: int = Field(ge=0, le=100)
+    note: Optional[str] = None
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    task_date: Optional[str] = None
+    due_date: Optional[str] = None
+    due_time: Optional[str] = None
+    priority: Optional[TaskPriority] = None
+    status: Optional[TaskStatus] = None
 
 class Followup(Task):
     type: Literal["followup"] = "followup"
@@ -353,13 +372,15 @@ DocType = Literal[
 
 class CrmDocument(BaseModel):
     id: str = Field(default_factory=new_id)
-    entity_type: str # property, customer, deal
+    title: Optional[str] = None         # Human-readable document title
+    entity_type: str                     # property, customer, deal, team
     entity_id: str
     doc_type: DocType
     type_of_document_service: Optional[str] = None
     file_name: str
     file_url: str
-    uploaded_by: str # Employee ID
+    uploaded_by: str                     # Employee ID
+    team_id: Optional[str] = None        # Team this document belongs to (CRITICAL for scoping)
     verification_status: Literal["pending", "verified", "rejected"] = "pending"
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None

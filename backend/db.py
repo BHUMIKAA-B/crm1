@@ -160,6 +160,11 @@ def learning_security_events():
     return get_db()["learning_security_events"]
 
 
+def report_download_history():
+    """Tracks report downloads for baseline calculation (work since last report)."""
+    return get_db()["report_download_history"]
+
+
 def get_gridfs_bucket():
     database = get_db()
     if hasattr(database, "get_gridfs_bucket"):
