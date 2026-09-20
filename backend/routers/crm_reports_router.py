@@ -95,16 +95,16 @@ async def _generate_team_summary(emp_ids: list, team_name: str, since_timestamp:
     ).to_list(length=500)
 
     lines = []
-    lines.append("TEAM SUMMARY")
-    lines.append(f"Team Name: \"{team_name}\"")
-    lines.append(f"Report Generated On: \"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}\"")
+    lines.append('"=== TEAM SUMMARY REPORT ==="')
+    lines.append(f'"Team Name","{team_name}"')
+    lines.append(f'"Report Generated On","{datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}"')
     if since_timestamp:
         since_fmt = since_timestamp[:10]  # YYYY-MM-DD
-        lines.append(f"Reporting Period: \"Since {since_fmt} (previous report)\"")
+        lines.append(f'"Reporting Period","Since {since_fmt} (previous report baseline)"')
     else:
-        lines.append("Reporting Period: \"All available records (no previous report baseline)\"")
+        lines.append('"Reporting Period","All available records"')
     lines.append("")
-    lines.append("Employee Name,Employee ID,Role,Leads Assigned,Leads Won,Completed Tasks,Site Visits,Work Since Last Report")
+    lines.append('"Employee Name","Employee ID","Role","Leads Assigned","Leads Won","Completed Tasks","Site Visits","Work Since Last Report"')
 
     since_filter: dict = {}
     if since_timestamp:
@@ -144,7 +144,7 @@ async def _generate_team_summary(emp_ids: list, team_name: str, since_timestamp:
         lines.append(row)
 
     lines.append("")
-    lines.append("── DETAILED LEAD RECORDS ──")
+    lines.append('"=== DETAILED LEAD RECORDS ==="')
     lines.append("")
     return lines
 
