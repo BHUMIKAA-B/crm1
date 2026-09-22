@@ -1,31 +1,27 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "cd frontend && npm run build && node -e \"require('fs').cpSync('build', '../build', {recursive: true})\"",
+  "outputDirectory": "frontend/build",
+  "rewrites": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python"
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
     },
     {
-      "src": "backend/static_build/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/backend/static_build/static/$1"
+      "source": "/health",
+      "destination": "/api/index.py"
     },
     {
-      "src": "/favicon.ico",
-      "dest": "/backend/static_build/favicon.ico"
+      "source": "/docs",
+      "destination": "/api/index.py"
     },
     {
-      "src": "/manifest.json",
-      "dest": "/backend/static_build/manifest.json"
+      "source": "/openapi.json",
+      "destination": "/api/index.py"
     },
     {
-      "src": "/(.*)",
-      "dest": "api/index.py"
+      "source": "/((?!api|health|docs|openapi.json|static|favicon.ico|manifest.json).*)",
+      "destination": "/index.html"
     }
   ]
 }
