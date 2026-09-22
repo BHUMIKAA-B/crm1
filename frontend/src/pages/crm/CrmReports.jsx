@@ -117,14 +117,15 @@ export default function CrmReports() {
   };
 
   // All-scope download (Founder: all teams; BDO: BDO scope; Team Lead: own team)
-  const handleDownloadAll = async () => {
+  const handleDownloadAll = async (fmt = "xlsx") => {
     if (!canDownload) return;
     setDownloading(true);
     try {
-      const response = await crmApi.get("/reports/export", { responseType: "blob" });
+      const response = await crmApi.get(`/reports/export?format=${fmt}`, { responseType: "blob" });
+      const ext = fmt === "csv" ? "csv" : "xlsx";
       const filename = isTeamLead
-        ? `MyTeam_Report_${new Date().toISOString().slice(0, 10)}.csv`
-        : `AllTeams_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+        ? `MyTeam_Report_${new Date().toISOString().slice(0, 10)}.${ext}`
+        : `AllTeams_Report_${new Date().toISOString().slice(0, 10)}.${ext}`;
       triggerDownload(response.data, filename);
       toast.success("Report downloaded successfully");
     } catch (err) {
@@ -138,17 +139,18 @@ export default function CrmReports() {
   };
 
   // Individual team download (Founder / BDO only)
-  const handleDownloadTeam = async () => {
+  const handleDownloadTeam = async (fmt = "xlsx") => {
     if (!isFounderOrBdo || !selectedTeamId) {
       toast.error("Please select a team first");
       return;
     }
     setTeamDownloading(true);
     try {
-      const response = await crmApi.get(`/reports/export/team/${selectedTeamId}`, { responseType: "blob" });
+      const response = await crmApi.get(`/reports/export/team/${selectedTeamId}?format=${fmt}`, { responseType: "blob" });
+      const ext = fmt === "csv" ? "csv" : "xlsx";
       const team = teams.find(t => t.id === selectedTeamId || t.team_id === selectedTeamId);
       const teamName = (team?.name || "Team").replace(/\s+/g, "_");
-      triggerDownload(response.data, `${teamName}_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+      triggerDownload(response.data, `${teamName}_Report_${new Date().toISOString().slice(0, 10)}.${ext}`);
       toast.success(`${team?.name || "Team"} report downloaded`);
       setTeamSelectorOpen(false);
     } catch (err) {
@@ -349,7 +351,7 @@ export default function CrmReports() {
             <table className="min-w-full divide-y divide-gray-50">
               <thead className="bg-gray-50/70">
                 <tr>
-                  {["#", "Employee", "Role", "Leads", "Won", "Conversion", "Tasks Done", "Site Visits"].map(h => (
+                  {["#", "Employee ID", "Employee Name", "Role", "Leads Updates", "Token Received", "Site Visits", "Conversions (Deals)"].map(h => (
                     <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -378,6 +380,9 @@ export default function CrmReports() {
                       <td className="px-3 py-3">
                         {idx === 0 ? <Medal className="w-4 h-4 text-amber-500" /> : <span className="text-sm text-gray-400">{idx + 1}</span>}
                       </td>
+                      <td className="px-3 py-3 text-xs font-mono font-semibold text-gray-600">
+                        {emp.employee_id}
+                      </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -385,24 +390,18 @@ export default function CrmReports() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">{emp.name}</p>
-                            <p className="text-xs text-gray-400">{emp.employee_id}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-3 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleBadgeClass(emp.role)}`}>
-                          {roleLabel(emp.role)}
+                          {emp.role_display || roleLabel(emp.role)}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-sm font-semibold text-gray-900">{emp.leads}</td>
-                      <td className="px-3 py-3 text-sm font-semibold text-emerald-600">{emp.closed_won}</td>
-                      <td className="px-3 py-3">
-                        <span className={`text-sm font-bold ${emp.conversion_rate >= 30 ? "text-emerald-600" : emp.conversion_rate >= 15 ? "text-amber-600" : "text-red-500"}`}>
-                          {emp.conversion_rate}%
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-sm text-gray-600">{emp.completed_tasks}</td>
+                      <td className="px-3 py-3 text-sm font-semibold text-gray-900">{emp.leads_updates}</td>
+                      <td className="px-3 py-3 text-sm font-semibold text-indigo-600">{emp.token_received}</td>
                       <td className="px-3 py-3 text-sm text-gray-600">{emp.site_visits}</td>
+                      <td className="px-3 py-3 text-sm font-bold text-emerald-600">{emp.conversions_based_on_deals}</td>
                     </tr>
                   ))
                 }
