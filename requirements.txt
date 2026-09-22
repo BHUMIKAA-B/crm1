@@ -21,6 +21,7 @@ boto3==1.43.19
 google-generativeai==0.8.6
 google-genai==2.7.0
 openai==1.99.9
+openpyxl==3.1.5
 stripe==14.4.1
 pandas==3.0.3
 numpy==2.4.6
