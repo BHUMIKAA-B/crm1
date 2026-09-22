@@ -4,9 +4,25 @@
     {
       "src": "api/index.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "backend/static_build/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/backend/static_build/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/backend/static_build/favicon.ico"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/backend/static_build/manifest.json"
+    },
     {
       "src": "/(.*)",
       "dest": "api/index.py"
