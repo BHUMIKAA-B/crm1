@@ -1,20 +1,17 @@
 {
   "version": 2,
-  "outputDirectory": "frontend/build",
   "builds": [
     {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "frontend/build",
-        "buildCommand": "cd frontend && npm install --legacy-peer-deps && CI=false REACT_APP_BUILD_VERSION=20260922v1 npx craco build"
+        "distDir": "build"
       }
     },
     {
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.12",
         "maxDuration": 30
       }
     }
@@ -24,6 +21,7 @@
     { "src": "/health", "dest": "/api/index.py" },
     { "src": "/docs", "dest": "/api/index.py" },
     { "src": "/openapi.json", "dest": "/api/index.py" },
-    { "src": "/(.*)", "dest": "/frontend/build/index.html" }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
