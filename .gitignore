@@ -89,3 +89,4 @@ credentials.json
 .credentials
 
 
+.env*

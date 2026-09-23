@@ -1,27 +1,29 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm run build && node -e \"require('fs').cpSync('build', '../build', {recursive: true})\"",
   "outputDirectory": "frontend/build",
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "frontend/build",
+        "buildCommand": "cd frontend && npm install --legacy-peer-deps && CI=false REACT_APP_BUILD_VERSION=20260922v1 npx craco build"
+      }
     },
     {
-      "source": "/health",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/docs",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/openapi.json",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/((?!api|health|docs|openapi.json|static|favicon.ico|manifest.json).*)" ,
-      "destination": "/index.html"
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.12",
+        "maxDuration": 30
+      }
     }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.py" },
+    { "src": "/health", "dest": "/api/index.py" },
+    { "src": "/docs", "dest": "/api/index.py" },
+    { "src": "/openapi.json", "dest": "/api/index.py" },
+    { "src": "/(.*)", "dest": "/frontend/build/index.html" }
   ]
 }

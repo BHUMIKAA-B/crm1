@@ -25,21 +25,36 @@ def _resolve_db_name() -> str:
 
 
 def get_db():
+    """Return the database handle. Uses a module-level cached client for
+    connection re-use across serverless invocations (warm starts).
+
+    The synchronous ping is intentionally removed: pymongo's sync client
+    blocks the event loop in Vercel's serverless environment and causes a
+    1.5-second timeout that silently falls back to the in-memory mock DB,
+    breaking authentication and all real data access.  AsyncIOMotorClient
+    establishes its connection lazily on the first actual async operation.
+    """
     global _client, _db
     if _db is None:
-        mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017/visitsarva")
-        try:
-            client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=1500)
-            import pymongo
-            sync_test = pymongo.MongoClient(mongo_url, serverSelectionTimeoutMS=1500)
-            sync_test.admin.command("ping")
-            _client = client
-            _db = _client[_resolve_db_name()]
-            log.info("Connected to MongoDB at %s", mongo_url)
-        except Exception as e:
-            log.warning("Standalone MongoDB not connected (%s). Initialising in-memory database mock fallback.", e)
+        mongo_url = os.environ.get("MONGODB_URI") or os.environ.get("MONGO_URL", "")
+        if not mongo_url:
+            log.warning("MONGO_URL not set — using in-memory mock DB (no persistence)")
             from mock_db import AsyncDatabaseMock
             _db = AsyncDatabaseMock(_resolve_db_name())
+        else:
+            try:
+                _client = AsyncIOMotorClient(
+                    mongo_url,
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=5000,
+                    socketTimeoutMS=10000,
+                )
+                _db = _client[_resolve_db_name()]
+                log.info("AsyncIOMotorClient created for DB: %s", _resolve_db_name())
+            except Exception as e:
+                log.error("Failed to create MongoDB client: %s — using in-memory mock", e)
+                from mock_db import AsyncDatabaseMock
+                _db = AsyncDatabaseMock(_resolve_db_name())
     return _db
 
 

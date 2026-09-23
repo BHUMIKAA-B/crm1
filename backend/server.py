@@ -17,6 +17,7 @@ from routers.auth_router import router as auth_router  # noqa: E402
 from routers.properties_router import router as properties_router  # noqa: E402
 from routers.seller_router import router as seller_router  # noqa: E402
 from routers.admin_router import router as admin_router  # noqa: E402
+from routers.admin_reset_router import router as admin_reset_router  # noqa: E402
 from routers.enquiries_router import router as enquiries_router  # noqa: E402
 from routers.services_router import router as services_router  # noqa: E402
 from routers.ai_router import router as ai_router  # noqa: E402
@@ -133,6 +134,7 @@ app.include_router(crm_audit_logs_router)
 app.include_router(crm_settings_router)
 app.include_router(crm_org_router)
 app.include_router(crm_learning_router)
+app.include_router(admin_reset_router)
 
 
 
