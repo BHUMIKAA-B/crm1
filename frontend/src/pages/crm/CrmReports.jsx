@@ -90,9 +90,12 @@ export default function CrmReports() {
         setPerformance(perfRes.data);
       }
 
-      // Fetch teams list for Founder / BDO individual download
+      // Fetch teams list for Founder / BDO team selector, or Team Leader team badge
       if (isFounderOrBdo) {
         const teamsRes = await crmApi.get("/reports/teams");
+        setTeams(teamsRes.data);
+      } else if (isTeamLead) {
+        const teamsRes = await crmApi.get("/teams");
         setTeams(teamsRes.data);
       }
     } catch {
@@ -100,7 +103,7 @@ export default function CrmReports() {
     } finally {
       setLoading(false);
     }
-  }, [role, isFounderOrBdo]);
+  }, [role, isFounderOrBdo, isTeamLead]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -253,18 +256,24 @@ export default function CrmReports() {
 
           {/* ── TEAM LEADER Download Control ── */}
           {isTeamLead && (
-            <button
-              id="btn-download-my-team"
-              onClick={handleDownloadAll}
-              disabled={downloading}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition shadow-sm"
-            >
-              {downloading
-                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : <Download className="w-4 h-4" />
-              }
-              Download My Team Report
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900 font-semibold shadow-xs">
+                <span className="text-xs uppercase text-indigo-500 font-bold tracking-wider">Team:</span>
+                <span className="font-bold">{teams[0]?.name || "Your Team"}</span>
+              </div>
+              <button
+                id="btn-download-my-team"
+                onClick={handleDownloadAll}
+                disabled={downloading}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition shadow-sm"
+              >
+                {downloading
+                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Download className="w-4 h-4" />
+                }
+                Download {teams[0]?.name || "My Team"} Report
+              </button>
+            </div>
           )}
 
           {/* ── EXECUTIVE / TRAINEE — no download button ── */}

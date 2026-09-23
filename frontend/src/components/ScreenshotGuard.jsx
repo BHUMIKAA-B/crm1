@@ -21,18 +21,13 @@ export default function ScreenshotGuard({ children, contentId = null }) {
       }
     } catch (e) {}
 
-    // 3. Log security event to backend
+    // Log security event to backend
     try {
       crmApi.post("/learning/security-event", {
         learning_content_id: contentId || "",
         event_type: "SCREENSHOT_BLOCKED"
       }).catch(() => {});
     } catch (e) {}
-
-    // 4. Trigger native browser alert pop-up
-    setTimeout(() => {
-      window.alert("🚨 SECURITY ALERT: Screenshot attempt detected!\n\nTaking screenshots is strictly prohibited on VisitSarva CRM. Your screen has been turned blue for security compliance.");
-    }, 50);
   }, [contentId]);
 
   useEffect(() => {
@@ -57,38 +52,7 @@ export default function ScreenshotGuard({ children, contentId = null }) {
       }
     };
 
-    const handleWindowBlur = () => {
-      // Snipping Tool or OS screenshot tool steals window focus
-      triggerSecurityAlert("Window lost focus / Screen capture overlay");
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        triggerSecurityAlert("Tab hidden / Window inactive");
-      }
-    };
-
-    const handleCopy = (e) => {
-      e.preventDefault();
-      try {
-        e.clipboardData.setData("text/plain", "Screenshots and copying are prohibited on VisitSarva CRM.");
-      } catch (err) {}
-      triggerSecurityAlert("Clipboard copy blocked");
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    window.addEventListener("keyup", handleKeyUp, true);
-    window.addEventListener("blur", handleWindowBlur, true);
-    document.addEventListener("visibilitychange", handleVisibilityChange, true);
-    window.addEventListener("copy", handleCopy, true);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown, true);
-      window.removeEventListener("keyup", handleKeyUp, true);
-      window.removeEventListener("blur", handleWindowBlur, true);
-      document.removeEventListener("visibilitychange", handleVisibilityChange, true);
-      window.removeEventListener("copy", handleCopy, true);
-    };
+    // Window blur and visibility change handlers removed to prevent false alerts when switching tabs or windows
   }, [triggerSecurityAlert]);
 
   const handleDismiss = () => {

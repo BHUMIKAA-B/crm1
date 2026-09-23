@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 from urllib.parse import urlparse
+import certifi
 from motor.motor_asyncio import AsyncIOMotorClient
 
 log = logging.getLogger("visitsarva")
@@ -48,6 +49,7 @@ def get_db():
                     serverSelectionTimeoutMS=5000,
                     connectTimeoutMS=5000,
                     socketTimeoutMS=10000,
+                    tlsCAFile=certifi.where(),
                 )
                 _db = _client[_resolve_db_name()]
                 log.info("AsyncIOMotorClient created for DB: %s", _resolve_db_name())

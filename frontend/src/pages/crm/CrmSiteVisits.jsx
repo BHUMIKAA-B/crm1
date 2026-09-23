@@ -238,7 +238,9 @@ function AddSiteVisitModal({ onClose, onSuccess, employees, role }) {
               >
                 <option value="">— Self (you) —</option>
                 {employees.map((e) => (
-                  <option key={e.id} value={e.id}>{e.name} ({e.role})</option>
+                  <option key={e.id} value={e.id}>
+                    {e.name} — {e.role === "team_lead" ? "Team Leader" : e.role === "executive" ? "Executive" : e.role === "trainee" ? "Trainee" : e.role}
+                  </option>
                 ))}
               </select>
             </div>
@@ -410,7 +412,7 @@ export default function CrmSiteVisits() {
       const params = filterStatus !== "all" ? { status: filterStatus } : {};
       const [visitsRes, empRes] = await Promise.all([
         crmApi.get("/site-visits", { params }),
-        crmApi.get("/employees"),
+        crmApi.get("/employees?assignable=true"),
       ]);
       setVisits(visitsRes.data);
       setEmployees(empRes.data);

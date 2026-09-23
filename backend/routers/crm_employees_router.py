@@ -89,11 +89,65 @@ async def create_employee(body: EmployeeCreate, emp: dict = Depends(get_current_
     return {"message": "Employee created", "id": new_emp.id, "employee_id": emp_id}
 
 
-@router.get("")
-async def list_employees(emp: dict = Depends(get_current_employee)):
+@router.get("/assignable")
+async def list_assignable_employees(emp: dict = Depends(get_current_employee)):
+    """Return active employees eligible for assignment (e.g. site visit creation).
+
+    For Team Leader: active Executive and Trainee members belonging to their team (excluding self).
+    For Founder/BDO/Admin: active Team Leader, Executive, and Trainee employees.
+    For Executive/Trainee: empty list.
+    """
     role = emp["role"]
     projection = {"_id": 0, "password_hash": 0}
-    
+
+    if role in ["executive", "trainee", "dpo"]:
+        return []
+
+    if role == "team_lead":
+        team_doc = await db.teams().find_one({"team_leader_id": emp["id"]})
+        if not team_doc:
+            team_id_val = emp.get("team_id")
+            if team_id_val:
+                team_doc = await db.teams().find_one(
+                    {"$or": [{"id": team_id_val}, {"team_id": team_id_val}]}
+                )
+
+        team_uuid = team_doc["id"] if team_doc else None
+        team_display_id = team_doc.get("team_id") if team_doc else None
+        valid_team_ids = list(filter(None, [team_uuid, team_display_id, emp.get("team_id")]))
+
+        query = {
+            "status": "active",
+            "role": {"$in": ["executive", "trainee"]},
+            "id": {"$ne": emp["id"]},
+            "$or": [
+                {"team_id": {"$in": valid_team_ids}},
+                {"reporting_manager": emp["id"]},
+            ]
+        }
+    else:  # founder, admin, bdo
+        query = {
+            "status": "active",
+            "role": {"$in": ["team_lead", "executive", "trainee"]},
+            "id": {"$ne": emp["id"]}
+        }
+
+    cursor = db.employees().find(query, projection).sort("name", 1)
+    employees = await cursor.to_list(length=500)
+    return employees
+
+
+@router.get("")
+async def list_employees(
+    assignable: Optional[bool] = False,
+    emp: dict = Depends(get_current_employee)
+):
+    if assignable:
+        return await list_assignable_employees(emp)
+
+    role = emp["role"]
+    projection = {"_id": 0, "password_hash": 0}
+
     query = {}
     if role == "team_lead":
         # Find team where this employee is the leader

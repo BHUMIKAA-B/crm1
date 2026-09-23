@@ -102,45 +102,10 @@ export default function CrmLearning() {
     }
   }, [activeItem]);
 
-  // Tab Switch & Window Blur Detection
+  // Tab Switch & Window Blur Detection removed to prevent false alerts
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setIsBlurred(true);
-        setSecurityWarning("Protected Learning Content: Screen capture or tab switching detected. View blurred.");
-        if (videoRef.current && !videoRef.current.paused) {
-          videoRef.current.pause();
-        }
-        logSecurityEvent("TAB_SWITCH");
-      } else {
-        setIsBlurred(false);
-      }
-    };
-
-    const handleWindowBlur = () => {
-      setIsBlurred(true);
-      setSecurityWarning("Protected Learning Content: Window lost focus.");
-      if (videoRef.current && !videoRef.current.paused) {
-        videoRef.current.pause();
-      }
-      logSecurityEvent("WINDOW_BLUR");
-    };
-
-    const handleWindowFocus = () => {
-      setIsBlurred(false);
-      setSecurityWarning("");
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleWindowBlur);
-    window.addEventListener("focus", handleWindowFocus);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("blur", handleWindowBlur);
-      window.removeEventListener("focus", handleWindowFocus);
-    };
-  }, [logSecurityEvent]);
+    // Intentionally empty to avoid false alarms when switching tabs/windows
+  }, []);
 
   // Handle Keyboard Shortcut Intercepts
   useEffect(() => {

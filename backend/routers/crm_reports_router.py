@@ -880,16 +880,20 @@ async def get_download_history(emp: dict = Depends(get_current_employee)):
 # ──────────────────────────────────────────────────────────
 # Export — All-scope report (Founder/BDO/Team Lead only)
 # ──────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────
+# Export — All-scope or team report
+# ──────────────────────────────────────────────────────────
 @router.get("/export")
 async def export_report(
+    team_id: Optional[str] = Query(None, description="Optional team ID filter"),
     format: str = Query("xlsx", description="Report format: xlsx or csv"),
     emp: dict = Depends(get_current_employee)
 ):
     """
     Export Team Performance Report scoped to the authenticated user's role.
-    - Founder/Admin → all employees & all teams
+    - Founder/Admin → all employees & all teams (or specific team if team_id provided)
     - BDO → employees & teams under BDO's scope
-    - Team Lead → only their own team members
+    - Team Lead → ONLY their own team members (rejects any attempt to request another team)
     - Executive/Trainee/DPO → 403 Forbidden
     """
     role = emp["role"]
@@ -900,18 +904,84 @@ async def export_report(
             detail="Report downloads are not permitted for your role. Contact your Team Leader or BDO."
         )
 
-    emp_ids = await _get_scoped_emp_ids(emp)
-
-    if role in ["founder", "admin"]:
-        label = "All Teams"
-        team_scope = "all"
-    elif role == "bdo":
-        label = "BDO Scope"
-        team_scope = f"bdo_{emp['id']}"
-    else:  # team_lead
+    if role == "team_lead":
         team_doc = await db.teams().find_one({"team_leader_id": emp["id"]})
+        if not team_doc:
+            team_id_val = emp.get("team_id")
+            if team_id_val:
+                team_doc = await db.teams().find_one(
+                    {"$or": [{"id": team_id_val}, {"team_id": team_id_val}]}
+                )
+
+        team_uuid = team_doc["id"] if team_doc else None
+        team_display_id = team_doc.get("team_id") if team_doc else None
+        valid_team_ids = list(filter(None, [team_uuid, team_display_id, emp.get("team_id"), emp["id"]]))
+
+        # Security Enforcement: Reject if Team Leader attempts to pass another team's ID
+        if team_id and team_id not in valid_team_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not authorised to download another team's report."
+            )
+
+        emp_ids = await _get_scoped_emp_ids(emp)
         label = team_doc.get("name", "My Team") if team_doc else "My Team"
-        team_scope = emp.get("team_id", emp["id"])
+        team_scope = team_uuid or emp.get("team_id", emp["id"])
+
+    elif role == "bdo":
+        if team_id:
+            target_team = await db.teams().find_one({"$or": [{"id": team_id}, {"team_id": team_id}]})
+            if not target_team:
+                raise HTTPException(status_code=404, detail="Team not found")
+            tl_id = target_team.get("team_leader_id")
+            tl = await db.employees().find_one({"id": tl_id})
+            if not tl or tl.get("reporting_manager") != emp["id"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You are not authorised to download this team's report."
+                )
+            
+            members = await db.employees().find(
+                {"$or": [
+                    {"id": tl_id},
+                    {"team_id": {"$in": list(filter(None, [target_team.get("id"), target_team.get("team_id")]))}},
+                    {"reporting_manager": tl_id}
+                ]},
+                {"_id": 0, "id": 1}
+            ).to_list(length=500)
+            emp_ids = list({m["id"] for m in members})
+            if tl_id and tl_id not in emp_ids:
+                emp_ids.append(tl_id)
+            label = f"Team {target_team.get('name', team_id)}"
+            team_scope = target_team.get("id", team_id)
+        else:
+            emp_ids = await _get_scoped_emp_ids(emp)
+            label = "BDO Scope"
+            team_scope = f"bdo_{emp['id']}"
+
+    else:  # founder, admin
+        if team_id:
+            target_team = await db.teams().find_one({"$or": [{"id": team_id}, {"team_id": team_id}]})
+            if not target_team:
+                raise HTTPException(status_code=404, detail="Team not found")
+            tl_id = target_team.get("team_leader_id")
+            members = await db.employees().find(
+                {"$or": [
+                    {"id": tl_id},
+                    {"team_id": {"$in": list(filter(None, [target_team.get("id"), target_team.get("team_id")]))}},
+                    {"reporting_manager": tl_id}
+                ]},
+                {"_id": 0, "id": 1}
+            ).to_list(length=500)
+            emp_ids = list({m["id"] for m in members})
+            if tl_id and tl_id not in emp_ids:
+                emp_ids.append(tl_id)
+            label = f"Team {target_team.get('name', team_id)}"
+            team_scope = target_team.get("id", team_id)
+        else:
+            emp_ids = await _get_scoped_emp_ids(emp)
+            label = "All Teams"
+            team_scope = "all"
 
     await _record_download(emp, "scope_report", team_scope)
     since_timestamp = await _get_previous_download_timestamp(emp["id"], team_scope)
@@ -946,7 +1016,7 @@ async def export_report(
 
 
 # ──────────────────────────────────────────────────────────
-# Export — Specific Team (Founder/BDO only)
+# Export — Specific Team
 # ──────────────────────────────────────────────────────────
 @router.get("/export/team/{team_id}")
 async def export_team_report(
@@ -958,75 +1028,34 @@ async def export_team_report(
     Export report for a specific team.
     - Founder/Admin → any team
     - BDO → only teams within their scope
-    - Team Lead → blocked (use /export instead for own team)
-    - All other roles → 403 Forbidden
+    - Team Lead → allowed ONLY if team_id is their own team (otherwise 403)
+    - Executive/Trainee/DPO → 403 Forbidden
     """
     role = emp["role"]
 
-    if role not in ADMIN_ROLES:
+    if role in ["executive", "trainee", "dpo"]:
         raise HTTPException(
             status_code=403,
-            detail="Only Founder and BDO can download individual team reports via this endpoint. Team Leaders use /export."
+            detail="Report downloads are not permitted for your role."
         )
 
-    team = await db.teams().find_one({"$or": [{"id": team_id}, {"team_id": team_id}]})
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
+    if role == "team_lead":
+        team_doc = await db.teams().find_one({"team_leader_id": emp["id"]})
+        if not team_doc:
+            team_id_val = emp.get("team_id")
+            if team_id_val:
+                team_doc = await db.teams().find_one(
+                    {"$or": [{"id": team_id_val}, {"team_id": team_id_val}]}
+                )
 
-    if role == "bdo":
-        tl_id = team.get("team_leader_id")
-        tl = await db.employees().find_one({"id": tl_id})
-        if not tl or tl.get("reporting_manager") != emp["id"]:
+        team_uuid = team_doc["id"] if team_doc else None
+        team_disp_id = team_doc.get("team_id") if team_doc else None
+        valid_team_ids = list(filter(None, [team_uuid, team_disp_id, emp.get("team_id")]))
+
+        if team_id not in valid_team_ids:
             raise HTTPException(
                 status_code=403,
-                detail="You are not authorised to download this team's report."
+                detail="You are not authorised to download another team's report."
             )
 
-    team_uuid = team.get("id")
-    team_display_id = team.get("team_id")
-    team_leader_id = team.get("team_leader_id")
-
-    members = await db.employees().find(
-        {"$or": [
-            {"id": team_leader_id},
-            {"team_id": {"$in": list(filter(None, [team_uuid, team_display_id]))}},
-            {"reporting_manager": team_leader_id},
-        ]},
-        {"_id": 0, "id": 1}
-    ).to_list(length=500)
-    emp_ids = list({m["id"] for m in members})
-    if team_leader_id and team_leader_id not in emp_ids:
-        emp_ids.append(team_leader_id)
-
-    team_name = team.get("name", team_id)
-    team_scope = team_uuid or team_id
-    date_str = datetime.now().strftime('%Y%m%d')
-
-    await _record_download(emp, "team_report", team_scope)
-    since_timestamp = await _get_previous_download_timestamp(emp["id"], team_scope)
-
-    team_data = await _get_team_grouped_performance(emp_ids, since_timestamp)
-    leads_detail, site_visits_detail, deals_detail = await _get_detailed_records(emp_ids)
-
-    if format.lower() == "csv" or not HAS_OPENPYXL:
-        filename = f"VisitSarva_{team_name.replace(' ', '_')}_Report_{date_str}.csv"
-        csv_content = _build_csv_report(
-            team_data, leads_detail, site_visits_detail, deals_detail,
-            report_title=f"Team {team_name}", since_timestamp=since_timestamp
-        )
-        return Response(
-            content=csv_content,
-            media_type="text/csv",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-        )
-    else:
-        filename = f"VisitSarva_{team_name.replace(' ', '_')}_Report_{date_str}.xlsx"
-        excel_bytes = _build_excel_workbook(
-            team_data, leads_detail, site_visits_detail, deals_detail,
-            report_title=f"Team {team_name}", since_timestamp=since_timestamp
-        )
-        return Response(
-            content=excel_bytes,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-        )
+    return await export_report(team_id=team_id, format=format, emp=emp)

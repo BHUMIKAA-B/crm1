@@ -1,0 +1,14 @@
+node_modules
+frontend/node_modules
+backend/venv
+venv
+.env
+.env.local
+.git
+.pytest_cache
+build
+frontend/build
+test_reports
+attached_assets
+memory
+*.log
