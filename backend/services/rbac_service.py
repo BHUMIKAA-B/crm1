@@ -121,11 +121,11 @@ async def build_scope_query(employee: dict, field_name: str = "assigned_to") -> 
         return {field_name: employee["id"]}
 
 def enforce_customer_access(employee: dict) -> None:
-    """Customer data and customer requirements are visible ONLY to Founder and BDO."""
-    if employee.get("role") not in ["founder", "admin", "bdo"]:
+    """Customer data and customer requirements are accessible to Founder, BDO, and Team Lead."""
+    if employee.get("role") not in ["founder", "admin", "bdo", "team_lead"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Customer data and requirements are restricted to Founder and BDO."
+            detail="Customer data access is restricted."
         )
 
 def enforce_broker_access(employee: dict) -> None:

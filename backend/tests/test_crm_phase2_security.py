@@ -15,14 +15,10 @@ def test_customer_access_control():
     exec_user = {"role": "executive"}
     trainee_user = {"role": "trainee"}
 
-    # Founder & BDO must pass without exception
+    # Founder, BDO & Team Lead must pass without exception
     enforce_customer_access(founder_user)
     enforce_customer_access(bdo_user)
-
-    # Team Lead, Executive, Trainee must raise 403
-    with pytest.raises(HTTPException) as exc1:
-        enforce_customer_access(tl_user)
-    assert exc1.value.status_code == 403
+    enforce_customer_access(tl_user)
 
     with pytest.raises(HTTPException) as exc2:
         enforce_customer_access(exec_user)

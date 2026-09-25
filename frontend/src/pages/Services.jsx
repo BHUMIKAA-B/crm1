@@ -45,7 +45,7 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-vs-bg">
       <Navbar />
-      <section className="relative bg-gradient-to-b from-vs-gold/[0.06] via-white to-white border-b border-vs-border overflow-hidden">
+      <section className="relative bg-gradient-to-b from-vs-gold/[0.06] via-vs-bg to-vs-bg border-b border-vs-border overflow-hidden">
         <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-vs-gold/10 blur-3xl" />
         <motion.div
           className="relative max-w-7xl mx-auto px-6 lg:px-8 py-16"

@@ -68,28 +68,57 @@ async def schedule_site_visit(data: dict, emp: dict = Depends(get_current_employ
             customer_id = new_cust.id
 
     # Determine the employee assigned to this visit
-    assigned_emp_id = data.get("employee_id", emp["id"])
+    raw_emp_id = data.get("employee_id") or data.get("assigned_to") or data.get("assigned_employee")
+    if not raw_emp_id or not str(raw_emp_id).strip():
+        assigned_emp_id = emp["id"]
+    else:
+        assigned_emp_id = str(raw_emp_id).strip()
 
-    # Team Leader can assign visits to their team members only
-    if emp["role"] == "team_lead" and assigned_emp_id != emp["id"]:
-        member_ids = await get_team_member_ids(emp)
-        if assigned_emp_id not in member_ids:
+    # Role/Team aware authorization logic
+    role = emp.get("role", "")
+    if assigned_emp_id != emp["id"]:
+        if role in ["founder", "admin"]:
+            # Founder / Admin can assign site visit to any employee
+            target_emp = await db.employees().find_one({"id": assigned_emp_id})
+            if not target_emp:
+                raise HTTPException(status_code=404, detail="Assigned employee not found.")
+        elif role == "bdo":
+            # BDO can assign site visits to employees under their scope
+            from routers.crm_reports_router import _get_scoped_emp_ids
+            scoped_emp_ids = await _get_scoped_emp_ids(emp)
+            if assigned_emp_id not in scoped_emp_ids:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You can only schedule site visits for employees under your scope."
+                )
+        elif role == "team_lead":
+            # Team Leader can assign site visits to active Executive/Trainee members of their team
+            member_ids = await get_team_member_ids(emp)
+            if assigned_emp_id not in member_ids:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You can only schedule site visits for members of your own team."
+                )
+            target_emp = await db.employees().find_one({"id": assigned_emp_id})
+            if not target_emp or target_emp.get("role") not in ["executive", "trainee"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Team Leaders can only assign site visits to Executive or Trainee team members of their team."
+                )
+        else:  # executive, trainee, dpo
             raise HTTPException(
                 status_code=403,
-                detail="You can only schedule site visits for members of your own team."
+                detail="You can only create site visits for yourself."
             )
-
-    # Executive/trainee can only create for themselves
-    if emp["role"] in ["executive", "trainee", "dpo"] and assigned_emp_id != emp["id"]:
-        raise HTTPException(
-            status_code=403,
-            detail="You can only create site visits for yourself."
-        )
 
     count = await db.site_visits().count_documents({})
     display_id = f"VS-SV-{(count + 1):06d}"
 
+    # Resolve team ID from logged-in user or assigned employee
+    assigned_emp_doc = await db.employees().find_one({"id": assigned_emp_id}, {"_id": 0, "team_id": 1, "name": 1})
     team_id = await _resolve_team_id(emp)
+    if not team_id and assigned_emp_doc and assigned_emp_doc.get("team_id"):
+        team_id = assigned_emp_doc.get("team_id")
 
     visit = SiteVisit(
         customer_id=customer_id,
@@ -103,6 +132,8 @@ async def schedule_site_visit(data: dict, emp: dict = Depends(get_current_employ
     doc = visit.model_dump()
     doc["visit_id"] = display_id
     doc["created_by"] = emp["id"]
+    doc["assigned_to"] = assigned_emp_id
+    doc["assigned_employee"] = assigned_emp_id
     doc["team_id"] = team_id
     doc["visit_purpose"] = data.get("visit_purpose", "")
     doc["follow_up_date"] = data.get("follow_up_date", "")

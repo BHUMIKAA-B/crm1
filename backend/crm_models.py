@@ -343,14 +343,26 @@ class DealCreate(BaseModel):
 
 class Negotiation(BaseModel):
     id: str = Field(default_factory=new_id)
-    deal_id: str
-    seller_asking_price: float
-    buyer_offer: float
+    deal_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    status: str = "in_progress"
+    seller_asking_price: float = 0.0
+    buyer_offer: float = 0.0
     counter_offer: Optional[float] = None
-    current_expected_price: float
+    current_expected_price: float = 0.0
     notes: str = ""
+    remarks: str = ""
     next_action: str = ""
+    followup_date: Optional[str] = None
+    created_by: str = ""
+    created_by_name: Optional[str] = None
+    assigned_employee: Optional[str] = None
+    team_id: Optional[str] = None
+    history: List[dict] = []
     created_at: str = Field(default_factory=now_iso)
+    updated_at: str = Field(default_factory=now_iso)
 
 # ---------- Property Sharing ----------
 class PropertyShare(BaseModel):

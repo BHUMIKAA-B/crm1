@@ -2,9 +2,9 @@ import asyncio
 import types
 import pytest
 
-import backend.routers.auth_router as auth_router_module
-import backend.auth as auth_utils
-import backend.db as db_module
+import routers.auth_router as auth_router_module
+import auth as auth_utils
+import db as db_module
 
 
 class DummyColl:

@@ -178,8 +178,8 @@ const PropertyDetail = () => {
                 style={{ height: "100%", width: "100%" }}
               >
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                  attribution="&copy; OpenStreetMap contributors &copy; CARTO"
+                  url={process.env.REACT_APP_MAP_TILE_URL || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
                 <Marker position={[loc.lat, loc.lng]}>
                   <Popup>{p.title}</Popup>

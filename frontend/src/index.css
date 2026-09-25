@@ -229,10 +229,19 @@ body {
   text-decoration: none;
 }
 
+.dark .btn-primary {
+  color: #14171A;
+  background-color: var(--vs-secondary);
+}
+
 .btn-primary:hover {
   background-color: #2E2E2E;
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.dark .btn-primary:hover {
+  background-color: #E2E8F0;
 }
 
 .btn-primary:active {
@@ -262,13 +271,19 @@ body {
   font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--vs-text-primary);
-  background-color: #FFFFFF;
+  background-color: var(--vs-surface);
   border: 1px solid var(--vs-border);
   border-radius: var(--radius-md);
   cursor: pointer;
   box-shadow: var(--shadow-xs);
   transition: border-color var(--transition-medium), color var(--transition-medium), background-color var(--transition-medium), transform var(--transition-fast), box-shadow var(--transition-medium);
   text-decoration: none;
+}
+
+.dark .btn-secondary {
+  color: var(--vs-text-primary);
+  background-color: var(--vs-surface);
+  border-color: var(--vs-border);
 }
 
 .btn-secondary:hover {
@@ -328,7 +343,7 @@ body {
 }
 
 .btn-navy:hover {
-  background-color: #EAEDF0;
+  background-color: var(--vs-surface);
   border-color: var(--vs-primary);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
@@ -356,7 +371,7 @@ body {
    CARD SYSTEM
    ======================================== */
 .card {
-  background-color: #FFFFFF;
+  background-color: var(--vs-surface);
   border: 1px solid var(--vs-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -370,7 +385,7 @@ body {
 }
 
 .card-elevated {
-  background-color: #FFFFFF;
+  background-color: var(--vs-surface);
   border: 1px solid var(--vs-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -402,8 +417,53 @@ body {
 
 .input-field:focus {
   border-color: var(--vs-primary);
-  background-color: #FFFFFF;
+  background-color: var(--vs-bg);
   box-shadow: var(--shadow-glow);
+}
+
+.input-field::placeholder {
+  color: var(--vs-text-muted);
+}
+
+.input-field:hover:not(:focus) {
+  border-color: rgba(120, 175, 207, 0.4);
+}
+
+/* ========================================
+   DARK MODE OVERRIDES FOR PUBLIC PAGES
+   ======================================== */
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-\[\#0F2233\] {
+  color: var(--vs-text-primary) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600 {
+  color: var(--vs-text-secondary) !important;
+}
+
+.dark .bg-white\/80 {
+  background-color: rgba(29, 33, 38, 0.85) !important;
+}
+
+.dark .bg-white {
+  background-color: var(--vs-surface) !important;
+}
+
+.dark .bg-slate-950 {
+  background-color: var(--vs-secondary) !important;
+  color: #14171A !important;
+}
+
+.dark .shadow-slate-200,
+.dark .shadow-slate-200\/70 {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.dark .border-slate-200\/70,
+.dark .border-slate-200 {
+  border-color: var(--vs-border) !important;
 }
 
 .input-field::placeholder {
