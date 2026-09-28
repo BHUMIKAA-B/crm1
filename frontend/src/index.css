@@ -948,3 +948,346 @@ body {
     transform: translateX(-50%) translateY(0);
   }
 }
+
+/* ========================================
+   CRM DARK/LIGHT THEME SYSTEM
+   Applied via [data-crm-theme] on CrmLayout root div
+   ======================================== */
+
+/* ── CRM DARK (default) ── */
+[data-crm-theme="dark"] .crm-root,
+[data-crm-theme="dark"].crm-root {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Sidebar — Dark */
+[data-crm-theme="dark"] .crm-sidebar {
+  background-color: #0f172a;
+  border-right: 1px solid #1e293b;
+}
+[data-crm-theme="dark"] .crm-sidebar-border {
+  border-bottom: 1px solid #1e293b;
+}
+[data-crm-theme="dark"] .crm-sidebar-border-top {
+  border-top: 1px solid #1e293b;
+}
+[data-crm-theme="dark"] .crm-sidebar-logo {
+  color: #f1f5f9;
+}
+[data-crm-theme="dark"] .crm-sidebar-muted {
+  color: #94a3b8;
+}
+[data-crm-theme="dark"] .crm-nav-inactive {
+  color: #94a3b8;
+}
+[data-crm-theme="dark"] .crm-nav-inactive:hover {
+  color: #f1f5f9;
+  background-color: #1e293b;
+}
+[data-crm-theme="dark"] .crm-user-card {
+  background-color: #1e293b;
+}
+[data-crm-theme="dark"] .crm-logout-btn:hover {
+  color: #f1f5f9;
+  background-color: #1e293b;
+}
+
+/* Header — Dark */
+[data-crm-theme="dark"] .crm-header {
+  background-color: #0f172a;
+  border-bottom: 1px solid #1e293b;
+}
+[data-crm-theme="dark"] .crm-header-text {
+  color: #f1f5f9;
+}
+[data-crm-theme="dark"] .crm-header-muted {
+  color: #94a3b8;
+}
+[data-crm-theme="dark"] .crm-header-icon-btn:hover {
+  color: #f1f5f9;
+  background-color: #1e293b;
+}
+[data-crm-theme="dark"] .crm-header-divider {
+  border-left: 1px solid #1e293b;
+}
+[data-crm-theme="dark"] .crm-search-input {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+}
+[data-crm-theme="dark"] .crm-search-input::placeholder {
+  color: #64748b;
+}
+[data-crm-theme="dark"] .crm-search-input:focus {
+  background-color: #1e293b;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+}
+[data-crm-theme="dark"] .crm-search-icon {
+  color: #64748b;
+}
+
+/* Theme Toggle — Dark */
+[data-crm-theme="dark"] .crm-theme-toggle {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+}
+[data-crm-theme="dark"] .crm-theme-toggle:hover {
+  background-color: #334155;
+}
+[data-crm-theme="dark"] .crm-theme-label {
+  color: #94a3b8;
+}
+
+/* Main Content Area — Dark */
+[data-crm-theme="dark"] .crm-main {
+  background-color: #0f172a;
+}
+
+/* Cards & panels — Dark */
+[data-crm-theme="dark"] .bg-white {
+  background-color: #1e293b !important;
+}
+[data-crm-theme="dark"] .bg-gray-50 {
+  background-color: #0f172a !important;
+}
+[data-crm-theme="dark"] .bg-gray-50\/70 {
+  background-color: rgba(15, 23, 42, 0.7) !important;
+}
+[data-crm-theme="dark"] .bg-gray-100 {
+  background-color: #1e293b !important;
+}
+[data-crm-theme="dark"] .bg-gray-50\/50 {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+/* Borders — Dark */
+[data-crm-theme="dark"] .border-gray-100 {
+  border-color: #1e293b !important;
+}
+[data-crm-theme="dark"] .border-gray-200 {
+  border-color: #334155 !important;
+}
+[data-crm-theme="dark"] .divide-gray-50 > * + * {
+  border-color: #1e293b !important;
+}
+[data-crm-theme="dark"] .divide-gray-100 > * + * {
+  border-color: #1e293b !important;
+}
+[data-crm-theme="dark"] .divide-gray-200 > * + * {
+  border-color: #334155 !important;
+}
+
+/* Text — Dark */
+[data-crm-theme="dark"] .text-gray-900 {
+  color: #f1f5f9 !important;
+}
+[data-crm-theme="dark"] .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+[data-crm-theme="dark"] .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+[data-crm-theme="dark"] .text-gray-600 {
+  color: #94a3b8 !important;
+}
+[data-crm-theme="dark"] .text-gray-500 {
+  color: #64748b !important;
+}
+[data-crm-theme="dark"] .text-gray-400 {
+  color: #475569 !important;
+}
+
+/* Inputs — Dark */
+[data-crm-theme="dark"] input:not(.crm-search-input),
+[data-crm-theme="dark"] textarea,
+[data-crm-theme="dark"] select {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+[data-crm-theme="dark"] input:not(.crm-search-input)::placeholder,
+[data-crm-theme="dark"] textarea::placeholder {
+  color: #475569;
+}
+[data-crm-theme="dark"] input:not(.crm-search-input):focus,
+[data-crm-theme="dark"] textarea:focus,
+[data-crm-theme="dark"] select:focus {
+  border-color: #3b82f6;
+  background-color: #0f172a;
+}
+
+/* Tables — Dark */
+[data-crm-theme="dark"] table {
+  color: #e2e8f0;
+}
+[data-crm-theme="dark"] thead,
+[data-crm-theme="dark"] thead tr {
+  background-color: #0f172a !important;
+}
+[data-crm-theme="dark"] tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+}
+[data-crm-theme="dark"] td, [data-crm-theme="dark"] th {
+  border-color: #1e293b;
+}
+
+/* Buttons (white/gray variants) — Dark */
+[data-crm-theme="dark"] .bg-white.text-gray-700,
+[data-crm-theme="dark"] .bg-white.text-gray-800 {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+[data-crm-theme="dark"] .hover\:bg-gray-50:hover {
+  background-color: #334155 !important;
+}
+[data-crm-theme="dark"] .hover\:bg-gray-100:hover {
+  background-color: #1e293b !important;
+}
+[data-crm-theme="dark"] .hover\:text-gray-700:hover {
+  color: #e2e8f0 !important;
+}
+
+/* Dropdown panels — Dark */
+[data-crm-theme="dark"] .bg-white.rounded-xl,
+[data-crm-theme="dark"] .bg-white.rounded-lg {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Modals — Dark */
+[data-crm-theme="dark"] [role="dialog"],
+[data-crm-theme="dark"] .modal,
+[data-crm-theme="dark"] .modal-panel {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Status badges (keep colors, override bg only if too light) */
+[data-crm-theme="dark"] .bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.3) !important;
+}
+[data-crm-theme="dark"] .border-amber-200 {
+  border-color: #92400e !important;
+}
+[data-crm-theme="dark"] .text-amber-800 {
+  color: #fcd34d !important;
+}
+[data-crm-theme="dark"] .text-amber-600 {
+  color: #f59e0b !important;
+}
+[data-crm-theme="dark"] .bg-indigo-50 {
+  background-color: rgba(30, 27, 75, 0.5) !important;
+}
+[data-crm-theme="dark"] .border-indigo-100 {
+  border-color: #312e81 !important;
+}
+[data-crm-theme="dark"] .text-indigo-900 {
+  color: #a5b4fc !important;
+}
+[data-crm-theme="dark"] .bg-blue-50 {
+  background-color: rgba(23, 37, 84, 0.5) !important;
+}
+[data-crm-theme="dark"] .bg-green-50 {
+  background-color: rgba(5, 46, 22, 0.5) !important;
+}
+[data-crm-theme="dark"] .bg-purple-50 {
+  background-color: rgba(46, 16, 101, 0.5) !important;
+}
+[data-crm-theme="dark"] .bg-red-50 {
+  background-color: rgba(69, 10, 10, 0.5) !important;
+}
+
+/* ── CRM LIGHT THEME ── */
+[data-crm-theme="light"] .crm-root,
+[data-crm-theme="light"].crm-root {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Sidebar — Light */
+[data-crm-theme="light"] .crm-sidebar {
+  background-color: #1e293b;
+  border-right: 1px solid #334155;
+}
+[data-crm-theme="light"] .crm-sidebar-border {
+  border-bottom: 1px solid #334155;
+}
+[data-crm-theme="light"] .crm-sidebar-border-top {
+  border-top: 1px solid #334155;
+}
+[data-crm-theme="light"] .crm-sidebar-logo {
+  color: #f1f5f9;
+}
+[data-crm-theme="light"] .crm-sidebar-muted {
+  color: #94a3b8;
+}
+[data-crm-theme="light"] .crm-nav-inactive {
+  color: #94a3b8;
+}
+[data-crm-theme="light"] .crm-nav-inactive:hover {
+  color: #f1f5f9;
+  background-color: #334155;
+}
+[data-crm-theme="light"] .crm-user-card {
+  background-color: #0f172a;
+}
+[data-crm-theme="light"] .crm-logout-btn:hover {
+  color: #f1f5f9;
+  background-color: #334155;
+}
+
+/* Header — Light */
+[data-crm-theme="light"] .crm-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+[data-crm-theme="light"] .crm-header-text {
+  color: #0f172a;
+}
+[data-crm-theme="light"] .crm-header-muted {
+  color: #64748b;
+}
+[data-crm-theme="light"] .crm-header-icon-btn:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+[data-crm-theme="light"] .crm-header-divider {
+  border-left: 1px solid #e2e8f0;
+}
+[data-crm-theme="light"] .crm-search-input {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+[data-crm-theme="light"] .crm-search-input::placeholder {
+  color: #94a3b8;
+}
+[data-crm-theme="light"] .crm-search-input:focus {
+  background-color: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+}
+[data-crm-theme="light"] .crm-search-icon {
+  color: #94a3b8;
+}
+
+/* Theme Toggle — Light */
+[data-crm-theme="light"] .crm-theme-toggle {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+[data-crm-theme="light"] .crm-theme-toggle:hover {
+  background-color: #e2e8f0;
+}
+[data-crm-theme="light"] .crm-theme-label {
+  color: #64748b;
+}
+
+/* Main Content Area — Light */
+[data-crm-theme="light"] .crm-main {
+  background-color: #f8fafc;
+}

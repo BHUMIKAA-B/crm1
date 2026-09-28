@@ -182,6 +182,12 @@ def report_download_history():
     return get_db()["report_download_history"]
 
 
+def report_uploads():
+    """Stores uploaded report data from Executive and Team Leader uploads."""
+    return get_db()["report_uploads"]
+
+
+
 def get_gridfs_bucket():
     database = get_db()
     if hasattr(database, "get_gridfs_bucket"):

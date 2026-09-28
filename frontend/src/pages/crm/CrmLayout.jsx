@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Outlet, Navigate, NavLink, useNavigate } from "react-router-dom";
 import { useCrmAuthStore } from "../../store/crmAuthStore";
 import ScreenshotGuard from "../../components/ScreenshotGuard";
+import { useCrmTheme } from "../../hooks/useCrmTheme";
 import {
   LayoutDashboard, Users, Building2, CalendarCheck, FileText,
   Settings, LogOut, Search, Bell, ChevronDown, Menu, X,
   TrendingUp, Handshake, UserCheck, BarChart3, ClipboardList,
   Shield, Building, Clock, Share2, MessageSquare, FolderGit2,
-  CreditCard, DollarSign, ShieldAlert, GraduationCap
+  CreditCard, DollarSign, ShieldAlert, GraduationCap, Sun, Moon
 } from "lucide-react";
 import { roleLabel, roleBadgeClass } from "../../lib/crmPermissions";
 
@@ -43,6 +44,7 @@ export default function CrmLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { crmTheme, toggleCrmTheme } = useCrmTheme();
 
   if (!isAuthenticated()) {
     return <Navigate to="/crm/login" replace />;
@@ -50,6 +52,7 @@ export default function CrmLayout() {
 
   const role = employee?.role;
   const visibleNav = NAV.filter((n) => !n.roles || n.roles.includes(role));
+  const isDark = crmTheme === "dark";
 
   const handleLogout = () => {
     logout();
@@ -64,17 +67,17 @@ export default function CrmLayout() {
   };
 
   const Sidebar = ({ mobile = false }) => (
-    <aside className={`flex flex-col bg-slate-900 ${mobile ? "w-full" : "w-64 min-h-screen"}`}>
+    <aside className={`crm-sidebar flex flex-col ${mobile ? "w-full" : "w-64 min-h-screen"}`}>
       {/* Logo */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+      <div className="flex items-center justify-between px-5 py-4 crm-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">VS</span>
           </div>
-          <span className="text-white font-semibold tracking-wide">Visit Sarva CRM</span>
+          <span className="crm-sidebar-logo font-semibold tracking-wide">Visit Sarva CRM</span>
         </div>
         {mobile && (
-          <button onClick={() => setSidebarOpen(false)} className="text-slate-400 hover:text-white">
+          <button onClick={() => setSidebarOpen(false)} className="crm-sidebar-muted hover:crm-sidebar-text">
             <X className="w-5 h-5" />
           </button>
         )}
@@ -91,7 +94,7 @@ export default function CrmLayout() {
               `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 isActive
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  : "crm-nav-inactive"
               }`
             }
           >
@@ -102,13 +105,13 @@ export default function CrmLayout() {
       </nav>
 
       {/* User card */}
-      <div className="p-3 border-t border-slate-800">
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-800">
+      <div className="p-3 crm-sidebar-border-top">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg crm-user-card">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
             {employee?.name?.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-white text-sm font-medium truncate">{employee?.name}</p>
+            <p className="crm-sidebar-logo text-sm font-medium truncate">{employee?.name}</p>
             <span className={`inline-block text-xs px-1.5 py-0.5 rounded font-medium mt-0.5 ${roleBadgeClass(role)}`}>
               {roleLabel(role)}
             </span>
@@ -116,7 +119,7 @@ export default function CrmLayout() {
         </div>
         <button
           onClick={handleLogout}
-          className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition-colors"
+          className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg crm-sidebar-muted crm-logout-btn text-sm font-medium transition-colors"
         >
           <LogOut className="w-4 h-4" />
           Sign out
@@ -126,7 +129,7 @@ export default function CrmLayout() {
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className={`crm-root flex h-screen overflow-hidden`} data-crm-theme={crmTheme}>
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0">
         <Sidebar />
@@ -145,9 +148,9 @@ export default function CrmLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="flex-shrink-0 h-16 bg-white border-b border-gray-200 flex items-center gap-4 px-4 lg:px-6">
+        <header className="crm-header flex-shrink-0 h-16 flex items-center gap-4 px-4 lg:px-6">
           <button
-            className="lg:hidden text-gray-500 hover:text-gray-700"
+            className="lg:hidden crm-header-muted crm-header-icon-btn"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="w-5 h-5" />
@@ -156,39 +159,57 @@ export default function CrmLayout() {
           {/* Search */}
           <form onSubmit={handleSearch} className="flex-1 max-w-lg">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 crm-search-icon" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search leads, customers, properties..."
-                className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                className="crm-search-input w-full pl-9 pr-4 py-2 text-sm rounded-lg outline-none transition-all"
               />
             </div>
           </form>
 
           <div className="flex items-center gap-3 ml-auto">
+            {/* Theme Toggle */}
+            <button
+              id="btn-crm-theme-toggle"
+              onClick={toggleCrmTheme}
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className="crm-theme-toggle p-2 rounded-lg transition-colors flex items-center gap-1.5"
+              aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-500" />
+              )}
+              <span className="hidden sm:block text-xs font-medium crm-theme-label">
+                {isDark ? "Light" : "Dark"}
+              </span>
+            </button>
+
             {/* Notifications */}
-            <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+            <button className="relative p-2 crm-header-muted crm-header-icon-btn rounded-lg transition-colors">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>
 
             {/* Employee pill */}
-            <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-gray-200">
+            <div className="hidden sm:flex items-center gap-2 pl-3 crm-header-divider">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-semibold text-xs">
                 {employee?.name?.charAt(0).toUpperCase()}
               </div>
               <div className="hidden md:block">
-                <p className="text-sm font-medium text-gray-900 leading-none">{employee?.name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{roleLabel(role)}</p>
+                <p className="text-sm font-medium crm-header-text leading-none">{employee?.name}</p>
+                <p className="text-xs crm-header-muted mt-0.5">{roleLabel(role)}</p>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="crm-main flex-1 overflow-y-auto p-4 lg:p-6">
           <ScreenshotGuard>
             <Outlet />
           </ScreenshotGuard>

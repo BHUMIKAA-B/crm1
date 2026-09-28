@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import crmApi from "../../api/crmClient";
 import { useCrmAuthStore } from "../../store/crmAuthStore";
 import { roleLabel, roleBadgeClass } from "../../lib/crmPermissions";
 import toast from "react-hot-toast";
 import {
   BarChart3, TrendingUp, Users, RefreshCw, Medal,
-  ArrowUpRight, Download, ChevronDown, Shield, Lock
+  ArrowUpRight, Download, ChevronDown, Shield, Lock,
+  Upload, FileText, CheckCircle, XCircle, AlertCircle, History
 } from "lucide-react";
 
 // ── Chart helpers ──────────────────────────────────────────
@@ -52,6 +53,214 @@ function FunnelChart({ data }) {
   );
 }
 
+// ── Upload Result Card ─────────────────────────────────────
+function UploadResultCard({ result, onClose }) {
+  if (!result) return null;
+  return (
+    <div className="mt-4 rounded-xl border border-gray-100 bg-white p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="w-5 h-5 text-emerald-500" />
+          <span className="font-semibold text-gray-900 text-sm">Upload Complete</span>
+        </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xs">✕ Dismiss</button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-center">
+          <p className="text-2xl font-bold text-emerald-600">{result.records_imported}</p>
+          <p className="text-xs text-emerald-700 font-medium mt-0.5">Records Imported</p>
+        </div>
+        <div className={`rounded-lg p-3 text-center border ${result.records_rejected > 0 ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
+          <p className={`text-2xl font-bold ${result.records_rejected > 0 ? "text-red-600" : "text-gray-400"}`}>{result.records_rejected}</p>
+          <p className={`text-xs font-medium mt-0.5 ${result.records_rejected > 0 ? "text-red-700" : "text-gray-500"}`}>Records Rejected</p>
+        </div>
+      </div>
+      {result.records_rejected > 0 && result.rejected_rows?.length > 0 && (
+        <div className="rounded-lg border border-red-100 bg-red-50 p-3">
+          <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1.5">
+            <XCircle className="w-3.5 h-3.5" />
+            Rejection Details (first {result.rejected_rows.length} shown):
+          </p>
+          <div className="space-y-1.5 max-h-36 overflow-y-auto">
+            {result.rejected_rows.map((r, i) => (
+              <div key={i} className="text-xs text-red-600">
+                <span className="font-semibold">Row {r.row}:</span> {r.reasons?.join("; ")}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="text-xs text-gray-500">
+        File: <span className="font-medium">{result.file_name}</span> ·
+        Uploaded: {result.upload_date ? new Date(result.upload_date).toLocaleString() : "—"}
+      </p>
+    </div>
+  );
+}
+
+// ── Upload History Table ───────────────────────────────────
+function UploadHistoryTable({ history, loading }) {
+  if (loading) return <div className="py-8 text-center text-sm text-gray-400">Loading history...</div>;
+  if (!history?.length) return <div className="py-8 text-center text-sm text-gray-400">No uploads yet.</div>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-50 text-sm">
+        <thead className="bg-gray-50/70">
+          <tr>
+            {["File Name", "Uploaded By", "Date", "Imported", "Rejected"].map(h => (
+              <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {history.map((rec, i) => (
+            <tr key={rec.id || i} className="hover:bg-gray-50/50 transition-colors">
+              <td className="px-3 py-2 text-xs font-mono text-gray-700 max-w-xs truncate">{rec.file_name}</td>
+              <td className="px-3 py-2 text-xs text-gray-600">{rec.uploaded_by_name || rec.uploaded_by}</td>
+              <td className="px-3 py-2 text-xs text-gray-500">{rec.upload_date ? new Date(rec.upload_date).toLocaleDateString() : "—"}</td>
+              <td className="px-3 py-2">
+                <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">{rec.records_imported}</span>
+              </td>
+              <td className="px-3 py-2">
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${rec.records_rejected > 0 ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-500"}`}>
+                  {rec.records_rejected}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Upload Panel ─────────────────────────────────────────────
+function UploadPanel({ title, description, onUpload, uploading, result, onDismiss, history, historyLoading }) {
+  const fileRef = useRef(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const handleFile = (f) => {
+    const ext = f.name.split(".").pop()?.toLowerCase();
+    if (!["xlsx", "csv"].includes(ext)) {
+      toast.error("Only .xlsx and .csv files are accepted.");
+      return;
+    }
+    setSelectedFile(f);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFile(f);
+  };
+
+  const handleSubmit = () => {
+    if (!selectedFile) {
+      toast.error("Please select a file first.");
+      return;
+    }
+    onUpload(selectedFile);
+    setSelectedFile(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <Upload className="w-4 h-4 text-indigo-500" />
+            {title}
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+        </div>
+        {history && (
+          <button
+            onClick={() => setShowHistory(v => !v)}
+            className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+          >
+            <History className="w-3.5 h-3.5" />
+            {showHistory ? "Hide History" : "Upload History"}
+          </button>
+        )}
+      </div>
+
+      {/* Drop Zone */}
+      <div
+        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+          dragOver ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+        }`}
+        onClick={() => fileRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+      >
+        <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+        {selectedFile ? (
+          <div>
+            <p className="text-sm font-semibold text-indigo-600">{selectedFile.name}</p>
+            <p className="text-xs text-gray-500 mt-0.5">({(selectedFile.size / 1024).toFixed(1)} KB) — Click or drag to change</p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-sm text-gray-600 font-medium">Drop file here or <span className="text-indigo-600 underline">browse</span></p>
+            <p className="text-xs text-gray-400 mt-1">Supported: Excel (.xlsx), CSV (.csv)</p>
+          </div>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx,.csv"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+        />
+      </div>
+
+      {/* Format hint */}
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-100">
+        <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+        <div className="text-xs text-blue-700">
+          <p className="font-semibold mb-0.5">Required columns: <code className="bg-blue-100 px-1 rounded">date</code>, <code className="bg-blue-100 px-1 rounded">activity_type</code></p>
+          <p className="text-blue-600">Optional: <code className="bg-blue-100 px-1 rounded">customer_name</code>, <code className="bg-blue-100 px-1 rounded">notes</code>, <code className="bg-blue-100 px-1 rounded">outcome</code>
+          {title.includes("Team") && <>, <code className="bg-blue-100 px-1 rounded">employee_name</code>, <code className="bg-blue-100 px-1 rounded">employee_id</code></>}
+          </p>
+          <p className="text-blue-500 mt-1">Date format: YYYY-MM-DD</p>
+        </div>
+      </div>
+
+      {/* Upload Button */}
+      <button
+        id={title.includes("Team") ? "btn-upload-team-report" : "btn-upload-executive-report"}
+        onClick={handleSubmit}
+        disabled={uploading || !selectedFile}
+        className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+      >
+        {uploading ? (
+          <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Uploading...</>
+        ) : (
+          <><Upload className="w-4 h-4" /> Upload {selectedFile ? selectedFile.name : "File"}</>
+        )}
+      </button>
+
+      {/* Result */}
+      {result && <UploadResultCard result={result} onClose={onDismiss} />}
+
+      {/* History */}
+      {showHistory && history && (
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <History className="w-3.5 h-3.5" /> Upload History
+          </p>
+          <UploadHistoryTable history={history} loading={historyLoading} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────
 export default function CrmReports() {
   const { employee } = useCrmAuthStore();
@@ -60,7 +269,11 @@ export default function CrmReports() {
   // Role flags — used throughout
   const isFounderOrBdo = ["founder", "admin", "bdo"].includes(role);
   const isTeamLead = role === "team_lead";
+  const isExecutive = role === "executive";
+  const isTrainee = role === "trainee";
   const canDownload = isFounderOrBdo || isTeamLead;
+  const canUploadOwn = isExecutive || isTrainee;
+  const canUploadTeam = isTeamLead || isFounderOrBdo;
 
   const [sources, setSources] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -69,6 +282,16 @@ export default function CrmReports() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [teamDownloading, setTeamDownloading] = useState(false);
+
+  // Upload state
+  const [uploadingExec, setUploadingExec] = useState(false);
+  const [uploadingTeam, setUploadingTeam] = useState(false);
+  const [execUploadResult, setExecUploadResult] = useState(null);
+  const [teamUploadResult, setTeamUploadResult] = useState(null);
+  const [execHistory, setExecHistory] = useState([]);
+  const [teamHistory, setTeamHistory] = useState([]);
+  const [execHistoryLoading, setExecHistoryLoading] = useState(false);
+  const [teamHistoryLoading, setTeamHistoryLoading] = useState(false);
 
   // Team selector state (Founder / BDO individual team download)
   const [teamSelectorOpen, setTeamSelectorOpen] = useState(false);
@@ -98,12 +321,28 @@ export default function CrmReports() {
         const teamsRes = await crmApi.get("/teams");
         setTeams(teamsRes.data);
       }
+
+      // Fetch upload histories
+      if (canUploadOwn) {
+        setExecHistoryLoading(true);
+        crmApi.get("/reports/upload/executive/history")
+          .then(r => setExecHistory(r.data))
+          .catch(() => {})
+          .finally(() => setExecHistoryLoading(false));
+      }
+      if (canUploadTeam) {
+        setTeamHistoryLoading(true);
+        crmApi.get("/reports/upload/team/history")
+          .then(r => setTeamHistory(r.data))
+          .catch(() => {})
+          .finally(() => setTeamHistoryLoading(false));
+      }
     } catch {
       toast.error("Failed to load reports");
     } finally {
       setLoading(false);
     }
-  }, [role, isFounderOrBdo, isTeamLead]);
+  }, [role, isFounderOrBdo, isTeamLead, canUploadOwn, canUploadTeam]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -119,7 +358,7 @@ export default function CrmReports() {
     window.URL.revokeObjectURL(url);
   };
 
-  // All-scope download (Founder: all teams; BDO: BDO scope; Team Lead: own team)
+  // All-scope download
   const handleDownloadAll = async (fmt = "xlsx") => {
     if (!canDownload) return;
     setDownloading(true);
@@ -166,13 +405,58 @@ export default function CrmReports() {
     }
   };
 
+  // ── Upload handlers ────────────────────────────────────
+  const handleExecUpload = async (file) => {
+    setUploadingExec(true);
+    setExecUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await crmApi.post("/reports/upload/executive", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setExecUploadResult(res.data);
+      toast.success(`Upload complete: ${res.data.records_imported} imported, ${res.data.records_rejected} rejected`);
+      // Refresh history
+      const h = await crmApi.get("/reports/upload/executive/history");
+      setExecHistory(h.data);
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : "Upload failed. Please check your file.");
+    } finally {
+      setUploadingExec(false);
+    }
+  };
+
+  const handleTeamUpload = async (file) => {
+    setUploadingTeam(true);
+    setTeamUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await crmApi.post("/reports/upload/team", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setTeamUploadResult(res.data);
+      toast.success(`Upload complete: ${res.data.records_imported} imported, ${res.data.records_rejected} rejected`);
+      // Refresh history
+      const h = await crmApi.get("/reports/upload/team/history");
+      setTeamHistory(h.data);
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : "Upload failed. Please check your file.");
+    } finally {
+      setUploadingTeam(false);
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports &amp; Analytics</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">Real-time data from your CRM</p>
         </div>
 
@@ -420,12 +704,40 @@ export default function CrmReports() {
         </div>
       )}
 
-      {/* ── No access message for executive/trainee ── */}
+      {/* ── EXECUTIVE / TRAINEE Upload Section ── */}
+      {canUploadOwn && (
+        <UploadPanel
+          title="Upload My Report Data"
+          description="Upload your personal activity report. Your identity is verified by the system — you cannot upload data for other employees."
+          onUpload={handleExecUpload}
+          uploading={uploadingExec}
+          result={execUploadResult}
+          onDismiss={() => setExecUploadResult(null)}
+          history={execHistory}
+          historyLoading={execHistoryLoading}
+        />
+      )}
+
+      {/* ── TEAM LEADER Upload Section ── */}
+      {canUploadTeam && (
+        <UploadPanel
+          title="Upload Team Report Data"
+          description="Upload report data for your team. Rows with employees not in your team will be automatically rejected."
+          onUpload={handleTeamUpload}
+          uploading={uploadingTeam}
+          result={teamUploadResult}
+          onDismiss={() => setTeamUploadResult(null)}
+          history={teamHistory}
+          historyLoading={teamHistoryLoading}
+        />
+      )}
+
+      {/* ── No access message for executive/trainee download restriction ── */}
       {["executive", "trainee", "dpo"].includes(role) && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
           <Lock className="w-5 h-5 text-amber-500 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-amber-800">Download Access Restricted</p>
+            <p className="text-sm font-semibold text-amber-800">Report Download Access Restricted</p>
             <p className="text-xs text-amber-600 mt-0.5">
               Report downloads are available to Team Leaders and above. Contact your Team Leader or BDO to request a report.
             </p>

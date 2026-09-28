@@ -8,14 +8,21 @@ Security:
 
 Download history tracks baselines so reports can show "work since last report".
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import Response
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 import io
+import csv
 import db
 from services.rbac_service import get_current_employee
 from crm_models import now_iso, new_id
+
+try:
+    import pandas as pd
+    HAS_PANDAS = True
+except ImportError:
+    HAS_PANDAS = False
 
 try:
     import openpyxl
@@ -402,6 +409,48 @@ async def _get_detailed_records(emp_ids: list):
 # ──────────────────────────────────────────────────────────
 # Excel (.xlsx) Generation — Multi-sheet workbook
 # ──────────────────────────────────────────────────────────
+def _fmt_date(val: str) -> str:
+    """Format ISO date string to readable YYYY-MM-DD, or return as-is."""
+    if not val:
+        return ""
+    try:
+        return val[:10]
+    except Exception:
+        return str(val)
+
+
+def _apply_sheet_header(ws, headers: list, header_fill, header_font, thin_border, data_rows_start: int = 2):
+    """Write headers, apply styles, freeze top row, add auto-filter."""
+    ws.append(headers)
+    h_row = ws.max_row
+    for col_idx, _ in enumerate(headers, 1):
+        c = ws.cell(row=h_row, column=col_idx)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
+        c.border = thin_border
+    ws.freeze_panes = ws.cell(row=h_row + 1, column=1)
+    ws.auto_filter.ref = ws.dimensions
+
+
+def _auto_col_widths(ws, min_w=12, max_w=40, skip_rows=None):
+    """Auto-size column widths."""
+    skip_rows = skip_rows or set()
+    for col in ws.columns:
+        max_len = 0
+        col_letter = get_column_letter(col[0].column)
+        for cell in col:
+            if cell.row in skip_rows:
+                continue
+            try:
+                val_str = str(cell.value or "")
+                if len(val_str) > max_len:
+                    max_len = len(val_str)
+            except Exception:
+                pass
+        ws.column_dimensions[col_letter].width = min(max(max_len + 3, min_w), max_w)
+
+
 def _build_excel_workbook(
     team_data: list,
     leads_detail: list,
@@ -413,15 +462,17 @@ def _build_excel_workbook(
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
 
-    header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    # Style palette
+    header_fill = PatternFill(start_color="1E3A5F", end_color="1E3A5F", fill_type="solid")
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    section_fill = PatternFill(start_color="334155", end_color="334155", fill_type="solid")
-    section_font = Font(name="Calibri", size=12, bold=True, color="FFFFFF")
-    total_fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    section_fill = PatternFill(start_color="2D4A6B", end_color="2D4A6B", fill_type="solid")
+    section_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    total_fill = PatternFill(start_color="E8F0FE", end_color="E8F0FE", fill_type="solid")
     total_font = Font(name="Calibri", size=10, bold=True, color="0F172A")
-    title_font = Font(name="Calibri", size=16, bold=True, color="0F172A")
+    title_font = Font(name="Calibri", size=16, bold=True, color="1E3A5F")
     meta_font = Font(name="Calibri", size=10, italic=True, color="475569")
-    regular_font = Font(name="Calibri", size=10, color="1E293B")
+    regular_font = Font(name="Calibri", size=10, color="0F172A")
+    summary_header_fill = PatternFill(start_color="0F2233", end_color="0F2233", fill_type="solid")
 
     thin_border = Border(
         left=Side(style='thin', color='CBD5E1'),
@@ -430,49 +481,143 @@ def _build_excel_workbook(
         bottom=Side(style='thin', color='CBD5E1')
     )
 
-    # ── SHEET 1: Team Performance Summary ──
-    ws1 = wb.create_sheet(title="Team Performance Summary")
+    period_str = f"Since {since_timestamp[:10]} (previous report baseline)" if since_timestamp else "All available records"
+    generated_on = datetime.now(timezone.utc).strftime('%d %b %Y  %H:%M UTC')
+
+    # ── SHEET 0: Team Summary (first sheet — quick overview per team) ──
+    ws0 = wb.create_sheet(title="Team Summary")
+    ws0.views.sheetView[0].showGridLines = True
+
+    # Title block
+    ws0.append(["VISITSARVA CRM — TEAM PERFORMANCE REPORT"])
+    ws0.cell(row=1, column=1).font = title_font
+    ws0.merge_cells("A1:I1")
+    ws0.row_dimensions[1].height = 28
+
+    ws0.append([f"Scope: {report_title}     |     Period: {period_str}     |     Generated: {generated_on}"])
+    ws0.cell(row=2, column=1).font = meta_font
+    ws0.merge_cells("A2:I2")
+    ws0.append([])  # blank row
+
+    sum_headers = ["#", "Team Name", "Team Leader", "Total Employees",
+                   "Lead Updates", "Tokens Received", "Site Visits", "Conversions", "Report Period"]
+    ws0.append(sum_headers)
+    h_row = ws0.max_row
+    for col_idx, _ in enumerate(sum_headers, 1):
+        c = ws0.cell(row=h_row, column=col_idx)
+        c.fill = summary_header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        c.border = thin_border
+    ws0.freeze_panes = ws0.cell(row=h_row + 1, column=1)
+    ws0.row_dimensions[h_row].height = 18
+
+    row_num = 1
+    grand = {"employees": 0, "leads": 0, "tokens": 0, "visits": 0, "conversions": 0}
+    for team in team_data:
+        t = team["totals"]
+        row_vals = [
+            row_num,
+            team["team_name"],
+            team["team_leader_name"],
+            t["total_employees"],
+            t["leads_updates"],
+            t["token_received"],
+            t["site_visits"],
+            t["conversions"],
+            period_str,
+        ]
+        ws0.append(row_vals)
+        curr = ws0.max_row
+        for ci in range(1, len(row_vals) + 1):
+            c = ws0.cell(row=curr, column=ci)
+            c.font = regular_font
+            c.border = thin_border
+            c.alignment = Alignment(horizontal="center" if ci in [1, 4, 5, 6, 7, 8] else "left")
+        grand["employees"] += t["total_employees"]
+        grand["leads"] += t["leads_updates"]
+        grand["tokens"] += t["token_received"]
+        grand["visits"] += t["site_visits"]
+        grand["conversions"] += t["conversions"]
+        row_num += 1
+
+    # Grand total row
+    ws0.append([
+        "", "GRAND TOTAL", "",
+        grand["employees"], grand["leads"], grand["tokens"],
+        grand["visits"], grand["conversions"], ""
+    ])
+    gt_row = ws0.max_row
+    for ci in range(1, 10):
+        c = ws0.cell(row=gt_row, column=ci)
+        c.fill = total_fill
+        c.font = total_font
+        c.border = thin_border
+        c.alignment = Alignment(horizontal="center" if ci in [4, 5, 6, 7, 8] else "left")
+
+    # Column widths for summary
+    ws0.column_dimensions["A"].width = 5
+    ws0.column_dimensions["B"].width = 28
+    ws0.column_dimensions["C"].width = 24
+    ws0.column_dimensions["D"].width = 16
+    ws0.column_dimensions["E"].width = 14
+    ws0.column_dimensions["F"].width = 16
+    ws0.column_dimensions["G"].width = 12
+    ws0.column_dimensions["H"].width = 14
+    ws0.column_dimensions["I"].width = 38
+
+    # ── SHEET 1: Employee Performance (sorted by team → role → name) ──
+    ws1 = wb.create_sheet(title="Employee Performance")
     ws1.views.sheetView[0].showGridLines = True
 
-    ws1.append(["VISITSARVA CRM — TEAM PERFORMANCE REPORT"])
-    ws1.cell(row=1, column=1).font = title_font
-    ws1.append([f"Report Scope: {report_title}"])
+    # Title
+    ws1.append(["Employee Performance — Sorted by Team & Role"])
+    ws1.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
+    ws1.merge_cells("A1:H1")
+    ws1.append([f"Scope: {report_title}     |     {period_str}"])
     ws1.cell(row=2, column=1).font = meta_font
-    ws1.append([f"Report Generated On: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"])
-    ws1.cell(row=3, column=1).font = meta_font
-    period_str = f"Since {since_timestamp[:10]} (previous report baseline)" if since_timestamp else "All available records"
-    ws1.append([f"Reporting Period: {period_str}"])
-    ws1.cell(row=4, column=1).font = meta_font
-    ws1.append([])
+    ws1.merge_cells("A2:H2")
+    ws1.append([])  # blank
 
-    headers = [
-        "Team Name", "Employee ID", "Employee Name", "Role",
-        "Leads Updates", "Token Received", "Site Visits", "Conversions Based on Deals"
+    perf_headers = [
+        "Team Name", "Team Leader", "Employee Name", "Employee ID", "Role",
+        "Lead Updates", "Tokens Received", "Site Visits", "Conversions (Deals)"
     ]
 
     for team in team_data:
-        team_title_row = [f"TEAM: {team['team_name']} (Leader: {team['team_leader_name']})"]
-        ws1.append(team_title_row)
+        # Section header row per team
+        ws1.append([f"TEAM: {team['team_name']}  —  Leader: {team['team_leader_name']}"])
         r_idx = ws1.max_row
-        ws1.merge_cells(start_row=r_idx, start_column=1, end_row=r_idx, end_column=len(headers))
+        ws1.merge_cells(start_row=r_idx, start_column=1, end_row=r_idx, end_column=len(perf_headers))
         cell = ws1.cell(row=r_idx, column=1)
         cell.fill = section_fill
         cell.font = section_font
         cell.alignment = Alignment(horizontal="left", vertical="center")
+        ws1.row_dimensions[r_idx].height = 18
 
-        ws1.append(headers)
+        # Header row
+        ws1.append(perf_headers)
         h_row = ws1.max_row
-        for col_idx in range(1, len(headers) + 1):
+        for col_idx in range(1, len(perf_headers) + 1):
             c = ws1.cell(row=h_row, column=col_idx)
             c.fill = header_fill
             c.font = header_font
             c.alignment = Alignment(horizontal="center" if col_idx > 4 else "left", vertical="center")
+            c.border = thin_border
+        ws1.row_dimensions[h_row].height = 16
 
-        for emp in team["employees"]:
+        # Sort: team_lead first, then by name
+        sorted_emps = sorted(
+            team["employees"],
+            key=lambda x: (0 if x["role"] == "team_lead" else 1, x["name"].lower())
+        )
+
+        for emp in sorted_emps:
             row_vals = [
                 team["team_name"],
-                emp["employee_id"],
+                team["team_leader_name"],
                 emp["name"],
+                emp["employee_id"],
                 emp["role_display"],
                 emp["leads_updates"],
                 emp["token_received"],
@@ -485,14 +630,17 @@ def _build_excel_workbook(
                 c = ws1.cell(row=curr_row, column=col_idx)
                 c.font = regular_font
                 c.border = thin_border
-                c.alignment = Alignment(horizontal="center" if col_idx in [2, 4, 5, 6, 7, 8] else "left")
+                c.alignment = Alignment(
+                    horizontal="center" if col_idx in [4, 6, 7, 8, 9] else "left"
+                )
 
+        # Team totals
         totals = team["totals"]
         tot_row = [
-            f"TEAM TOTALS ({team['team_name']})",
+            f"TOTALS — {team['team_name']}",
             "",
-            f"Total Employees: {totals['total_employees']}",
-            "",
+            f"{totals['total_employees']} employees",
+            "", "",
             totals["leads_updates"],
             totals["token_received"],
             totals["site_visits"],
@@ -505,99 +653,167 @@ def _build_excel_workbook(
             c.fill = total_fill
             c.font = total_font
             c.border = thin_border
-            c.alignment = Alignment(horizontal="center" if col_idx in [5, 6, 7, 8] else "left")
+            c.alignment = Alignment(horizontal="center" if col_idx in [6, 7, 8, 9] else "left")
 
-        ws1.append([])
+        ws1.append([])  # spacing
 
-    for col in ws1.columns:
-        max_len = 0
-        col_letter = get_column_letter(col[0].column)
-        for cell in col:
-            val_str = str(cell.value or "")
-            if cell.row in [1, 2, 3, 4] or cell.coordinate in ws1.merged_cells:
-                continue
-            max_len = max(max_len, len(val_str))
-        ws1.column_dimensions[col_letter].width = max(max_len + 4, 15)
+    # Column widths
+    ws1.column_dimensions["A"].width = 26
+    ws1.column_dimensions["B"].width = 22
+    ws1.column_dimensions["C"].width = 24
+    ws1.column_dimensions["D"].width = 14
+    ws1.column_dimensions["E"].width = 14
+    ws1.column_dimensions["F"].width = 14
+    ws1.column_dimensions["G"].width = 16
+    ws1.column_dimensions["H"].width = 12
+    ws1.column_dimensions["I"].width = 18
 
-    # ── SHEET 2: Lead Details ──
+    # ── SHEET 2: Lead Details (sorted by team → employee → date) ──
     ws2 = wb.create_sheet(title="Lead Details")
     ws2.views.sheetView[0].showGridLines = True
-    l_headers = ["Lead ID", "Customer Name", "Source", "Status", "Assigned Employee", "Employee ID", "Role", "Created By", "Created At", "Notes"]
-    ws2.append(l_headers)
-    for col_idx in range(1, len(l_headers) + 1):
-        c = ws2.cell(row=1, column=col_idx)
-        c.fill = header_fill
-        c.font = header_font
 
-    for l in leads_detail:
+    ws2.append(["Lead Details"])
+    ws2.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
+    ws2.merge_cells("A1:J1")
+    ws2.append([f"Scope: {report_title}     |     {period_str}"])
+    ws2.cell(row=2, column=1).font = meta_font
+    ws2.merge_cells("A2:J2")
+    ws2.append([])  # blank row
+
+    l_headers = [
+        "Lead ID", "Customer Name", "Source", "Lead Status",
+        "Assigned Employee", "Employee ID", "Role",
+        "Created By", "Created Date", "Notes"
+    ]
+    _apply_sheet_header(ws2, l_headers, header_fill, header_font, thin_border)
+
+    # Sort: by assigned_name → created_at
+    sorted_leads = sorted(
+        leads_detail,
+        key=lambda x: (
+            x.get("assigned_name", "").lower(),
+            x.get("created_at", "")
+        )
+    )
+
+    for l in sorted_leads:
         ws2.append([
             l.get("lead_id", ""),
             l.get("customer_name", ""),
-            l.get("source", ""),
-            l.get("status", ""),
+            l.get("source", "").replace("_", " ").title() if l.get("source") else "",
+            l.get("status", "").replace("_", " ").title() if l.get("status") else "",
             l.get("assigned_name", ""),
             l.get("assigned_employee_id", ""),
             l.get("assigned_role", ""),
             l.get("creator_name", ""),
-            l.get("created_at", ""),
+            _fmt_date(l.get("created_at", "")),
             l.get("notes", "")
         ])
-    for col in ws2.columns:
-        max_len = max(len(str(cell.value or "")) for cell in col)
-        ws2.column_dimensions[get_column_letter(col[0].column)].width = min(max(max_len + 3, 12), 40)
+        curr = ws2.max_row
+        for ci in range(1, 11):
+            ws2.cell(row=curr, column=ci).font = regular_font
+            ws2.cell(row=curr, column=ci).border = thin_border
 
-    # ── SHEET 3: Site Visit Details ──
-    ws3 = wb.create_sheet(title="Site Visit Details")
+    _auto_col_widths(ws2, skip_rows={1, 2, 3})
+
+    # ── SHEET 3: Site Visit Details (sorted by employee → date) ──
+    ws3 = wb.create_sheet(title="Site Visits")
     ws3.views.sheetView[0].showGridLines = True
-    sv_headers = ["Visit ID", "Customer Name", "Assigned Employee", "Employee ID", "Date", "Time", "Status", "Properties", "Notes"]
-    ws3.append(sv_headers)
-    for col_idx in range(1, len(sv_headers) + 1):
-        c = ws3.cell(row=1, column=col_idx)
-        c.fill = header_fill
-        c.font = header_font
 
-    for sv in site_visits_detail:
+    ws3.append(["Site Visit Details"])
+    ws3.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
+    ws3.merge_cells("A1:I1")
+    ws3.append([f"Scope: {report_title}     |     {period_str}"])
+    ws3.cell(row=2, column=1).font = meta_font
+    ws3.merge_cells("A2:I2")
+    ws3.append([])
+
+    sv_headers = [
+        "Visit ID", "Customer Name", "Assigned Employee", "Employee ID",
+        "Visit Date", "Visit Time", "Status", "Properties Visited", "Notes"
+    ]
+    _apply_sheet_header(ws3, sv_headers, header_fill, header_font, thin_border)
+
+    # Sort: by employee → date
+    sorted_sv = sorted(
+        site_visits_detail,
+        key=lambda x: (
+            x.get("employee_name", "").lower(),
+            x.get("date", "")
+        )
+    )
+
+    for sv in sorted_sv:
         ws3.append([
             sv.get("visit_id", ""),
             sv.get("customer_name", ""),
             sv.get("employee_name", ""),
             sv.get("employee_official_id", ""),
-            sv.get("date", ""),
+            _fmt_date(sv.get("date", "")),
             sv.get("time", ""),
-            sv.get("status", ""),
+            sv.get("status", "").replace("_", " ").title() if sv.get("status") else "",
             ", ".join(sv.get("property_titles", [])),
             sv.get("notes", "")
         ])
-    for col in ws3.columns:
-        max_len = max(len(str(cell.value or "")) for cell in col)
-        ws3.column_dimensions[get_column_letter(col[0].column)].width = min(max(max_len + 3, 12), 40)
+        curr = ws3.max_row
+        for ci in range(1, 10):
+            ws3.cell(row=curr, column=ci).font = regular_font
+            ws3.cell(row=curr, column=ci).border = thin_border
 
-    # ── SHEET 4: Deal & Conversion Details ──
-    ws4 = wb.create_sheet(title="Deal & Conversion Details")
+    _auto_col_widths(ws3, skip_rows={1, 2, 3})
+
+    # ── SHEET 4: Deals & Conversions (sorted by employee → date) ──
+    ws4 = wb.create_sheet(title="Deals & Conversions")
     ws4.views.sheetView[0].showGridLines = True
-    d_headers = ["Deal ID", "Customer Name", "Property", "Assigned Employee", "Employee ID", "Status", "Deal Value", "Token Amount", "Expected Commission", "Registration Date"]
-    ws4.append(d_headers)
-    for col_idx in range(1, len(d_headers) + 1):
-        c = ws4.cell(row=1, column=col_idx)
-        c.fill = header_fill
-        c.font = header_font
 
-    for d in deals_detail:
+    ws4.append(["Deals & Conversions"])
+    ws4.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
+    ws4.merge_cells("A1:J1")
+    ws4.append([f"Scope: {report_title}     |     {period_str}"])
+    ws4.cell(row=2, column=1).font = meta_font
+    ws4.merge_cells("A2:J2")
+    ws4.append([])
+
+    d_headers = [
+        "Deal ID", "Customer Name", "Property",
+        "Assigned Employee", "Employee ID",
+        "Deal Status", "Deal Value (₹)", "Token Amount (₹)",
+        "Expected Commission (₹)", "Registration Date"
+    ]
+    _apply_sheet_header(ws4, d_headers, header_fill, header_font, thin_border)
+
+    sorted_deals = sorted(
+        deals_detail,
+        key=lambda x: (
+            x.get("assigned_name", "").lower(),
+            x.get("registration_date", "") or ""
+        )
+    )
+
+    num_fmt = '#,##0'
+    for d in sorted_deals:
         ws4.append([
             d.get("deal_id", ""),
             d.get("customer_name", ""),
             d.get("property_title", ""),
             d.get("assigned_name", ""),
             d.get("assigned_employee_id", ""),
-            d.get("status", ""),
-            d.get("final_deal_value", 0),
-            d.get("token_amount", 0),
-            d.get("expected_commission", 0),
-            d.get("registration_date", "")
+            d.get("status", "").replace("_", " ").title() if d.get("status") else "",
+            d.get("final_deal_value", 0) or 0,
+            d.get("token_amount", 0) or 0,
+            d.get("expected_commission", 0) or 0,
+            _fmt_date(d.get("registration_date", ""))
         ])
-    for col in ws4.columns:
-        max_len = max(len(str(cell.value or "")) for cell in col)
-        ws4.column_dimensions[get_column_letter(col[0].column)].width = min(max(max_len + 3, 12), 40)
+        curr = ws4.max_row
+        for ci in range(1, 11):
+            c = ws4.cell(row=curr, column=ci)
+            c.font = regular_font
+            c.border = thin_border
+        # Number formatting for currency columns
+        for ci in [7, 8, 9]:
+            ws4.cell(row=curr, column=ci).number_format = num_fmt
+
+    _auto_col_widths(ws4, skip_rows={1, 2, 3})
 
     output = io.BytesIO()
     wb.save(output)
@@ -1059,3 +1275,371 @@ async def export_team_report(
             )
 
     return await export_report(team_id=team_id, format=format, emp=emp)
+
+
+# ──────────────────────────────────────────────────────────
+# Upload — Executive uploads their own report data
+# ──────────────────────────────────────────────────────────
+EXECUTIVE_UPLOAD_COLS = {
+    "customer_name", "date", "activity_type"
+}
+
+@router.post("/upload/executive")
+async def upload_executive_report(
+    file: UploadFile = File(...),
+    emp: dict = Depends(get_current_employee)
+):
+    """
+    Executive uploads their own report/activity data.
+    Backend enforces:
+    - Only executive (or trainee) can call this endpoint
+    - All rows are automatically stamped with the logged-in employee's ID/team
+    - Employee ID from spreadsheet is IGNORED — server determines ownership from JWT
+    """
+    role = emp["role"]
+    if role not in ["executive", "trainee"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Only Executive or Trainee employees can upload personal report data."
+        )
+
+    filename = file.filename or ""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in ["xlsx", "csv"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '.{ext}'. Only .xlsx and .csv files are accepted."
+        )
+
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:  # 5 MB limit
+        raise HTTPException(status_code=400, detail="File size exceeds 5 MB limit.")
+
+    rows = []
+    try:
+        if ext == "xlsx":
+            if not HAS_OPENPYXL:
+                raise HTTPException(status_code=500, detail="Excel support unavailable on this server.")
+            xwb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+            xws = xwb.active
+            headers_row = next(xws.iter_rows(min_row=1, max_row=1, values_only=True), [])
+            headers = [str(h).strip().lower().replace(" ", "_") if h else "" for h in headers_row]
+            for row in xws.iter_rows(min_row=2, values_only=True):
+                if all(v is None for v in row):
+                    continue
+                rows.append(dict(zip(headers, [str(v).strip() if v is not None else "" for v in row])))
+        else:  # csv
+            text = content.decode("utf-8", errors="replace")
+            reader = csv.DictReader(io.StringIO(text))
+            for row in reader:
+                cleaned = {k.strip().lower().replace(" ", "_"): v.strip() for k, v in row.items()}
+                rows.append(cleaned)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse file: {str(e)}")
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="File is empty or contains no data rows.")
+
+    # Validate and stamp rows — ignore any employee/team IDs in the file
+    imported = []
+    rejected = []
+
+    required_cols = {"date", "activity_type"}
+    actual_cols = set(rows[0].keys()) if rows else set()
+    missing_cols = required_cols - actual_cols
+    if missing_cols:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required columns: {', '.join(sorted(missing_cols))}. Required: date, activity_type. Optional: customer_name, notes, outcome."
+        )
+
+    for idx, row in enumerate(rows, 1):
+        errors = []
+        date_val = row.get("date", "").strip()
+        activity = row.get("activity_type", "").strip()
+
+        if not date_val:
+            errors.append("'date' is missing")
+        else:
+            # Basic date validation
+            try:
+                datetime.strptime(date_val[:10], "%Y-%m-%d")
+            except ValueError:
+                try:
+                    datetime.strptime(date_val[:10], "%d/%m/%Y")
+                except ValueError:
+                    errors.append(f"'date' value '{date_val}' is not a recognised date format (use YYYY-MM-DD)")
+
+        if not activity:
+            errors.append("'activity_type' is missing")
+
+        if errors:
+            rejected.append({"row": idx, "reasons": errors, "data": {k: v for k, v in row.items() if k in ["date", "activity_type", "customer_name"]}})
+        else:
+            # Stamp with server-side identity — ignore spreadsheet-supplied IDs
+            imported.append({
+                "row_index": idx,
+                "employee_id": emp["id"],
+                "employee_name": emp.get("name", ""),
+                "employee_official_id": emp.get("employee_id", ""),
+                "team_id": emp.get("team_id", ""),
+                "date": date_val[:10],
+                "activity_type": activity,
+                "customer_name": row.get("customer_name", ""),
+                "notes": row.get("notes", ""),
+                "outcome": row.get("outcome", ""),
+            })
+
+    # Persist upload record
+    upload_record = {
+        "id": new_id(),
+        "upload_type": "executive_self",
+        "uploaded_by": emp["id"],
+        "uploaded_by_name": emp.get("name", ""),
+        "uploaded_by_role": emp.get("role", ""),
+        "uploaded_by_official_id": emp.get("employee_id", ""),
+        "team_id": emp.get("team_id", ""),
+        "file_name": filename,
+        "upload_date": now_iso(),
+        "records_imported": len(imported),
+        "records_rejected": len(rejected),
+        "rejected_rows": rejected,
+        "rows": imported,
+    }
+    await db.report_uploads().insert_one(upload_record)
+
+    return {
+        "message": "Upload processed.",
+        "file_name": filename,
+        "uploaded_by": emp.get("name", ""),
+        "upload_date": upload_record["upload_date"],
+        "records_imported": len(imported),
+        "records_rejected": len(rejected),
+        "rejected_rows": rejected[:20],  # Return first 20 rejections for display
+    }
+
+
+# ──────────────────────────────────────────────────────────
+# Upload history — Executive can see own uploads
+# ──────────────────────────────────────────────────────────
+@router.get("/upload/executive/history")
+async def get_executive_upload_history(emp: dict = Depends(get_current_employee)):
+    """Return this executive's own upload history."""
+    if emp["role"] not in ["executive", "trainee"]:
+        raise HTTPException(status_code=403, detail="Only Executive or Trainee can view their upload history.")
+
+    records = await db.report_uploads().find(
+        {"uploaded_by": emp["id"], "upload_type": "executive_self"},
+        {"_id": 0, "rows": 0, "rejected_rows": 0}
+    ).sort("upload_date", -1).limit(50).to_list(length=50)
+    return records
+
+
+# ──────────────────────────────────────────────────────────
+# Upload — Team Leader uploads team report data
+# ──────────────────────────────────────────────────────────
+@router.post("/upload/team")
+async def upload_team_report(
+    file: UploadFile = File(...),
+    emp: dict = Depends(get_current_employee)
+):
+    """
+    Team Leader uploads report data for their team.
+    Backend enforces:
+    - Only team_lead (or higher) can call this
+    - Each employee row is validated against actual CRM team membership
+    - Employee IDs from the spreadsheet are resolved and validated
+    - No rows for employees outside this team are accepted
+    """
+    role = emp["role"]
+    if role not in ["team_lead", "bdo", "founder", "admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Only Team Leaders and above can upload team report data."
+        )
+
+    filename = file.filename or ""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in ["xlsx", "csv"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '.{ext}'. Only .xlsx and .csv files are accepted."
+        )
+
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:  # 10 MB limit for team reports
+        raise HTTPException(status_code=400, detail="File size exceeds 10 MB limit.")
+
+    rows = []
+    try:
+        if ext == "xlsx":
+            if not HAS_OPENPYXL:
+                raise HTTPException(status_code=500, detail="Excel support unavailable on this server.")
+            xwb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+            xws = xwb.active
+            headers_row = next(xws.iter_rows(min_row=1, max_row=1, values_only=True), [])
+            headers = [str(h).strip().lower().replace(" ", "_") if h else "" for h in headers_row]
+            for row in xws.iter_rows(min_row=2, values_only=True):
+                if all(v is None for v in row):
+                    continue
+                rows.append(dict(zip(headers, [str(v).strip() if v is not None else "" for v in row])))
+        else:  # csv
+            text = content.decode("utf-8", errors="replace")
+            reader = csv.DictReader(io.StringIO(text))
+            for row in reader:
+                cleaned = {k.strip().lower().replace(" ", "_"): v.strip() for k, v in row.items()}
+                rows.append(cleaned)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse file: {str(e)}")
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="File is empty or contains no data rows.")
+
+    required_cols = {"date", "activity_type"}
+    actual_cols = set(rows[0].keys()) if rows else set()
+    missing_cols = required_cols - actual_cols
+    if missing_cols:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required columns: {', '.join(sorted(missing_cols))}. Required: date, activity_type. Optional: employee_name, employee_id, customer_name, notes, outcome."
+        )
+
+    # Resolve this team leader's actual team members from the DB
+    from services.rbac_service import get_team_member_ids
+    team_doc = await db.teams().find_one({"team_leader_id": emp["id"]})
+    team_name = team_doc.get("name", "My Team") if team_doc else "My Team"
+    team_id = team_doc.get("id", emp.get("team_id", "")) if team_doc else emp.get("team_id", "")
+
+    member_ids = await get_team_member_ids(emp)
+    members = await db.employees().find(
+        {"id": {"$in": member_ids}},
+        {"_id": 0, "id": 1, "employee_id": 1, "name": 1, "role": 1}
+    ).to_list(length=500)
+    # Build lookup maps for resolving employee from name or official employee_id
+    name_to_member = {m["name"].lower().strip(): m for m in members}
+    official_id_to_member = {m.get("employee_id", "").lower().strip(): m for m in members if m.get("employee_id")}
+
+    imported = []
+    rejected = []
+
+    for idx, row in enumerate(rows, 1):
+        errors = []
+        date_val = row.get("date", "").strip()
+        activity = row.get("activity_type", "").strip()
+        emp_name_col = row.get("employee_name", "").strip()
+        emp_id_col = row.get("employee_id", "").strip()
+
+        # Validate date
+        if not date_val:
+            errors.append("'date' is missing")
+        else:
+            try:
+                datetime.strptime(date_val[:10], "%Y-%m-%d")
+            except ValueError:
+                try:
+                    datetime.strptime(date_val[:10], "%d/%m/%Y")
+                except ValueError:
+                    errors.append(f"'date' value '{date_val}' is not a recognised date format")
+
+        if not activity:
+            errors.append("'activity_type' is missing")
+
+        # Resolve employee from spreadsheet — validate against real team membership
+        resolved_member = None
+        if emp_id_col:
+            resolved_member = official_id_to_member.get(emp_id_col.lower())
+        if not resolved_member and emp_name_col:
+            resolved_member = name_to_member.get(emp_name_col.lower())
+
+        # Default to the team leader themselves if no employee column provided
+        if not emp_id_col and not emp_name_col:
+            resolved_member = next((m for m in members if m["id"] == emp["id"]), None)
+
+        if emp_id_col or emp_name_col:  # Only validate if employee was specified
+            if not resolved_member:
+                errors.append(
+                    f"Employee '{emp_name_col or emp_id_col}' is not a member of your team. "
+                    "Only employees in your team can be included."
+                )
+            else:
+                # SECURITY: reject if somehow resolved member is not in this team's member_ids
+                if resolved_member["id"] not in member_ids:
+                    errors.append(
+                        f"Security check failed: employee '{emp_name_col or emp_id_col}' is not in your team."
+                    )
+
+        if errors:
+            rejected.append({
+                "row": idx,
+                "reasons": errors,
+                "data": {
+                    k: v for k, v in row.items()
+                    if k in ["date", "activity_type", "employee_name", "employee_id", "customer_name"]
+                }
+            })
+        else:
+            member = resolved_member or {}
+            imported.append({
+                "row_index": idx,
+                "employee_id": member.get("id", emp["id"]),
+                "employee_name": member.get("name", emp.get("name", "")),
+                "employee_official_id": member.get("employee_id", ""),
+                "employee_role": member.get("role", ""),
+                "team_id": team_id,
+                "team_name": team_name,
+                "date": date_val[:10],
+                "activity_type": activity,
+                "customer_name": row.get("customer_name", ""),
+                "notes": row.get("notes", ""),
+                "outcome": row.get("outcome", ""),
+            })
+
+    # Persist upload record
+    upload_record = {
+        "id": new_id(),
+        "upload_type": "team_leader",
+        "uploaded_by": emp["id"],
+        "uploaded_by_name": emp.get("name", ""),
+        "uploaded_by_role": emp.get("role", ""),
+        "uploaded_by_official_id": emp.get("employee_id", ""),
+        "team_id": team_id,
+        "team_name": team_name,
+        "file_name": filename,
+        "upload_date": now_iso(),
+        "records_imported": len(imported),
+        "records_rejected": len(rejected),
+        "rejected_rows": rejected,
+        "rows": imported,
+    }
+    await db.report_uploads().insert_one(upload_record)
+
+    return {
+        "message": "Upload processed.",
+        "file_name": filename,
+        "uploaded_by": emp.get("name", ""),
+        "team_name": team_name,
+        "upload_date": upload_record["upload_date"],
+        "records_imported": len(imported),
+        "records_rejected": len(rejected),
+        "rejected_rows": rejected[:20],
+    }
+
+
+# ──────────────────────────────────────────────────────────
+# Upload history — Team Leader can see own team uploads
+# ──────────────────────────────────────────────────────────
+@router.get("/upload/team/history")
+async def get_team_upload_history(emp: dict = Depends(get_current_employee)):
+    """Return this team leader's team upload history."""
+    if emp["role"] not in ["team_lead", "bdo", "founder", "admin"]:
+        raise HTTPException(status_code=403, detail="Only Team Leaders and above can view team upload history.")
+
+    query: dict = {"upload_type": "team_leader"}
+    if emp["role"] == "team_lead":
+        query["uploaded_by"] = emp["id"]
+
+    records = await db.report_uploads().find(
+        query,
+        {"_id": 0, "rows": 0, "rejected_rows": 0}
+    ).sort("upload_date", -1).limit(100).to_list(length=100)
+    return records
