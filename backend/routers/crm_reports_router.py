@@ -140,6 +140,7 @@ async def _calculate_employee_performance(emp_rec: dict, since_timestamp: Option
     assigned_or_created_leads = await db.leads().count_documents(lead_query)
 
     leads_updates = max(audit_lead_updates, assigned_or_created_leads)
+    leads_count = assigned_or_created_leads
 
     # 2. TOKEN RECEIVED — Deduplicated across leads, deals, payments
     token_lead_ids = set()
@@ -216,6 +217,7 @@ async def _calculate_employee_performance(emp_rec: dict, since_timestamp: Option
         "name": name,
         "role": role_raw,
         "role_display": role_display,
+        "leads": leads_count,
         "leads_updates": leads_updates,
         "token_received": token_received,
         "site_visits": site_visits,
@@ -279,6 +281,7 @@ async def _get_team_grouped_performance(emp_ids: list, since_timestamp: Optional
 
         totals = {
             "total_employees": len(emp_perf_list),
+            "leads": sum(p["leads"] for p in emp_perf_list),
             "leads_updates": sum(p["leads_updates"] for p in emp_perf_list),
             "token_received": sum(p["token_received"] for p in emp_perf_list),
             "site_visits": sum(p["site_visits"] for p in emp_perf_list),
@@ -306,6 +309,7 @@ async def _get_team_grouped_performance(emp_ids: list, since_timestamp: Optional
         unassigned_perf.sort(key=lambda x: -x["conversions_based_on_deals"])
         totals = {
             "total_employees": len(unassigned_perf),
+            "leads": sum(p["leads"] for p in unassigned_perf),
             "leads_updates": sum(p["leads_updates"] for p in unassigned_perf),
             "token_received": sum(p["token_received"] for p in unassigned_perf),
             "site_visits": sum(p["site_visits"] for p in unassigned_perf),
@@ -484,104 +488,22 @@ def _build_excel_workbook(
     period_str = f"Since {since_timestamp[:10]} (previous report baseline)" if since_timestamp else "All available records"
     generated_on = datetime.now(timezone.utc).strftime('%d %b %Y  %H:%M UTC')
 
-    # ── SHEET 0: Team Summary (first sheet — quick overview per team) ──
-    ws0 = wb.create_sheet(title="Team Summary")
-    ws0.views.sheetView[0].showGridLines = True
-
-    # Title block
-    ws0.append(["VISITSARVA CRM — TEAM PERFORMANCE REPORT"])
-    ws0.cell(row=1, column=1).font = title_font
-    ws0.merge_cells("A1:I1")
-    ws0.row_dimensions[1].height = 28
-
-    ws0.append([f"Scope: {report_title}     |     Period: {period_str}     |     Generated: {generated_on}"])
-    ws0.cell(row=2, column=1).font = meta_font
-    ws0.merge_cells("A2:I2")
-    ws0.append([])  # blank row
-
-    sum_headers = ["#", "Team Name", "Team Leader", "Total Employees",
-                   "Lead Updates", "Tokens Received", "Site Visits", "Conversions", "Report Period"]
-    ws0.append(sum_headers)
-    h_row = ws0.max_row
-    for col_idx, _ in enumerate(sum_headers, 1):
-        c = ws0.cell(row=h_row, column=col_idx)
-        c.fill = summary_header_fill
-        c.font = header_font
-        c.alignment = Alignment(horizontal="center", vertical="center")
-        c.border = thin_border
-    ws0.freeze_panes = ws0.cell(row=h_row + 1, column=1)
-    ws0.row_dimensions[h_row].height = 18
-
-    row_num = 1
-    grand = {"employees": 0, "leads": 0, "tokens": 0, "visits": 0, "conversions": 0}
-    for team in team_data:
-        t = team["totals"]
-        row_vals = [
-            row_num,
-            team["team_name"],
-            team["team_leader_name"],
-            t["total_employees"],
-            t["leads_updates"],
-            t["token_received"],
-            t["site_visits"],
-            t["conversions"],
-            period_str,
-        ]
-        ws0.append(row_vals)
-        curr = ws0.max_row
-        for ci in range(1, len(row_vals) + 1):
-            c = ws0.cell(row=curr, column=ci)
-            c.font = regular_font
-            c.border = thin_border
-            c.alignment = Alignment(horizontal="center" if ci in [1, 4, 5, 6, 7, 8] else "left")
-        grand["employees"] += t["total_employees"]
-        grand["leads"] += t["leads_updates"]
-        grand["tokens"] += t["token_received"]
-        grand["visits"] += t["site_visits"]
-        grand["conversions"] += t["conversions"]
-        row_num += 1
-
-    # Grand total row
-    ws0.append([
-        "", "GRAND TOTAL", "",
-        grand["employees"], grand["leads"], grand["tokens"],
-        grand["visits"], grand["conversions"], ""
-    ])
-    gt_row = ws0.max_row
-    for ci in range(1, 10):
-        c = ws0.cell(row=gt_row, column=ci)
-        c.fill = total_fill
-        c.font = total_font
-        c.border = thin_border
-        c.alignment = Alignment(horizontal="center" if ci in [4, 5, 6, 7, 8] else "left")
-
-    # Column widths for summary
-    ws0.column_dimensions["A"].width = 5
-    ws0.column_dimensions["B"].width = 28
-    ws0.column_dimensions["C"].width = 24
-    ws0.column_dimensions["D"].width = 16
-    ws0.column_dimensions["E"].width = 14
-    ws0.column_dimensions["F"].width = 16
-    ws0.column_dimensions["G"].width = 12
-    ws0.column_dimensions["H"].width = 14
-    ws0.column_dimensions["I"].width = 38
-
-    # ── SHEET 1: Employee Performance (sorted by team → role → name) ──
-    ws1 = wb.create_sheet(title="Employee Performance")
+    # ── SHEET 1: Employee Performance Summary (first sheet) ──
+    ws1 = wb.create_sheet(title="Employee Performance Summary")
     ws1.views.sheetView[0].showGridLines = True
 
     # Title
-    ws1.append(["Employee Performance — Sorted by Team & Role"])
+    ws1.append(["EMPLOYEE PERFORMANCE SUMMARY"])
     ws1.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
-    ws1.merge_cells("A1:H1")
+    ws1.merge_cells("A1:G1")
     ws1.append([f"Scope: {report_title}     |     {period_str}"])
     ws1.cell(row=2, column=1).font = meta_font
-    ws1.merge_cells("A2:H2")
+    ws1.merge_cells("A2:G2")
     ws1.append([])  # blank
 
     perf_headers = [
-        "Team Name", "Team Leader", "Employee Name", "Employee ID", "Role",
-        "Lead Updates", "Tokens Received", "Site Visits", "Conversions (Deals)"
+        "Employee ID", "Employee Name", "Role", "Team",
+        "Leads", "Site Visits", "Conversions"
     ]
 
     for team in team_data:
@@ -598,96 +520,164 @@ def _build_excel_workbook(
         # Header row
         ws1.append(perf_headers)
         h_row = ws1.max_row
-        for col_idx in range(1, len(perf_headers) + 1):
+        for col_idx, _ in enumerate(perf_headers, 1):
             c = ws1.cell(row=h_row, column=col_idx)
             c.fill = header_fill
             c.font = header_font
-            c.alignment = Alignment(horizontal="center" if col_idx > 4 else "left", vertical="center")
+            c.alignment = Alignment(horizontal="center", vertical="center")
             c.border = thin_border
-        ws1.row_dimensions[h_row].height = 16
+        
+        # Sort employees by Role, then Name
+        sorted_emps = sorted(team["employees"], key=lambda x: (
+            0 if x["role"] == "team_lead" else 1,
+            x["name"].lower()
+        ))
 
-        # Sort: team_lead first, then by name
-        sorted_emps = sorted(
-            team["employees"],
-            key=lambda x: (0 if x["role"] == "team_lead" else 1, x["name"].lower())
-        )
-
+        # Data rows
         for emp in sorted_emps:
-            row_vals = [
-                team["team_name"],
-                team["team_leader_name"],
-                emp["name"],
+            ws1.append([
                 emp["employee_id"],
+                emp["name"],
                 emp["role_display"],
-                emp["leads_updates"],
-                emp["token_received"],
+                emp["team_name"],
+                emp["leads"],
                 emp["site_visits"],
                 emp["conversions_based_on_deals"]
-            ]
-            ws1.append(row_vals)
-            curr_row = ws1.max_row
-            for col_idx in range(1, len(row_vals) + 1):
-                c = ws1.cell(row=curr_row, column=col_idx)
+            ])
+            curr = ws1.max_row
+            for ci in range(1, len(perf_headers) + 1):
+                c = ws1.cell(row=curr, column=ci)
                 c.font = regular_font
                 c.border = thin_border
-                c.alignment = Alignment(
-                    horizontal="center" if col_idx in [4, 6, 7, 8, 9] else "left"
-                )
+                c.alignment = Alignment(horizontal="center" if ci in [5, 6, 7] else "left")
 
-        # Team totals
-        totals = team["totals"]
-        tot_row = [
-            f"TOTALS — {team['team_name']}",
-            "",
-            f"{totals['total_employees']} employees",
-            "", "",
-            totals["leads_updates"],
-            totals["token_received"],
-            totals["site_visits"],
-            totals["conversions"]
-        ]
-        ws1.append(tot_row)
-        t_row = ws1.max_row
-        for col_idx in range(1, len(tot_row) + 1):
-            c = ws1.cell(row=t_row, column=col_idx)
+        # Team Total
+        t = team["totals"]
+        ws1.append([
+            "", f"{team['team_name'].upper()} TOTAL", "", "",
+            t["leads"], t["site_visits"], t["conversions"]
+        ])
+        tot_row = ws1.max_row
+        for ci in range(1, len(perf_headers) + 1):
+            c = ws1.cell(row=tot_row, column=ci)
             c.fill = total_fill
             c.font = total_font
             c.border = thin_border
-            c.alignment = Alignment(horizontal="center" if col_idx in [6, 7, 8, 9] else "left")
+            c.alignment = Alignment(horizontal="center" if ci in [5, 6, 7] else "left")
 
-        ws1.append([])  # spacing
+        ws1.append([])
 
-    # Column widths
-    ws1.column_dimensions["A"].width = 26
-    ws1.column_dimensions["B"].width = 22
-    ws1.column_dimensions["C"].width = 24
-    ws1.column_dimensions["D"].width = 14
-    ws1.column_dimensions["E"].width = 14
-    ws1.column_dimensions["F"].width = 14
-    ws1.column_dimensions["G"].width = 16
-    ws1.column_dimensions["H"].width = 12
-    ws1.column_dimensions["I"].width = 18
+    ws1.freeze_panes = ws1.cell(row=4, column=1)
+    
+    # Column widths for employee summary
+    ws1.column_dimensions["A"].width = 16
+    ws1.column_dimensions["B"].width = 24
+    ws1.column_dimensions["C"].width = 16
+    ws1.column_dimensions["D"].width = 20
+    ws1.column_dimensions["E"].width = 10
+    ws1.column_dimensions["F"].width = 12
+    ws1.column_dimensions["G"].width = 14
 
-    # ── SHEET 2: Lead Details (sorted by team → employee → date) ──
-    ws2 = wb.create_sheet(title="Lead Details")
+    # ── SHEET 2: Team Summary (second sheet — quick overview per team) ──
+    ws2 = wb.create_sheet(title="Team Summary")
     ws2.views.sheetView[0].showGridLines = True
 
-    ws2.append(["Lead Details"])
-    ws2.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
-    ws2.merge_cells("A1:J1")
-    ws2.append([f"Scope: {report_title}     |     {period_str}"])
+    # Title block
+    ws2.append(["VISITSARVA CRM — TEAM PERFORMANCE REPORT"])
+    ws2.cell(row=1, column=1).font = title_font
+    ws2.merge_cells("A1:I1")
+    ws2.row_dimensions[1].height = 28
+
+    ws2.append([f"Scope: {report_title}     |     Period: {period_str}     |     Generated: {generated_on}"])
     ws2.cell(row=2, column=1).font = meta_font
-    ws2.merge_cells("A2:J2")
+    ws2.merge_cells("A2:I2")
     ws2.append([])  # blank row
+
+    sum_headers = ["#", "Team Name", "Team Leader", "Total Employees",
+                   "Leads", "Tokens Received", "Site Visits", "Conversions", "Report Period"]
+    ws2.append(sum_headers)
+    h_row = ws2.max_row
+    for col_idx, _ in enumerate(sum_headers, 1):
+        c = ws2.cell(row=h_row, column=col_idx)
+        c.fill = summary_header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        c.border = thin_border
+    ws2.freeze_panes = ws2.cell(row=h_row + 1, column=1)
+    ws2.row_dimensions[h_row].height = 18
+
+    row_num = 1
+    grand = {"employees": 0, "leads": 0, "tokens": 0, "visits": 0, "conversions": 0}
+    for team in team_data:
+        t = team["totals"]
+        row_vals = [
+            row_num,
+            team["team_name"],
+            team["team_leader_name"],
+            t["total_employees"],
+            t["leads"],
+            t["token_received"],
+            t["site_visits"],
+            t["conversions"],
+            period_str,
+        ]
+        ws2.append(row_vals)
+        curr = ws2.max_row
+        for ci in range(1, len(row_vals) + 1):
+            c = ws2.cell(row=curr, column=ci)
+            c.font = regular_font
+            c.border = thin_border
+            c.alignment = Alignment(horizontal="center" if ci in [1, 4, 5, 6, 7, 8] else "left")
+        grand["employees"] += t["total_employees"]
+        grand["leads"] += t["leads"]
+        grand["tokens"] += t["token_received"]
+        grand["visits"] += t["site_visits"]
+        grand["conversions"] += t["conversions"]
+        row_num += 1
+
+    # Grand total row
+    ws2.append([
+        "", "GRAND TOTAL", "",
+        grand["employees"], grand["leads"], grand["tokens"],
+        grand["visits"], grand["conversions"], ""
+    ])
+    gt_row = ws2.max_row
+    for ci in range(1, 10):
+        c = ws2.cell(row=gt_row, column=ci)
+        c.fill = total_fill
+        c.font = total_font
+        c.border = thin_border
+        c.alignment = Alignment(horizontal="center" if ci in [4, 5, 6, 7, 8] else "left")
+
+    # Column widths for summary
+    ws2.column_dimensions["A"].width = 5
+    ws2.column_dimensions["B"].width = 28
+    ws2.column_dimensions["C"].width = 24
+    ws2.column_dimensions["D"].width = 16
+    ws2.column_dimensions["E"].width = 14
+    ws2.column_dimensions["F"].width = 16
+    ws2.column_dimensions["G"].width = 12
+    ws2.column_dimensions["H"].width = 14
+    ws2.column_dimensions["I"].width = 38
+    # ── SHEET 3: Detailed Lead Records (sorted by employee → date) ──
+    ws3 = wb.create_sheet(title="Lead Details")
+    ws3.views.sheetView[0].showGridLines = True
+
+    ws3.append(["Detailed Lead Records"])
+    ws3.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
+    ws3.merge_cells("A1:J1")
+    ws3.append([f"Scope: {report_title}     |     {period_str}"])
+    ws3.cell(row=2, column=1).font = meta_font
+    ws3.merge_cells("A2:J2")
+    ws3.append([])
 
     l_headers = [
         "Lead ID", "Customer Name", "Source", "Lead Status",
-        "Assigned Employee", "Employee ID", "Role",
-        "Created By", "Created Date", "Notes"
+        "Assigned Employee", "Employee ID", "Role", "Created By", "Created At", "Notes"
     ]
-    _apply_sheet_header(ws2, l_headers, header_fill, header_font, thin_border)
+    _apply_sheet_header(ws3, l_headers, header_fill, header_font, thin_border)
 
-    # Sort: by assigned_name → created_at
+    # Sort: by employee → date
     sorted_leads = sorted(
         leads_detail,
         key=lambda x: (
@@ -697,7 +687,7 @@ def _build_excel_workbook(
     )
 
     for l in sorted_leads:
-        ws2.append([
+        ws3.append([
             l.get("lead_id", ""),
             l.get("customer_name", ""),
             l.get("source", "").replace("_", " ").title() if l.get("source") else "",
@@ -709,30 +699,30 @@ def _build_excel_workbook(
             _fmt_date(l.get("created_at", "")),
             l.get("notes", "")
         ])
-        curr = ws2.max_row
+        curr = ws3.max_row
         for ci in range(1, 11):
-            ws2.cell(row=curr, column=ci).font = regular_font
-            ws2.cell(row=curr, column=ci).border = thin_border
+            ws3.cell(row=curr, column=ci).font = regular_font
+            ws3.cell(row=curr, column=ci).border = thin_border
 
-    _auto_col_widths(ws2, skip_rows={1, 2, 3})
+    _auto_col_widths(ws3, skip_rows={1, 2, 3})
 
-    # ── SHEET 3: Site Visit Details (sorted by employee → date) ──
-    ws3 = wb.create_sheet(title="Site Visits")
-    ws3.views.sheetView[0].showGridLines = True
+    # ── SHEET 4: Site Visit Details (sorted by employee → date) ──
+    ws4 = wb.create_sheet(title="Site Visits")
+    ws4.views.sheetView[0].showGridLines = True
 
-    ws3.append(["Site Visit Details"])
-    ws3.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
-    ws3.merge_cells("A1:I1")
-    ws3.append([f"Scope: {report_title}     |     {period_str}"])
-    ws3.cell(row=2, column=1).font = meta_font
-    ws3.merge_cells("A2:I2")
-    ws3.append([])
+    ws4.append(["Site Visit Details"])
+    ws4.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
+    ws4.merge_cells("A1:I1")
+    ws4.append([f"Scope: {report_title}     |     {period_str}"])
+    ws4.cell(row=2, column=1).font = meta_font
+    ws4.merge_cells("A2:I2")
+    ws4.append([])
 
     sv_headers = [
         "Visit ID", "Customer Name", "Assigned Employee", "Employee ID",
         "Visit Date", "Visit Time", "Status", "Properties Visited", "Notes"
     ]
-    _apply_sheet_header(ws3, sv_headers, header_fill, header_font, thin_border)
+    _apply_sheet_header(ws4, sv_headers, header_fill, header_font, thin_border)
 
     # Sort: by employee → date
     sorted_sv = sorted(
@@ -744,7 +734,7 @@ def _build_excel_workbook(
     )
 
     for sv in sorted_sv:
-        ws3.append([
+        ws4.append([
             sv.get("visit_id", ""),
             sv.get("customer_name", ""),
             sv.get("employee_name", ""),
@@ -755,24 +745,24 @@ def _build_excel_workbook(
             ", ".join(sv.get("property_titles", [])),
             sv.get("notes", "")
         ])
-        curr = ws3.max_row
+        curr = ws4.max_row
         for ci in range(1, 10):
-            ws3.cell(row=curr, column=ci).font = regular_font
-            ws3.cell(row=curr, column=ci).border = thin_border
+            ws4.cell(row=curr, column=ci).font = regular_font
+            ws4.cell(row=curr, column=ci).border = thin_border
 
-    _auto_col_widths(ws3, skip_rows={1, 2, 3})
+    _auto_col_widths(ws4, skip_rows={1, 2, 3})
 
-    # ── SHEET 4: Deals & Conversions (sorted by employee → date) ──
-    ws4 = wb.create_sheet(title="Deals & Conversions")
-    ws4.views.sheetView[0].showGridLines = True
+    # ── SHEET 5: Deals & Conversions (sorted by employee → date) ──
+    ws5 = wb.create_sheet(title="Deals & Conversions")
+    ws5.views.sheetView[0].showGridLines = True
 
-    ws4.append(["Deals & Conversions"])
-    ws4.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
-    ws4.merge_cells("A1:J1")
-    ws4.append([f"Scope: {report_title}     |     {period_str}"])
-    ws4.cell(row=2, column=1).font = meta_font
-    ws4.merge_cells("A2:J2")
-    ws4.append([])
+    ws5.append(["Deals & Conversions"])
+    ws5.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="1E3A5F")
+    ws5.merge_cells("A1:J1")
+    ws5.append([f"Scope: {report_title}     |     {period_str}"])
+    ws5.cell(row=2, column=1).font = meta_font
+    ws5.merge_cells("A2:J2")
+    ws5.append([])
 
     d_headers = [
         "Deal ID", "Customer Name", "Property",
@@ -780,7 +770,7 @@ def _build_excel_workbook(
         "Deal Status", "Deal Value (₹)", "Token Amount (₹)",
         "Expected Commission (₹)", "Registration Date"
     ]
-    _apply_sheet_header(ws4, d_headers, header_fill, header_font, thin_border)
+    _apply_sheet_header(ws5, d_headers, header_fill, header_font, thin_border)
 
     sorted_deals = sorted(
         deals_detail,
@@ -792,7 +782,7 @@ def _build_excel_workbook(
 
     num_fmt = '#,##0'
     for d in sorted_deals:
-        ws4.append([
+        ws5.append([
             d.get("deal_id", ""),
             d.get("customer_name", ""),
             d.get("property_title", ""),
@@ -804,16 +794,16 @@ def _build_excel_workbook(
             d.get("expected_commission", 0) or 0,
             _fmt_date(d.get("registration_date", ""))
         ])
-        curr = ws4.max_row
+        curr = ws5.max_row
         for ci in range(1, 11):
-            c = ws4.cell(row=curr, column=ci)
+            c = ws5.cell(row=curr, column=ci)
             c.font = regular_font
             c.border = thin_border
         # Number formatting for currency columns
         for ci in [7, 8, 9]:
-            ws4.cell(row=curr, column=ci).number_format = num_fmt
+            ws5.cell(row=curr, column=ci).number_format = num_fmt
 
-    _auto_col_widths(ws4, skip_rows={1, 2, 3})
+    _auto_col_widths(ws5, skip_rows={1, 2, 3})
 
     output = io.BytesIO()
     wb.save(output)
