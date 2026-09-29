@@ -368,7 +368,7 @@ export default function CrmReports() {
     setDownloading(true);
     try {
       const response = await crmApi.get(`/reports/export?format=${fmt}`, { responseType: "blob" });
-      const ext = fmt === "csv" ? "csv" : "xlsx";
+      const ext = fmt === "csv" ? "csv" : fmt === "pdf" ? "pdf" : "xlsx";
       const filename = isTeamLead
         ? `MyTeam_Report_${new Date().toISOString().slice(0, 10)}.${ext}`
         : `AllTeams_Report_${new Date().toISOString().slice(0, 10)}.${ext}`;
@@ -393,7 +393,7 @@ export default function CrmReports() {
     setTeamDownloading(true);
     try {
       const response = await crmApi.get(`/reports/export/team/${selectedTeamId}?format=${fmt}`, { responseType: "blob" });
-      const ext = fmt === "csv" ? "csv" : "xlsx";
+      const ext = fmt === "csv" ? "csv" : fmt === "pdf" ? "pdf" : "xlsx";
       const team = teams.find(t => t.id === selectedTeamId || t.team_id === selectedTeamId);
       const teamName = (team?.name || "Team").replace(/\s+/g, "_");
       triggerDownload(response.data, `${teamName}_Report_${new Date().toISOString().slice(0, 10)}.${ext}`);

@@ -1179,7 +1179,7 @@ def _build_pdf_report(
         pdf.cell(d_w[4], 8, str(d.get("status", "")).replace("_", " ").title()[:20], border=1)
         pdf.ln()
 
-    return pdf.output(dest="S")
+    return bytes(pdf.output())
 
 
 # ──────────────────────────────────────────────────────────
