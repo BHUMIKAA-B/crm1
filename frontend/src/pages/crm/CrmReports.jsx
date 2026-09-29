@@ -297,6 +297,10 @@ export default function CrmReports() {
   const [teamSelectorOpen, setTeamSelectorOpen] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState("");
 
+  // Download format modal state
+  const [formatModalOpen, setFormatModalOpen] = useState(false);
+  const [downloadTarget, setDownloadTarget] = useState(null); // 'all' or 'team'
+
   // ── Fetch analytics data ───────────────────────────────
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -467,7 +471,7 @@ export default function CrmReports() {
               {/* All Teams Download */}
               <button
                 id="btn-download-all-teams"
-                onClick={handleDownloadAll}
+                onClick={() => { setDownloadTarget('all'); setFormatModalOpen(true); }}
                 disabled={downloading}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition shadow-sm"
               >
@@ -522,7 +526,7 @@ export default function CrmReports() {
                     </div>
                     <button
                       id="btn-confirm-team-download"
-                      onClick={handleDownloadTeam}
+                      onClick={() => { setDownloadTarget('team'); setFormatModalOpen(true); }}
                       disabled={!selectedTeamId || teamDownloading}
                       className="w-full py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition"
                     >
@@ -547,7 +551,7 @@ export default function CrmReports() {
               </div>
               <button
                 id="btn-download-my-team"
-                onClick={handleDownloadAll}
+                onClick={() => { setDownloadTarget('all'); setFormatModalOpen(true); }}
                 disabled={downloading}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition shadow-sm"
               >
@@ -741,6 +745,56 @@ export default function CrmReports() {
             <p className="text-xs text-amber-600 mt-0.5">
               Report downloads are available to Team Leaders and above. Contact your Team Leader or BDO to request a report.
             </p>
+          </div>
+        </div>
+      )}
+      
+      {/* ── Format Selection Modal ── */}
+      {formatModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-5 text-center">
+              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Download className="w-6 h-6 text-indigo-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">Download Team Report</h3>
+              <p className="text-sm text-gray-500 mb-6">How would you like to download your report?</p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    setFormatModalOpen(false);
+                    if (downloadTarget === 'all') handleDownloadAll('xlsx');
+                    else handleDownloadTeam('xlsx');
+                  }}
+                  className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-green-100 hover:border-green-500 hover:bg-green-50 transition-colors group"
+                >
+                  <FileText className="w-8 h-8 text-green-500 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-gray-800">Excel</span>
+                  <span className="text-xs text-gray-500 mt-1">Detailed Data</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setFormatModalOpen(false);
+                    if (downloadTarget === 'all') handleDownloadAll('pdf');
+                    else handleDownloadTeam('pdf');
+                  }}
+                  className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-red-100 hover:border-red-500 hover:bg-red-50 transition-colors group"
+                >
+                  <FileText className="w-8 h-8 text-red-500 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-gray-800">PDF</span>
+                  <span className="text-xs text-gray-500 mt-1">Presentation</span>
+                </button>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-center">
+              <button
+                onClick={() => setFormatModalOpen(false)}
+                className="px-6 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
