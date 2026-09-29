@@ -14,6 +14,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 import io
 import csv
+import asyncio
 import db
 from fpdf import FPDF
 from services.rbac_service import get_current_employee
@@ -104,7 +105,7 @@ async def _get_previous_download_timestamp(emp_id: str, team_scope: str) -> Opti
 # ──────────────────────────────────────────────────────────
 async def _calculate_employee_performance(emp_rec: dict, since_timestamp: Optional[str] = None) -> dict:
     """
-    Calculate 4 core performance metrics for an employee using actual CRM data:
+    Calculate 4 core performance metrics for an employee using actual CRM data concurrently:
     1. Employee ID
     2. Employee Name
     3. Employee Role
@@ -129,85 +130,78 @@ async def _calculate_employee_performance(emp_rec: dict, since_timestamp: Option
     }
     role_display = role_map.get(role_raw, role_raw.replace("_", " ").title())
 
-    # 1. LEADS UPDATES — Lead activity audit logs or assigned/created lead status updates
     audit_query: dict = {"who": eid, "entity": "lead"}
-    if since_timestamp:
-        audit_query["timestamp"] = {"$gte": since_timestamp}
-    audit_lead_updates = await db.audit_logs().count_documents(audit_query)
-
     lead_query: dict = {"$or": [{"assigned_to": eid}, {"created_by": eid}]}
-    if since_timestamp:
-        lead_query["updated_at"] = {"$gte": since_timestamp}
-    assigned_or_created_leads = await db.leads().count_documents(lead_query)
-
-    leads_updates = max(audit_lead_updates, assigned_or_created_leads)
-    leads_count = assigned_or_created_leads
-
-    # 2. TOKEN RECEIVED — Deduplicated across leads, deals, payments
-    token_lead_ids = set()
-    token_deal_ids = set()
-
     lead_token_query: dict = {
         "$or": [{"assigned_to": eid}, {"created_by": eid}],
         "status": {"$in": ["token", "token_received"]}
     }
-    if since_timestamp:
-        lead_token_query["updated_at"] = {"$gte": since_timestamp}
-    token_leads = await db.leads().find(lead_token_query, {"_id": 0, "id": 1}).to_list(length=1000)
-    for l in token_leads:
-        token_lead_ids.add(l["id"])
-
     deal_token_query: dict = {
         "assigned_employee": eid,
         "$or": [{"status": "token_received"}, {"token_amount": {"$gt": 0}}]
     }
-    if since_timestamp:
-        deal_token_query["updated_at"] = {"$gte": since_timestamp}
-    token_deals = await db.deals().find(deal_token_query, {"_id": 0, "id": 1}).to_list(length=1000)
-    for d in token_deals:
-        token_deal_ids.add(d["id"])
-
     pay_query: dict = {"payment_type": "token", "status": "paid"}
-    if since_timestamp:
-        pay_query["created_at"] = {"$gte": since_timestamp}
-    token_payments = await db.payments().find(pay_query, {"_id": 0, "deal_id": 1}).to_list(length=1000)
-    for p in token_payments:
-        if p.get("deal_id"):
-            deal_doc = await db.deals().find_one({"id": p["deal_id"]}, {"_id": 0, "assigned_employee": 1})
-            if deal_doc and deal_doc.get("assigned_employee") == eid:
-                token_deal_ids.add(p["deal_id"])
-
-    token_received = len(token_lead_ids) + len(token_deal_ids)
-
-    # 3. SITE VISITS — Unique Site Visit records assigned to or created by employee
     sv_query: dict = {"$or": [{"employee_id": eid}, {"created_by": eid}]}
-    if since_timestamp:
-        sv_query["updated_at"] = {"$gte": since_timestamp}
-    site_visits_list = await db.site_visits().find(sv_query, {"_id": 0, "id": 1}).to_list(length=1000)
-    site_visits = len(site_visits_list)
-
-    # 4. CONVERSIONS BASED ON DEALS — Qualifying deals status
-    conversion_ids = set()
     deal_conv_query: dict = {
         "assigned_employee": eid,
         "status": {"$in": ["closed", "registration_done", "agreement_done", "closed_won"]}
     }
-    if since_timestamp:
-        deal_conv_query["updated_at"] = {"$gte": since_timestamp}
-    conv_deals = await db.deals().find(deal_conv_query, {"_id": 0, "id": 1}).to_list(length=1000)
-    for d in conv_deals:
-        conversion_ids.add(d["id"])
-
     lead_conv_query: dict = {
         "$or": [{"assigned_to": eid}, {"created_by": eid}],
         "status": "closed_won"
     }
-    if since_timestamp:
-        lead_conv_query["updated_at"] = {"$gte": since_timestamp}
-    conv_leads = await db.leads().find(lead_conv_query, {"_id": 0, "id": 1}).to_list(length=1000)
-    for l in conv_leads:
-        conversion_ids.add(l["id"])
 
+    if since_timestamp:
+        audit_query["timestamp"] = {"$gte": since_timestamp}
+        lead_query["updated_at"] = {"$gte": since_timestamp}
+        lead_token_query["updated_at"] = {"$gte": since_timestamp}
+        deal_token_query["updated_at"] = {"$gte": since_timestamp}
+        pay_query["created_at"] = {"$gte": since_timestamp}
+        sv_query["updated_at"] = {"$gte": since_timestamp}
+        deal_conv_query["updated_at"] = {"$gte": since_timestamp}
+        lead_conv_query["updated_at"] = {"$gte": since_timestamp}
+
+    # Execute all 8 queries concurrently
+    (
+        audit_lead_updates,
+        assigned_or_created_leads,
+        token_leads,
+        token_deals,
+        token_payments,
+        site_visits_list,
+        conv_deals,
+        conv_leads
+    ) = await asyncio.gather(
+        db.audit_logs().count_documents(audit_query),
+        db.leads().count_documents(lead_query),
+        db.leads().find(lead_token_query, {"_id": 0, "id": 1}).to_list(length=1000),
+        db.deals().find(deal_token_query, {"_id": 0, "id": 1}).to_list(length=1000),
+        db.payments().find(pay_query, {"_id": 0, "deal_id": 1}).to_list(length=1000),
+        db.site_visits().find(sv_query, {"_id": 0, "id": 1}).to_list(length=1000),
+        db.deals().find(deal_conv_query, {"_id": 0, "id": 1}).to_list(length=1000),
+        db.leads().find(lead_conv_query, {"_id": 0, "id": 1}).to_list(length=1000),
+    )
+
+    leads_updates = max(audit_lead_updates, assigned_or_created_leads)
+    leads_count = assigned_or_created_leads
+
+    token_lead_ids = {l["id"] for l in token_leads if "id" in l}
+    token_deal_ids = {d["id"] for d in token_deals if "id" in d}
+
+    # Single bulk query for token payments instead of N+1 loop
+    pay_deal_ids = list({p["deal_id"] for p in token_payments if p.get("deal_id")})
+    if pay_deal_ids:
+        matching_deals = await db.deals().find(
+            {"id": {"$in": pay_deal_ids}, "assigned_employee": eid},
+            {"_id": 0, "id": 1}
+        ).to_list(length=1000)
+        for md in matching_deals:
+            token_deal_ids.add(md["id"])
+
+    token_received = len(token_lead_ids) + len(token_deal_ids)
+    site_visits = len(site_visits_list)
+
+    conversion_ids = {d["id"] for d in conv_deals if "id" in d} | {l["id"] for l in conv_leads if "id" in l}
     conversions = len(conversion_ids)
     closed_won_count = conversions
     conversion_rate = round(closed_won_count / leads_updates * 100, 1) if leads_updates > 0 else 0.0
@@ -233,7 +227,7 @@ async def _calculate_employee_performance(emp_rec: dict, since_timestamp: Option
 # ──────────────────────────────────────────────────────────
 async def _get_team_grouped_performance(emp_ids: list, since_timestamp: Optional[str] = None) -> list:
     """
-    Groups employees by team and calculates team metrics and team totals.
+    Groups employees by team and calculates team metrics and team totals concurrently.
     """
     employees = await db.employees().find(
         {"id": {"$in": emp_ids}, "status": "active"},
@@ -272,25 +266,26 @@ async def _get_team_grouped_performance(emp_ids: list, since_timestamp: Optional
         if not group_emps:
             continue
 
-        emp_perf_list = []
-        for emp_rec in group_emps:
-            perf = await _calculate_employee_performance(emp_rec, since_timestamp)
+        # Calculate performance for all team members concurrently
+        emp_perf_list = list(await asyncio.gather(*[
+            _calculate_employee_performance(emp_rec, since_timestamp)
+            for emp_rec in group_emps
+        ]))
+        for perf in emp_perf_list:
             perf["team_name"] = team_doc.get("name", "Team")
-            emp_perf_list.append(perf)
 
-        emp_perf_list.sort(key=lambda x: (0 if x["role"] == "team_lead" else 1, -x["conversions_based_on_deals"]))
+        emp_perf_list.sort(key=lambda x: (0 if x.get("role") == "team_lead" else 1, -(x.get("conversions_based_on_deals") or 0)))
 
         totals = {
             "total_employees": len(emp_perf_list),
-            "leads": sum(p["leads"] for p in emp_perf_list),
-            "leads_updates": sum(p["leads_updates"] for p in emp_perf_list),
-            "token_received": sum(p["token_received"] for p in emp_perf_list),
-            "site_visits": sum(p["site_visits"] for p in emp_perf_list),
-            "conversions": sum(p["conversions_based_on_deals"] for p in emp_perf_list)
+            "leads": sum(p.get("leads", 0) for p in emp_perf_list),
+            "leads_updates": sum(p.get("leads_updates", 0) for p in emp_perf_list),
+            "token_received": sum(p.get("token_received", 0) for p in emp_perf_list),
+            "site_visits": sum(p.get("site_visits", 0) for p in emp_perf_list),
+            "conversions": sum(p.get("conversions_based_on_deals", 0) for p in emp_perf_list)
         }
 
-        tl_doc = await db.employees().find_one({"id": tl_id}, {"_id": 0, "name": 1})
-        tl_name = tl_doc.get("name", "Unknown") if tl_doc else "Unknown"
+        tl_name = tl_emp.get("name", "Unknown") if tl_emp else "Unknown"
 
         result_teams.append({
             "team_id": tid,
@@ -301,20 +296,21 @@ async def _get_team_grouped_performance(emp_ids: list, since_timestamp: Optional
         })
 
     if unassigned:
-        unassigned_perf = []
-        for emp_rec in unassigned:
-            perf = await _calculate_employee_performance(emp_rec, since_timestamp)
+        unassigned_perf = list(await asyncio.gather(*[
+            _calculate_employee_performance(emp_rec, since_timestamp)
+            for emp_rec in unassigned
+        ]))
+        for perf in unassigned_perf:
             perf["team_name"] = "Management / Direct Staff"
-            unassigned_perf.append(perf)
 
-        unassigned_perf.sort(key=lambda x: -x["conversions_based_on_deals"])
+        unassigned_perf.sort(key=lambda x: -(x.get("conversions_based_on_deals") or 0))
         totals = {
             "total_employees": len(unassigned_perf),
-            "leads": sum(p["leads"] for p in unassigned_perf),
-            "leads_updates": sum(p["leads_updates"] for p in unassigned_perf),
-            "token_received": sum(p["token_received"] for p in unassigned_perf),
-            "site_visits": sum(p["site_visits"] for p in unassigned_perf),
-            "conversions": sum(p["conversions_based_on_deals"] for p in unassigned_perf)
+            "leads": sum(p.get("leads", 0) for p in unassigned_perf),
+            "leads_updates": sum(p.get("leads_updates", 0) for p in unassigned_perf),
+            "token_received": sum(p.get("token_received", 0) for p in unassigned_perf),
+            "site_visits": sum(p.get("site_visits", 0) for p in unassigned_perf),
+            "conversions": sum(p.get("conversions_based_on_deals", 0) for p in unassigned_perf)
         }
         result_teams.append({
             "team_id": "unassigned",
@@ -331,20 +327,19 @@ async def _get_team_grouped_performance(emp_ids: list, since_timestamp: Optional
 # Helper — detailed records for Sheets 2, 3, and 4
 # ──────────────────────────────────────────────────────────
 async def _get_detailed_records(emp_ids: list):
-    """Fetch detailed leads, site visits, and deals for reporting."""
-    emps = await db.employees().find({"id": {"$in": emp_ids}}, {"_id": 0, "id": 1, "employee_id": 1, "name": 1, "role": 1}).to_list(length=1000)
+    """Fetch detailed leads, site visits, and deals concurrently for reporting."""
+    emps, custs, props, leads, site_visits, deals = await asyncio.gather(
+        db.employees().find({"id": {"$in": emp_ids}}, {"_id": 0, "id": 1, "employee_id": 1, "name": 1, "role": 1}).to_list(length=1000),
+        db.customers().find({}, {"_id": 0, "id": 1, "name": 1}).to_list(length=5000),
+        db.properties().find({}, {"_id": 0, "id": 1, "title": 1}).to_list(length=5000),
+        db.leads().find({"$or": [{"assigned_to": {"$in": emp_ids}}, {"created_by": {"$in": emp_ids}}]}, {"_id": 0}).sort("created_at", -1).to_list(length=5000),
+        db.site_visits().find({"$or": [{"employee_id": {"$in": emp_ids}}, {"created_by": {"$in": emp_ids}}]}, {"_id": 0}).sort("date", -1).to_list(length=2000),
+        db.deals().find({"assigned_employee": {"$in": emp_ids}}, {"_id": 0}).sort("created_at", -1).to_list(length=2000),
+    )
+
     emp_map = {e["id"]: e for e in emps}
-
-    custs = await db.customers().find({}, {"_id": 0, "id": 1, "name": 1}).to_list(length=5000)
     cust_map = {c["id"]: c.get("name", "") for c in custs}
-
-    props = await db.properties().find({}, {"_id": 0, "id": 1, "title": 1}).to_list(length=5000)
     prop_map = {p["id"]: p.get("title", "") for p in props}
-
-    leads = await db.leads().find(
-        {"$or": [{"assigned_to": {"$in": emp_ids}}, {"created_by": {"$in": emp_ids}}]},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(length=5000)
 
     role_map = {"founder": "Founder", "admin": "Admin", "bdo": "BDO", "team_lead": "Team Leader", "executive": "Executive", "trainee": "Trainee", "dpo": "DPO"}
 
@@ -366,11 +361,6 @@ async def _get_detailed_records(emp_ids: list):
             "notes": l.get("notes", "")
         })
 
-    site_visits = await db.site_visits().find(
-        {"$or": [{"employee_id": {"$in": emp_ids}}, {"created_by": {"$in": emp_ids}}]},
-        {"_id": 0}
-    ).sort("date", -1).to_list(length=2000)
-
     site_visits_detail = []
     for sv in site_visits:
         emp_info = emp_map.get(sv.get("employee_id"), {})
@@ -386,11 +376,6 @@ async def _get_detailed_records(emp_ids: list):
             "property_titles": prop_titles,
             "notes": sv.get("notes", "")
         })
-
-    deals = await db.deals().find(
-        {"assigned_employee": {"$in": emp_ids}},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(length=2000)
 
     deals_detail = []
     for d in deals:
