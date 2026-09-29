@@ -351,15 +351,25 @@ export default function CrmReports() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Download helpers ───────────────────────────────────
-  const triggerDownload = (blob, filename) => {
-    const url = window.URL.createObjectURL(new Blob([blob]));
+  const triggerDownload = (blobData, filename) => {
+    const url = window.URL.createObjectURL(blobData);
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    setTimeout(() => { link.remove(); window.URL.revokeObjectURL(url); }, 200);
+  };
+
+  // Parse a blob error response from server (axios returns error body as Blob when responseType=blob)
+  const parseBlobError = async (blob) => {
+    try {
+      const text = await blob.text();
+      const json = JSON.parse(text);
+      return json.detail || "Failed to download report";
+    } catch {
+      return "Failed to download report";
+    }
   };
 
   // All-scope download
@@ -375,9 +385,9 @@ export default function CrmReports() {
       triggerDownload(response.data, filename);
       toast.success("Report downloaded successfully");
     } catch (err) {
-      const msg = err.response?.status === 403
-        ? "You are not authorised to download reports."
-        : "Failed to download report";
+      let msg = "Failed to download report";
+      if (err.response?.status === 403) msg = "You are not authorised to download reports.";
+      else if (err.response?.data instanceof Blob) msg = await parseBlobError(err.response.data);
       toast.error(msg);
     } finally {
       setDownloading(false);
@@ -400,9 +410,9 @@ export default function CrmReports() {
       toast.success(`${team?.name || "Team"} report downloaded`);
       setTeamSelectorOpen(false);
     } catch (err) {
-      const msg = err.response?.status === 403
-        ? "Not authorised to download this team's report."
-        : "Failed to download team report";
+      let msg = "Failed to download team report";
+      if (err.response?.status === 403) msg = "Not authorised to download this team's report.";
+      else if (err.response?.data instanceof Blob) msg = await parseBlobError(err.response.data);
       toast.error(msg);
     } finally {
       setTeamDownloading(false);
