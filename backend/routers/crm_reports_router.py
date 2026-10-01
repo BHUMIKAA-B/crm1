@@ -489,12 +489,14 @@ def _build_excel_workbook(
 
     perf_headers = [
         "Employee ID", "Employee Name", "Role", "Team",
-        "Leads", "Site Visits", "Conversions"
+        "Leads Updates", "Token Received", "Site Visits", "Conversions"
     ]
 
     for team in team_data:
+        if not isinstance(team, dict):
+            continue
         # Section header row per team
-        ws1.append([f"TEAM: {team['team_name']}  —  Leader: {team['team_leader_name']}"])
+        ws1.append([f"TEAM: {team.get('team_name', 'Team')}  —  Leader: {team.get('team_leader_name', 'N/A')}"])
         r_idx = ws1.max_row
         ws1.merge_cells(start_row=r_idx, start_column=1, end_row=r_idx, end_column=len(perf_headers))
         cell = ws1.cell(row=r_idx, column=1)
@@ -513,35 +515,40 @@ def _build_excel_workbook(
             c.alignment = Alignment(horizontal="center", vertical="center")
             c.border = thin_border
         
-        # Sort employees by Role, then Name
-        sorted_emps = sorted(team["employees"], key=lambda x: (
-            0 if x["role"] == "team_lead" else 1,
-            x["name"].lower()
-        ))
+        # Sort employees by Role, then Name (None-safe)
+        emp_list = team.get("employees") or []
+        sorted_emps = sorted(
+            [e for e in emp_list if isinstance(e, dict)],
+            key=lambda x: (
+                0 if x.get("role") == "team_lead" else 1,
+                str(x.get("name") or "").lower()
+            )
+        )
 
-        # Data rows
+        # Data rows — matching website: Leads Updates, Token Received, Site Visits, Conversions
         for emp in sorted_emps:
             ws1.append([
-                emp["employee_id"],
-                emp["name"],
-                emp["role_display"],
-                emp["team_name"],
-                emp["leads"],
-                emp["site_visits"],
-                emp["conversions_based_on_deals"]
+                emp.get("employee_id") or emp.get("id") or "",
+                emp.get("name") or "",
+                emp.get("role_display") or "",
+                emp.get("team_name") or "",
+                emp.get("leads_updates") or emp.get("leads") or 0,
+                emp.get("token_received") or 0,
+                emp.get("site_visits") or 0,
+                emp.get("conversions_based_on_deals") or 0
             ])
             curr = ws1.max_row
             for ci in range(1, len(perf_headers) + 1):
                 c = ws1.cell(row=curr, column=ci)
                 c.font = regular_font
                 c.border = thin_border
-                c.alignment = Alignment(horizontal="center" if ci in [5, 6, 7] else "left")
+                c.alignment = Alignment(horizontal="center" if ci in [5, 6, 7, 8] else "left")
 
         # Team Total
-        t = team["totals"]
+        t = team.get("totals") or {}
         ws1.append([
-            "", f"{team['team_name'].upper()} TOTAL", "", "",
-            t["leads"], t["site_visits"], t["conversions"]
+            "", f"{(team.get('team_name') or 'TEAM').upper()} TOTAL", "", "",
+            t.get("leads") or 0, t.get("token_received") or 0, t.get("site_visits") or 0, t.get("conversions") or 0
         ])
         tot_row = ws1.max_row
         for ci in range(1, len(perf_headers) + 1):
@@ -549,7 +556,7 @@ def _build_excel_workbook(
             c.fill = total_fill
             c.font = total_font
             c.border = thin_border
-            c.alignment = Alignment(horizontal="center" if ci in [5, 6, 7] else "left")
+            c.alignment = Alignment(horizontal="center" if ci in [5, 6, 7, 8] else "left")
 
         ws1.append([])
 
@@ -560,9 +567,10 @@ def _build_excel_workbook(
     ws1.column_dimensions["B"].width = 24
     ws1.column_dimensions["C"].width = 16
     ws1.column_dimensions["D"].width = 20
-    ws1.column_dimensions["E"].width = 10
-    ws1.column_dimensions["F"].width = 12
-    ws1.column_dimensions["G"].width = 14
+    ws1.column_dimensions["E"].width = 14
+    ws1.column_dimensions["F"].width = 16
+    ws1.column_dimensions["G"].width = 12
+    ws1.column_dimensions["H"].width = 14
 
     # ── SHEET 2: Team Summary (second sheet — quick overview per team) ──
     ws2 = wb.create_sheet(title="Team Summary")
@@ -818,20 +826,24 @@ def _build_csv_report(
     headers = '"Team Name","Employee ID","Employee Name","Role","Leads Updates","Token Received","Site Visits","Conversions Based on Deals"'
 
     for team in team_data:
-        lines.append(f'"=== TEAM: {team["team_name"]} (Leader: {team["team_leader_name"]}) ==="')
+        if not isinstance(team, dict):
+            continue
+        lines.append(f'"=== TEAM: {team.get("team_name", "Team")} (Leader: {team.get("team_leader_name", "N/A")}) ==="')
         lines.append(headers)
 
-        for emp in team["employees"]:
+        for emp in (team.get("employees") or []):
+            if not isinstance(emp, dict):
+                continue
             row = (
-                f'"{emp["team_name"]}","{emp["employee_id"]}","{emp["name"]}","{emp["role_display"]}",'
-                f'"{emp["leads_updates"]}","{emp["token_received"]}","{emp["site_visits"]}","{emp["conversions_based_on_deals"]}"'
+                f'"{emp.get("team_name", "")}","{emp.get("employee_id", emp.get("id", ""))}","{emp.get("name", "")}","{emp.get("role_display", "")}",'
+                f'"{emp.get("leads_updates", emp.get("leads", 0))}","{emp.get("token_received", 0)}","{emp.get("site_visits", 0)}","{emp.get("conversions_based_on_deals", 0)}"'
             )
             lines.append(row)
 
-        tot = team["totals"]
+        tot = team.get("totals") or {}
         tot_row = (
-            f'"TEAM TOTALS ({team["team_name"]})","","Total Employees: {tot["total_employees"]}","",'
-            f'"{tot["leads_updates"]}","{tot["token_received"]}","{tot["site_visits"]}","{tot["conversions"]}"'
+            f'"TEAM TOTALS ({team.get("team_name", "Team")})","","Total Employees: {tot.get("total_employees", 0)}","",'
+            f'"{tot.get("leads_updates", tot.get("leads", 0))}","{tot.get("token_received", 0)}","{tot.get("site_visits", 0)}","{tot.get("conversions", 0)}"'
         )
         lines.append(tot_row)
         lines.append("")
@@ -940,37 +952,38 @@ def _build_pdf_report(
         pdf.cell(0, 6, f"Generated: {_safe_str(generated_on)}", align="C", ln=True)
         pdf.ln(10)
 
-        g_leads = sum(((t.get("totals") or {}).get("leads") or 0) for t in (team_data or []) if isinstance(t, dict))
+        g_leads_updates = sum(((t.get("totals") or {}).get("leads") or 0) for t in (team_data or []) if isinstance(t, dict))
+        g_token_received = sum(((t.get("totals") or {}).get("token_received") or 0) for t in (team_data or []) if isinstance(t, dict))
         g_visits = sum(((t.get("totals") or {}).get("site_visits") or 0) for t in (team_data or []) if isinstance(t, dict))
         g_conversions = sum(((t.get("totals") or {}).get("conversions") or 0) for t in (team_data or []) if isinstance(t, dict))
 
-        # KPI boxes
-        kpi_labels = ["TOTAL LEADS", "TOTAL SITE VISITS", "TOTAL CONVERSIONS"]
-        kpi_values = [str(g_leads), str(g_visits), str(g_conversions)]
-        kpi_colors = [(59, 130, 246), (16, 185, 129), (245, 158, 11)]
-        box_w = 80
-        gap = 10
-        total_w = box_w * 3 + gap * 2
+        # KPI boxes — match CRM website metrics
+        kpi_labels = ["LEADS UPDATES", "TOKEN RECEIVED", "SITE VISITS", "CONVERSIONS"]
+        kpi_values = [str(g_leads_updates), str(g_token_received), str(g_visits), str(g_conversions)]
+        kpi_colors = [(59, 130, 246), (99, 102, 241), (245, 158, 11), (16, 185, 129)]
+        box_w = 60
+        gap = 8
+        total_w = box_w * 4 + gap * 3
         sx = (pdf.w - total_w) / 2
 
-        for i in range(3):
+        for i in range(4):
             x = sx + i * (box_w + gap)
             # Label band
             pdf.set_fill_color(*kpi_colors[i])
             pdf.set_xy(x, pdf.get_y())
-            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_font("Helvetica", "B", 9)
             pdf.set_text_color(255, 255, 255)
             pdf.cell(box_w, 9, kpi_labels[i], border=0, align="C", fill=True)
         pdf.ln(9)
 
-        for i in range(3):
+        for i in range(4):
             x = sx + i * (box_w + gap)
             pdf.set_fill_color(240, 248, 255)
             pdf.set_xy(x, pdf.get_y())
-            pdf.set_font("Helvetica", "B", 22)
+            pdf.set_font("Helvetica", "B", 20)
             pdf.set_text_color(30, 58, 95)
-            pdf.cell(box_w, 16, kpi_values[i], border=1, align="C", fill=True)
-        pdf.ln(20)
+            pdf.cell(box_w, 14, kpi_values[i], border=1, align="C", fill=True)
+        pdf.ln(18)
 
         # ── Team Summary Table ───────────────────────────
         pdf.set_font("Helvetica", "B", 13)
@@ -978,45 +991,129 @@ def _build_pdf_report(
         pdf.cell(0, 8, "TEAM SUMMARY", ln=True)
         pdf.ln(2)
 
-        t_cols = [60, 60, 28, 28, 28, 32]
-        t_hdrs = ["Team Name", "Team Leader", "Employees", "Leads", "Site Visits", "Conversions"]
+        t_cols = [50, 50, 24, 28, 28, 28, 28]
+        t_hdrs = ["Team Name", "Team Leader", "Members", "Leads Updates", "Token Recv", "Site Visits", "Conversions"]
         pdf.set_fill_color(30, 58, 95)
         pdf.set_text_color(255, 255, 255)
-        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_font("Helvetica", "B", 8)
         for j, h in enumerate(t_hdrs):
             pdf.cell(t_cols[j], 8, h, border=1, align="C", fill=True)
         pdf.ln()
 
-        pdf.set_font("Helvetica", "", 9)
+        pdf.set_font("Helvetica", "", 8)
         pdf.set_text_color(0, 0, 0)
         for t in (team_data or []):
             if not isinstance(t, dict):
                 continue
             tot = t.get("totals") or {}
             vals = [
-                _safe_str(t.get("team_name") or "Team", 30),
-                _safe_str(t.get("team_leader_name") or "N/A", 30),
+                _safe_str(t.get("team_name") or "Team", 24),
+                _safe_str(t.get("team_leader_name") or "N/A", 24),
                 str(tot.get("total_employees") or 0),
                 str(tot.get("leads") or 0),
+                str(tot.get("token_received") or 0),
                 str(tot.get("site_visits") or 0),
                 str(tot.get("conversions") or 0),
             ]
-            aligns = ["L", "L", "C", "C", "C", "C"]
+            aligns = ["L", "L", "C", "C", "C", "C", "C"]
             for j, v in enumerate(vals):
                 pdf.cell(t_cols[j], 8, v, border=1, align=aligns[j])
             pdf.ln()
 
-        # ── Employee Performance ─────────────────────────
+        # ── Lead Analytics Breakdown (Source & Status Funnel) ────
+        pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_text_color(30, 58, 95)
+        pdf.cell(0, 8, "LEAD ANALYTICS BREAKDOWN", ln=True)
+        pdf.ln(2)
+
+        src_counts = {}
+        st_counts = {}
+        for l in (leads_detail or []):
+            s = (l.get("source") or "Unknown").replace("_", " ").title()
+            st = (l.get("status") or "Unknown").replace("_", " ").title()
+            src_counts[s] = src_counts.get(s, 0) + 1
+            st_counts[st] = st_counts.get(st, 0) + 1
+
+        total_l = len(leads_detail or []) or 1
+
+        col_w1 = 110
+        gap_w = 15
+        start_y = pdf.get_y()
+
+        # Table 1: Leads by Source
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(30, 58, 95)
+        pdf.cell(col_w1, 7, "Leads by Source", ln=True)
+        pdf.set_fill_color(30, 58, 95)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.cell(50, 6, "Source", border=1, fill=True, align="C")
+        pdf.cell(30, 6, "Count", border=1, fill=True, align="C")
+        pdf.cell(30, 6, "Percentage", border=1, fill=True, align="C")
+        pdf.ln()
+
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(0, 0, 0)
+        if not src_counts:
+            pdf.cell(col_w1, 6, "No lead source data available", border=1, align="C")
+            pdf.ln()
+        else:
+            for s_name, s_count in sorted(src_counts.items(), key=lambda x: x[1], reverse=True):
+                pct = f"{(s_count / total_l) * 100:.1f}%"
+                pdf.cell(50, 6, _safe_str(s_name, 24), border=1)
+                pdf.cell(30, 6, str(s_count), border=1, align="C")
+                pdf.cell(30, 6, pct, border=1, align="C")
+                pdf.ln()
+
+        end_y1 = pdf.get_y()
+
+        # Table 2: Lead Status Funnel
+        pdf.set_xy(10 + col_w1 + gap_w, start_y)
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(30, 58, 95)
+        pdf.cell(col_w1, 7, "Lead Status Funnel", ln=True)
+        pdf.set_x(10 + col_w1 + gap_w)
+        pdf.set_fill_color(30, 58, 95)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.cell(50, 6, "Status", border=1, fill=True, align="C")
+        pdf.cell(30, 6, "Count", border=1, fill=True, align="C")
+        pdf.cell(30, 6, "Percentage", border=1, fill=True, align="C")
+        pdf.ln()
+
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(0, 0, 0)
+        if not st_counts:
+            pdf.set_x(10 + col_w1 + gap_w)
+            pdf.cell(col_w1, 6, "No lead status data available", border=1, align="C")
+            pdf.ln()
+        else:
+            for st_name, st_count in sorted(st_counts.items(), key=lambda x: x[1], reverse=True):
+                pdf.set_x(10 + col_w1 + gap_w)
+                pct = f"{(st_count / total_l) * 100:.1f}%"
+                pdf.cell(50, 6, _safe_str(st_name, 24), border=1)
+                pdf.cell(30, 6, str(st_count), border=1, align="C")
+                pdf.cell(30, 6, pct, border=1, align="C")
+                pdf.ln()
+
+        end_y2 = pdf.get_y()
+        pdf.set_y(max(end_y1, end_y2) + 5)
+
+        # ── Employee Performance — matches CRM website columns exactly ──
         pdf.add_page()
         pdf.set_font("Helvetica", "B", 15)
         pdf.set_text_color(30, 58, 95)
         pdf.cell(0, 10, "EMPLOYEE PERFORMANCE SUMMARY", ln=True)
         pdf.ln(3)
 
-        e_cols = [58, 42, 55, 22, 22, 28]
-        e_hdrs = ["Employee Name", "Role", "Team", "Leads", "Visits", "Conversions"]
+        # Columns: Employee ID, Employee Name, Role, Leads Updates, Token Received, Site Visits, Conversions (Deals)
+        e_cols = [32, 48, 36, 28, 28, 28, 28]
+        e_hdrs = ["Emp ID", "Employee Name", "Role", "Leads Upd", "Token Recv", "Site Visits", "Conversions"]
 
         for team in (team_data or []):
+            if not isinstance(team, dict):
+                continue
             # Team header band
             pdf.set_fill_color(200, 220, 240)
             pdf.set_text_color(20, 40, 80)
@@ -1029,46 +1126,50 @@ def _build_pdf_report(
             # Column headers
             pdf.set_fill_color(30, 58, 95)
             pdf.set_text_color(255, 255, 255)
-            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_font("Helvetica", "B", 8)
             for j, h in enumerate(e_hdrs):
                 pdf.cell(e_cols[j], 7, h, border=1, align="C", fill=True)
             pdf.ln()
 
-            # Data rows
-            pdf.set_font("Helvetica", "", 9)
+            # Data rows — sorted: team_lead first, then alphabetical
+            pdf.set_font("Helvetica", "", 8)
             pdf.set_text_color(0, 0, 0)
+            emp_list = team.get("employees") or []
             sorted_emps = sorted(
-                team.get("employees") or [],
-                key=lambda x: (0 if x.get("role") == "team_lead" else 1, (x.get("name") or "").lower())
+                [e for e in emp_list if isinstance(e, dict)],
+                key=lambda x: (0 if x.get("role") == "team_lead" else 1, str(x.get("name") or "").lower())
             )
             for emp in sorted_emps:
                 row = [
-                    _safe_str(emp.get("name") or "", 28),
-                    _safe_str(emp.get("role_display") or "", 20),
-                    _safe_str(emp.get("team_name") or "", 26),
-                    str(emp.get("leads") or 0),
+                    _safe_str(emp.get("employee_id") or emp.get("id") or "", 16),
+                    _safe_str(emp.get("name") or "", 24),
+                    _safe_str(emp.get("role_display") or "", 18),
+                    str(emp.get("leads_updates") or emp.get("leads") or 0),
+                    str(emp.get("token_received") or 0),
                     str(emp.get("site_visits") or 0),
                     str(emp.get("conversions_based_on_deals") or 0),
                 ]
-                row_aligns = ["L", "L", "L", "C", "C", "C"]
+                row_aligns = ["L", "L", "L", "C", "C", "C", "C"]
                 for j, v in enumerate(row):
                     pdf.cell(e_cols[j], 7, v, border=1, align=row_aligns[j])
                 pdf.ln()
 
-            # Team total
+            # Team total row
             tot = team.get("totals") or {}
             pdf.set_fill_color(232, 240, 254)
-            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_font("Helvetica", "B", 8)
             pdf.cell(e_cols[0] + e_cols[1] + e_cols[2], 7, "TEAM TOTAL", border=1, fill=True, align="R")
             pdf.cell(e_cols[3], 7, str(tot.get("leads") or 0), border=1, fill=True, align="C")
-            pdf.cell(e_cols[4], 7, str(tot.get("site_visits") or 0), border=1, fill=True, align="C")
-            pdf.cell(e_cols[5], 7, str(tot.get("conversions") or 0), border=1, fill=True, align="C")
+            pdf.cell(e_cols[4], 7, str(tot.get("token_received") or 0), border=1, fill=True, align="C")
+            pdf.cell(e_cols[5], 7, str(tot.get("site_visits") or 0), border=1, fill=True, align="C")
+            pdf.cell(e_cols[6], 7, str(tot.get("conversions") or 0), border=1, fill=True, align="C")
             pdf.ln(10)
 
-        # ── Bar Charts ───────────────────────────────────
+        # ── Bar Charts — matching CRM website metrics ────
         all_emps = []
         for t in (team_data or []):
-            all_emps.extend(t.get("employees") or [])
+            if isinstance(t, dict):
+                all_emps.extend([e for e in (t.get("employees") or []) if isinstance(e, dict)])
 
         def _draw_bar_section(title: str, sorted_data: list, value_key: str, rgb: tuple):
             pdf.set_font("Helvetica", "B", 12)
@@ -1103,18 +1204,24 @@ def _build_pdf_report(
 
         pdf.add_page()
         _draw_bar_section(
-            "LEADS BY EMPLOYEE",
-            sorted(all_emps, key=lambda x: (x.get("leads") or 0), reverse=True),
-            "leads", (59, 130, 246)
+            "LEADS UPDATES BY EMPLOYEE",
+            sorted(all_emps, key=lambda x: (x.get("leads_updates") or x.get("leads") or 0), reverse=True),
+            "leads_updates", (59, 130, 246)
         )
         pdf.ln(5)
+        _draw_bar_section(
+            "TOKEN RECEIVED BY EMPLOYEE",
+            sorted(all_emps, key=lambda x: (x.get("token_received") or 0), reverse=True),
+            "token_received", (99, 102, 241)
+        )
+
+        pdf.add_page()
         _draw_bar_section(
             "SITE VISITS BY EMPLOYEE",
             sorted(all_emps, key=lambda x: (x.get("site_visits") or 0), reverse=True),
             "site_visits", (245, 158, 11)
         )
-
-        pdf.add_page()
+        pdf.ln(5)
         _draw_bar_section(
             "CONVERSIONS BY EMPLOYEE",
             sorted(all_emps, key=lambda x: (x.get("conversions_based_on_deals") or 0), reverse=True),
@@ -1527,7 +1634,8 @@ async def export_report(
             team_scope = "all"
 
     await _record_download(emp, "scope_report", team_scope)
-    since_timestamp = await _get_previous_download_timestamp(emp["id"], team_scope)
+    # Always fetch real-time full metrics matching the CRM website UI
+    since_timestamp = None
 
     team_data = await _get_team_grouped_performance(emp_ids, since_timestamp)
     leads_detail, site_visits_detail, deals_detail = await _get_detailed_records(emp_ids)

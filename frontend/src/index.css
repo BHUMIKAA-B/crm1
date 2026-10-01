@@ -628,6 +628,30 @@ body {
   }
 }
 
+/* ── Shadcn dark tokens for CRM dark theme ── */
+/* Applied when data-crm-theme="dark" is on the crm-root wrapper */
+[data-crm-theme="dark"] {
+  --background: 222 47% 7%;
+  --foreground: 210 40% 95%;
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 95%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 95%;
+  --primary: 203 45% 64%;
+  --primary-foreground: 222 47% 7%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 95%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 95%;
+  --destructive: 0 62% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 217 33% 20%;
+  --input: 217 33% 17%;
+  --ring: 203 45% 64%;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -1093,10 +1117,10 @@ body {
   color: #94a3b8 !important;
 }
 [data-crm-theme="dark"] .text-gray-500 {
-  color: #64748b !important;
+  color: #94a3b8 !important;
 }
 [data-crm-theme="dark"] .text-gray-400 {
-  color: #475569 !important;
+  color: #64748b !important;
 }
 
 /* Inputs — Dark */
@@ -1109,7 +1133,7 @@ body {
 }
 [data-crm-theme="dark"] input:not(.crm-search-input)::placeholder,
 [data-crm-theme="dark"] textarea::placeholder {
-  color: #475569;
+  color: #64748b;
 }
 [data-crm-theme="dark"] input:not(.crm-search-input):focus,
 [data-crm-theme="dark"] textarea:focus,
@@ -1199,6 +1223,273 @@ body {
 }
 [data-crm-theme="dark"] .bg-red-50 {
   background-color: rgba(69, 10, 10, 0.5) !important;
+}
+
+/* ── CRM DARK — ADDITIONAL TEXT COLOR OVERRIDES ── */
+/* Primary accent colors — must be bright/vivid against dark backgrounds */
+[data-crm-theme="dark"] .text-blue-600 {
+  color: #60a5fa !important;
+}
+[data-crm-theme="dark"] .text-blue-700 {
+  color: #93c5fd !important;
+}
+[data-crm-theme="dark"] .text-blue-800 {
+  color: #bfdbfe !important;
+}
+[data-crm-theme="dark"] .text-blue-500 {
+  color: #60a5fa !important;
+}
+[data-crm-theme="dark"] .text-indigo-500 {
+  color: #818cf8 !important;
+}
+[data-crm-theme="dark"] .text-indigo-600 {
+  color: #818cf8 !important;
+}
+[data-crm-theme="dark"] .text-indigo-700 {
+  color: #a5b4fc !important;
+}
+[data-crm-theme="dark"] .text-indigo-800,
+[data-crm-theme="dark"] .text-indigo-900 {
+  color: #c7d2fe !important;
+}
+[data-crm-theme="dark"] .text-purple-500 {
+  color: #c084fc !important;
+}
+[data-crm-theme="dark"] .text-purple-600 {
+  color: #c084fc !important;
+}
+[data-crm-theme="dark"] .text-purple-700 {
+  color: #d8b4fe !important;
+}
+[data-crm-theme="dark"] .text-emerald-500 {
+  color: #34d399 !important;
+}
+[data-crm-theme="dark"] .text-emerald-600 {
+  color: #34d399 !important;
+}
+[data-crm-theme="dark"] .text-emerald-700 {
+  color: #6ee7b7 !important;
+}
+[data-crm-theme="dark"] .text-green-500 {
+  color: #4ade80 !important;
+}
+[data-crm-theme="dark"] .text-green-600 {
+  color: #4ade80 !important;
+}
+[data-crm-theme="dark"] .text-green-700 {
+  color: #86efac !important;
+}
+[data-crm-theme="dark"] .text-teal-600 {
+  color: #2dd4bf !important;
+}
+[data-crm-theme="dark"] .text-teal-700 {
+  color: #5eead4 !important;
+}
+[data-crm-theme="dark"] .text-sky-500 {
+  color: #38bdf8 !important;
+}
+[data-crm-theme="dark"] .text-sky-600 {
+  color: #38bdf8 !important;
+}
+[data-crm-theme="dark"] .text-sky-700 {
+  color: #7dd3fc !important;
+}
+[data-crm-theme="dark"] .text-cyan-600 {
+  color: #22d3ee !important;
+}
+[data-crm-theme="dark"] .text-cyan-700 {
+  color: #67e8f9 !important;
+}
+[data-crm-theme="dark"] .text-violet-600 {
+  color: #a78bfa !important;
+}
+[data-crm-theme="dark"] .text-violet-700 {
+  color: #c4b5fd !important;
+}
+[data-crm-theme="dark"] .text-lime-600 {
+  color: #a3e635 !important;
+}
+[data-crm-theme="dark"] .text-lime-700 {
+  color: #bef264 !important;
+}
+[data-crm-theme="dark"] .text-yellow-600 {
+  color: #facc15 !important;
+}
+[data-crm-theme="dark"] .text-yellow-700 {
+  color: #fde047 !important;
+}
+[data-crm-theme="dark"] .text-orange-500 {
+  color: #fb923c !important;
+}
+[data-crm-theme="dark"] .text-orange-600 {
+  color: #fb923c !important;
+}
+[data-crm-theme="dark"] .text-orange-700 {
+  color: #fdba74 !important;
+}
+[data-crm-theme="dark"] .text-red-500 {
+  color: #f87171 !important;
+}
+[data-crm-theme="dark"] .text-red-600 {
+  color: #f87171 !important;
+}
+[data-crm-theme="dark"] .text-red-700 {
+  color: #fca5a5 !important;
+}
+[data-crm-theme="dark"] .text-amber-500 {
+  color: #fbbf24 !important;
+}
+[data-crm-theme="dark"] .text-amber-700 {
+  color: #fcd34d !important;
+}
+[data-crm-theme="dark"] .text-amber-800 {
+  color: #fde68a !important;
+}
+[data-crm-theme="dark"] .text-slate-400 {
+  color: #94a3b8 !important;
+}
+[data-crm-theme="dark"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+[data-crm-theme="dark"] .text-slate-600 {
+  color: #94a3b8 !important;
+}
+[data-crm-theme="dark"] .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+/* ── CRM DARK — BADGE & STATUS CHIP BACKGROUNDS ── */
+/* These are *-100 bg / *-700 text combos from roleBadgeClass / statusBadgeClass */
+[data-crm-theme="dark"] .bg-blue-100 {
+  background-color: rgba(37, 99, 235, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-indigo-100 {
+  background-color: rgba(79, 70, 229, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-purple-100 {
+  background-color: rgba(147, 51, 234, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-orange-100 {
+  background-color: rgba(234, 88, 12, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-teal-100 {
+  background-color: rgba(13, 148, 136, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-emerald-100 {
+  background-color: rgba(5, 150, 105, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-red-100 {
+  background-color: rgba(220, 38, 38, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-sky-100 {
+  background-color: rgba(14, 165, 233, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-yellow-100 {
+  background-color: rgba(234, 179, 8, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-violet-100 {
+  background-color: rgba(139, 92, 246, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-cyan-100 {
+  background-color: rgba(6, 182, 212, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-amber-100 {
+  background-color: rgba(217, 119, 6, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-lime-100 {
+  background-color: rgba(132, 204, 22, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-green-100 {
+  background-color: rgba(22, 163, 74, 0.18) !important;
+}
+[data-crm-theme="dark"] .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+/* ── CRM DARK — SEMANTIC SECTION BACKGROUNDS ── */
+[data-crm-theme="dark"] .bg-blue-50 {
+  background-color: rgba(23, 37, 84, 0.45) !important;
+}
+[data-crm-theme="dark"] .bg-indigo-50 {
+  background-color: rgba(30, 27, 75, 0.45) !important;
+}
+[data-crm-theme="dark"] .bg-purple-50 {
+  background-color: rgba(46, 16, 101, 0.45) !important;
+}
+[data-crm-theme="dark"] .bg-emerald-50 {
+  background-color: rgba(2, 44, 34, 0.45) !important;
+}
+[data-crm-theme="dark"] .bg-green-50 {
+  background-color: rgba(5, 46, 22, 0.45) !important;
+}
+[data-crm-theme="dark"] .bg-gray-200 {
+  background-color: #334155 !important;
+}
+[data-crm-theme="dark"] .bg-gray-300 {
+  background-color: #475569 !important;
+}
+
+/* ── CRM DARK — ADDITIONAL BORDER COLORS ── */
+[data-crm-theme="dark"] .border-emerald-100 {
+  border-color: rgba(5, 150, 105, 0.3) !important;
+}
+[data-crm-theme="dark"] .border-red-100 {
+  border-color: rgba(220, 38, 38, 0.3) !important;
+}
+[data-crm-theme="dark"] .border-blue-100 {
+  border-color: rgba(37, 99, 235, 0.3) !important;
+}
+[data-crm-theme="dark"] .border-indigo-100 {
+  border-color: rgba(79, 70, 229, 0.3) !important;
+}
+[data-crm-theme="dark"] .border-amber-100 {
+  border-color: rgba(217, 119, 6, 0.3) !important;
+}
+[data-crm-theme="dark"] .border-gray-300 {
+  border-color: #334155 !important;
+}
+
+/* ── CRM DARK — HOVER STATES ── */
+[data-crm-theme="dark"] .hover\:bg-gray-200:hover {
+  background-color: #334155 !important;
+}
+[data-crm-theme="dark"] .hover\:text-gray-600:hover {
+  color: #cbd5e1 !important;
+}
+[data-crm-theme="dark"] .hover\:text-gray-900:hover {
+  color: #f1f5f9 !important;
+}
+[data-crm-theme="dark"] .hover\:text-blue-700:hover {
+  color: #93c5fd !important;
+}
+[data-crm-theme="dark"] .hover\:text-blue-800:hover {
+  color: #bfdbfe !important;
+}
+[data-crm-theme="dark"] .hover\:bg-red-50:hover {
+  background-color: rgba(220, 38, 38, 0.1) !important;
+}
+[data-crm-theme="dark"] .hover\:bg-blue-50\/30:hover {
+  background-color: rgba(37, 99, 235, 0.12) !important;
+}
+[data-crm-theme="dark"] .hover\:bg-indigo-300:hover {
+  background-color: rgba(79, 70, 229, 0.3) !important;
+}
+
+/* ── CRM DARK — FORM ELEMENT BORDERS ── */
+[data-crm-theme="dark"] input:not(.crm-search-input):not([type="file"]),
+[data-crm-theme="dark"] textarea,
+[data-crm-theme="dark"] select {
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+  background-color: #0f172a !important;
+}
+
+/* Scrollbar styling for dark mode */
+[data-crm-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+[data-crm-theme="dark"] ::-webkit-scrollbar-track {
+  background: #0f172a;
 }
 
 /* ── CRM LIGHT THEME ── */
