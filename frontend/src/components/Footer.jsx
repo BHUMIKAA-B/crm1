@@ -43,7 +43,7 @@ const Footer = () => (
             { to: "/properties", label: "All Properties" },
             { to: "/properties?category=residential", label: "Residential" },
             { to: "/properties?category=commercial", label: "Commercial" },
-            { to: "/properties?category=plot", label: "Plots & Land" },
+            { to: "/loan-assistance", label: "Home Loan Assistance" },
             { to: "/services", label: "Document Services" },
           ]}
         />

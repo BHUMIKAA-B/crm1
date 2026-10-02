@@ -8,13 +8,14 @@ import {
   Settings, LogOut, Search, Bell, ChevronDown, Menu, X,
   TrendingUp, Handshake, UserCheck, BarChart3, ClipboardList,
   Shield, Building, Clock, Share2, MessageSquare, FolderGit2,
-  CreditCard, DollarSign, ShieldAlert, GraduationCap, Sun, Moon
+  CreditCard, DollarSign, ShieldAlert, GraduationCap, Sun, Moon, Landmark
 } from "lucide-react";
 import { roleLabel, roleBadgeClass } from "../../lib/crmPermissions";
 
 const NAV = [
   { name: "Dashboard", to: "/crm/dashboard", icon: LayoutDashboard, roles: null },
   { name: "Leads", to: "/crm/leads", icon: Users, roles: null },
+  { name: "Loan Enquiries", to: "/crm/loan-enquiries", icon: Landmark, roles: null },
   { name: "Customers", to: "/crm/customers", icon: UserCheck, roles: ["bdo", "founder", "admin"] },
   { name: "Requirements", to: "/crm/requirements", icon: FileText, roles: ["bdo", "founder", "admin"] },
   { name: "Teams", to: "/crm/teams", icon: Users, roles: ["team_lead", "bdo", "founder", "admin"] },

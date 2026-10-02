@@ -236,6 +236,37 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* ===== HOME LOAN & FINANCING SECTION ===== */}
+      <section className="py-16 bg-vs-bg border-b border-vs-border" data-testid="loan-financing-section">
+        <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
+          <div className="card p-8 md:p-12 border-vs-gold/30 bg-gradient-to-br from-vs-gold/10 via-vs-surface to-vs-bg relative overflow-hidden">
+            <div className="grid lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-8 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-vs-gold/20 text-vs-gold text-xs font-semibold uppercase tracking-wider">
+                  <Landmark size={14} /> Property Financing
+                </div>
+                <h2 className="font-display text-3xl md:text-4xl font-semibold text-vs-text-primary">
+                  Need a Home Loan for Your Dream Property?
+                </h2>
+                <p className="text-vs-text-secondary leading-relaxed max-w-2xl">
+                  Tell us a little about your requirement and our in-house financial team will help you explore competitive loan options with leading partner banks across India.
+                </p>
+                <div className="flex flex-wrap gap-6 pt-2 text-xs font-medium text-vs-text-secondary">
+                  <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-vs-gold" /> Zero Processing Markup</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-vs-gold" /> Top Partner Banks</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-vs-gold" /> Fast Digital Guidance</span>
+                </div>
+              </div>
+              <div className="lg:col-span-4 flex flex-col items-start lg:items-end justify-center">
+                <Link to="/loan-assistance" className="btn-primary text-base px-8 py-4 shadow-lg flex items-center gap-2">
+                  Check Loan Assistance <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== MOTIVE ===== */}
       <section id="motive" className="py-28 md:py-36 bg-vs-bg text-vs-text-primary relative overflow-hidden" data-testid="motive-section">
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 30% 30%, var(--vs-primary) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />

@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import { MapPin, Bed, Bath, Maximize2, Compass, Sofa, BadgeCheck, ArrowLeft, Loader as Loader2, Phone, Mail, MessageSquare, Download } from "lucide-react";
+import { MapPin, Bed, Bath, Maximize2, Compass, Sofa, BadgeCheck, ArrowLeft, Loader as Loader2, Phone, Mail, MessageSquare, Download, Landmark, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EMICalculator from "@/components/EMICalculator";
@@ -228,8 +228,29 @@ const PropertyDetail = () => {
 
         {/* RIGHT SIDEBAR */}
         <motion.aside variants={fadeUp} className="lg:col-span-4">
-          <div className="sticky top-24">
+          <div className="sticky top-24 space-y-4">
             <SidebarTabs key={p.id} propertyId={p.id} property={p} price={p.price} isForSale={isForSale} />
+
+            {/* Property Loan CTA */}
+            {isForSale && (
+              <div className="card p-5 border-vs-gold/30 bg-gradient-to-br from-vs-gold/10 via-vs-surface to-vs-bg">
+                <div className="flex items-center gap-2 text-vs-gold text-xs font-semibold uppercase tracking-wider mb-2">
+                  <Landmark size={16} /> Home Loan Financing
+                </div>
+                <h4 className="font-display font-semibold text-vs-text-primary text-base">
+                  Need a loan for this property?
+                </h4>
+                <p className="text-xs text-vs-text-secondary mt-1 leading-relaxed">
+                  Get instant loan assistance & compare partner bank rates tailored for this property.
+                </p>
+                <Link
+                  to={`/loan-assistance?property_id=${p.id}&property_name=${encodeURIComponent(p.title)}`}
+                  className="mt-4 btn-primary text-xs w-full justify-center flex items-center gap-2"
+                >
+                  Apply for Property Loan <ArrowRight size={14} />
+                </Link>
+              </div>
+            )}
           </div>
         </motion.aside>
       </motion.div>

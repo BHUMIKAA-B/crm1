@@ -72,6 +72,10 @@ def enquiries():
     return get_db()["enquiries"]
 
 
+def loan_enquiries():
+    return get_db()["loan_enquiries"]
+
+
 def service_requests():
     return get_db()["service_requests"]
 

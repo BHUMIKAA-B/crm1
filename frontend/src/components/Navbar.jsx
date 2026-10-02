@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, LogOut, LayoutDashboard, Bookmark, Inbox, ChevronDown, MessageCircle, Building2 } from "lucide-react";
+import { Menu, X, LogOut, LayoutDashboard, Bookmark, Inbox, ChevronDown, MessageCircle, Building2, Landmark } from "lucide-react";
 import Logo from "@/components/Logo";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -12,6 +12,7 @@ const SECTOR_LINKS = [
     label: c.label,
     to: c.value === "construction_interior" ? "/construction" : `/properties?category=${c.value}`,
   })),
+  { label: "Home Loan Assistance", to: "/loan-assistance" },
   { label: "All-in-One Documents", to: "/services" },
 ];
 
@@ -116,6 +117,10 @@ const Navbar = () => {
           </div>
           <NavLink to="/properties">Browse</NavLink>
           <NavLink to="/construction">Construction</NavLink>
+          <NavLink to="/loan-assistance">
+            <Landmark size={16} className="text-vs-gold" />
+            <span>Home Loan</span>
+          </NavLink>
           <NavLink to="/services">Documents</NavLink>
           <NavLink to="/chat">
             <MessageCircle size={16} className="text-vs-gold" />
@@ -248,6 +253,10 @@ const Navbar = () => {
             <div className="border-t border-vs-border my-4" />
             <NavLink to="/properties" onClick={() => setOpen(false)}>Browse all</NavLink>
             <NavLink to="/construction" onClick={() => setOpen(false)}>Construction</NavLink>
+            <NavLink to="/loan-assistance" onClick={() => setOpen(false)}>
+              <Landmark size={16} className="text-vs-gold" />
+              <span>Home Loan Assistance</span>
+            </NavLink>
             <NavLink to="/services" onClick={() => setOpen(false)}>Documents</NavLink>
             <NavLink to="/chat" onClick={() => setOpen(false)}>
               <MessageCircle size={16} className="text-vs-gold" />
