@@ -1070,57 +1070,83 @@ body {
 }
 
 /* Cards & panels — Dark */
-[data-crm-theme="dark"] .bg-white {
+[data-crm-theme="dark"] .bg-white, .dark .bg-white {
   background-color: #1e293b !important;
 }
-[data-crm-theme="dark"] .bg-gray-50 {
+[data-crm-theme="dark"] .bg-gray-50, .dark .bg-gray-50,
+[data-crm-theme="dark"] .bg-slate-50, .dark .bg-slate-50,
+[data-crm-theme="dark"] .bg-zinc-50, .dark .bg-zinc-50 {
   background-color: #0f172a !important;
 }
-[data-crm-theme="dark"] .bg-gray-50\/70 {
+[data-crm-theme="dark"] .bg-gray-50\/70, .dark .bg-gray-50\/70,
+[data-crm-theme="dark"] .bg-slate-50\/70, .dark .bg-slate-50\/70 {
   background-color: rgba(15, 23, 42, 0.7) !important;
 }
-[data-crm-theme="dark"] .bg-gray-100 {
+[data-crm-theme="dark"] .bg-gray-100, .dark .bg-gray-100,
+[data-crm-theme="dark"] .bg-slate-100, .dark .bg-slate-100,
+[data-crm-theme="dark"] .bg-zinc-100, .dark .bg-zinc-100 {
   background-color: #1e293b !important;
 }
-[data-crm-theme="dark"] .bg-gray-50\/50 {
+[data-crm-theme="dark"] .bg-gray-50\/50, .dark .bg-gray-50\/50,
+[data-crm-theme="dark"] .bg-slate-50\/50, .dark .bg-slate-50\/50 {
   background-color: rgba(30, 41, 59, 0.5) !important;
 }
 
 /* Borders — Dark */
-[data-crm-theme="dark"] .border-gray-100 {
+[data-crm-theme="dark"] .border-gray-100, .dark .border-gray-100,
+[data-crm-theme="dark"] .border-slate-100, .dark .border-slate-100 {
   border-color: #1e293b !important;
 }
-[data-crm-theme="dark"] .border-gray-200 {
+[data-crm-theme="dark"] .border-gray-200, .dark .border-gray-200,
+[data-crm-theme="dark"] .border-slate-200, .dark .border-slate-200 {
   border-color: #334155 !important;
 }
-[data-crm-theme="dark"] .divide-gray-50 > * + * {
+[data-crm-theme="dark"] .divide-gray-50 > * + *, .dark .divide-gray-50 > * + * {
   border-color: #1e293b !important;
 }
-[data-crm-theme="dark"] .divide-gray-100 > * + * {
+[data-crm-theme="dark"] .divide-gray-100 > * + *, .dark .divide-gray-100 > * + * {
   border-color: #1e293b !important;
 }
-[data-crm-theme="dark"] .divide-gray-200 > * + * {
+[data-crm-theme="dark"] .divide-gray-200 > * + *, .dark .divide-gray-200 > * + * {
   border-color: #334155 !important;
 }
 
 /* Text — Dark */
-[data-crm-theme="dark"] .text-gray-900 {
+[data-crm-theme="dark"] .text-gray-900, .dark .text-gray-900,
+[data-crm-theme="dark"] .text-slate-900, .dark .text-slate-900,
+[data-crm-theme="dark"] .text-zinc-900, .dark .text-zinc-900,
+[data-crm-theme="dark"] .text-neutral-900, .dark .text-neutral-900 {
+  color: #f8fafc !important;
+}
+[data-crm-theme="dark"] .text-gray-800, .dark .text-gray-800,
+[data-crm-theme="dark"] .text-slate-800, .dark .text-slate-800,
+[data-crm-theme="dark"] .text-zinc-800, .dark .text-zinc-800,
+[data-crm-theme="dark"] .text-neutral-800, .dark .text-neutral-800 {
   color: #f1f5f9 !important;
 }
-[data-crm-theme="dark"] .text-gray-800 {
+[data-crm-theme="dark"] .text-gray-700, .dark .text-gray-700,
+[data-crm-theme="dark"] .text-slate-700, .dark .text-slate-700,
+[data-crm-theme="dark"] .text-zinc-700, .dark .text-zinc-700,
+[data-crm-theme="dark"] .text-neutral-700, .dark .text-neutral-700 {
   color: #e2e8f0 !important;
 }
-[data-crm-theme="dark"] .text-gray-700 {
+[data-crm-theme="dark"] .text-gray-600, .dark .text-gray-600,
+[data-crm-theme="dark"] .text-slate-600, .dark .text-slate-600,
+[data-crm-theme="dark"] .text-zinc-600, .dark .text-zinc-600,
+[data-crm-theme="dark"] .text-neutral-600, .dark .text-neutral-600 {
   color: #cbd5e1 !important;
 }
-[data-crm-theme="dark"] .text-gray-600 {
-  color: #94a3b8 !important;
+[data-crm-theme="dark"] .text-gray-500, .dark .text-gray-500,
+[data-crm-theme="dark"] .text-slate-500, .dark .text-slate-500,
+[data-crm-theme="dark"] .text-zinc-500, .dark .text-zinc-500,
+[data-crm-theme="dark"] .text-neutral-500, .dark .text-neutral-500 {
+  color: #cbd5e1 !important;
 }
-[data-crm-theme="dark"] .text-gray-500 {
+[data-crm-theme="dark"] .text-gray-400, .dark .text-gray-400,
+[data-crm-theme="dark"] .text-slate-400, .dark .text-slate-400,
+[data-crm-theme="dark"] .text-zinc-400, .dark .text-zinc-400,
+[data-crm-theme="dark"] .text-neutral-400, .dark .text-neutral-400 {
   color: #94a3b8 !important;
-}
-[data-crm-theme="dark"] .text-gray-400 {
-  color: #64748b !important;
 }
 
 /* Inputs — Dark */

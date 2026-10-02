@@ -16,6 +16,24 @@ export function useCrmTheme() {
     }
   });
 
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      const body = document.body;
+      if (crmTheme === "dark") {
+        root.classList.add("dark");
+        body.classList.add("dark");
+        root.setAttribute("data-crm-theme", "dark");
+        body.setAttribute("data-crm-theme", "dark");
+      } else {
+        root.classList.remove("dark");
+        body.classList.remove("dark");
+        root.setAttribute("data-crm-theme", "light");
+        body.setAttribute("data-crm-theme", "light");
+      }
+    } catch (e) {}
+  }, [crmTheme]);
+
   const setCrmTheme = useCallback((theme) => {
     try {
       localStorage.setItem(STORAGE_KEY, theme);
