@@ -7,6 +7,7 @@ from __future__ import annotations
 import csv
 import io
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -727,7 +728,9 @@ async def loan_enquiry_stats(_: dict = Depends(_admin)):
         {"$group": {"_id": "$status", "count": {"$sum": 1}}}
     ]
     cursor = _loan_enq().aggregate(pipeline)
-    counts = {doc["_id"]: doc["count"] async for doc in cursor}
+    counts = {}
+    async for doc in cursor:
+        counts[doc["_id"]] = doc["count"]
     total = sum(counts.values())
     return {
         "total":       total,
@@ -743,9 +746,9 @@ async def loan_enquiry_stats(_: dict = Depends(_admin)):
 @router.get("/home-loan-enquiries")
 async def list_loan_enquiries(
     _: dict = Depends(_admin),
-    status: str | None = None,
-    employment_type: str | None = None,
-    search: str | None = None,
+    status: Optional[str] = None,
+    employment_type: Optional[str] = None,
+    search: Optional[str] = None,
     sort: str = "newest",
 ):
     """List all home loan enquiries with optional filter/search/sort."""
@@ -819,4 +822,3 @@ async def report_loan_enquiries(_: dict = Depends(_admin)):
         "preferred_bank", "status", "assigned_to", "source", "created_at",
     ]
     return _csv_response(rows, fields, "home_loan_enquiries.csv")
-
