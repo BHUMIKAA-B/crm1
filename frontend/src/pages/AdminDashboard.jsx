@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, UserCheck, Store, CheckSquare,
   FolderOpen, Building2, MapPin, MessageSquare, Bell,
   BarChart2, Settings, LogOut, Menu, X, ChevronRight,
-  XCircle, BookOpen,
+  XCircle, BookOpen, Landmark,
 } from "lucide-react";
 import DashboardHome              from "./admin/DashboardHome";
 import AdminUsers                 from "./admin/AdminUsers";
@@ -17,6 +17,7 @@ import AdminReports               from "./admin/AdminReports";
 import AdminSettings              from "./admin/AdminSettings";
 import AdminRejectedProperties    from "./admin/AdminRejectedProperties";
 import AdminBrochureDownloads     from "./admin/AdminBrochureDownloads";
+import AdminHomeLoanEnquiries     from "./admin/AdminHomeLoanEnquiries";
 import api from "@/api/client";
 
 const NAV = [
@@ -34,6 +35,7 @@ const NAV = [
   { type: "divider",     label: "OPERATIONS" },
   { id: "enquiries",     label: "Enquiries",           icon: MessageSquare },
   { id: "brochures",     label: "Brochure Downloads",  icon: BookOpen },
+  { id: "loan-enquiries", label: "Home Loan Enquiries", icon: Landmark,    badge: "loanNew" },
   { id: "notifications", label: "Notifications",       icon: Bell,         badge: "notif" },
   { id: "reports",       label: "Reports",             icon: BarChart2 },
   { id: "settings",      label: "Settings",            icon: Settings },
@@ -44,6 +46,7 @@ const TITLES = {
   sellers: "Sellers",      approvals: "Property Approval", projects: "Projects",
   properties: "Properties", sites: "Sites",            enquiries: "Enquiries",
   rejected: "Rejected Properties", brochures: "Brochure Downloads",
+  "loan-enquiries": "Home Loan Enquiries",
   notifications: "Notifications", reports: "Reports",  settings: "Settings",
 };
 
@@ -117,7 +120,8 @@ export default function AdminDashboard() {
             const active = section === item.id;
             const badge  =
               item.badge === "pending" ? stats?.pending_listings :
-              item.badge === "notif"   ? stats?.unread_notifications : null;
+              item.badge === "notif"   ? stats?.unread_notifications :
+              item.badge === "loanNew" ? stats?.loan_enquiries_new : null;
 
             return (
               <button
@@ -183,12 +187,13 @@ export default function AdminDashboard() {
             {section === "projects"      && <AdminProjects />}
             {section === "properties"    && <AdminProperties />}
             {section === "sites"         && <AdminProperties categoryFilter="plot" title="Sites" />}
-            {section === "enquiries"     && <AdminEnquiries />}
-            {section === "rejected"      && <AdminRejectedProperties onAction={refreshStats} />}
-            {section === "brochures"     && <AdminBrochureDownloads />}
-            {section === "notifications" && <AdminNotifications onRead={refreshStats} />}
-            {section === "reports"       && <AdminReports />}
-            {section === "settings"      && <AdminSettings />}
+            {section === "enquiries"       && <AdminEnquiries />}
+            {section === "rejected"        && <AdminRejectedProperties onAction={refreshStats} />}
+            {section === "brochures"       && <AdminBrochureDownloads />}
+            {section === "loan-enquiries"  && <AdminHomeLoanEnquiries />}
+            {section === "notifications"   && <AdminNotifications onRead={refreshStats} />}
+            {section === "reports"         && <AdminReports />}
+            {section === "settings"        && <AdminSettings />}
           </div>
         </main>
       </div>

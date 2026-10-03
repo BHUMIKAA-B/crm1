@@ -44,6 +44,7 @@ export default function DashboardHome({ stats, onRefresh }) {
     { label: "Rejected",          value: stats.rejected_listings, icon: XCircle,         gradient: "from-rose-500 to-rose-700" },
     { label: "Today's Enquiries", value: stats.today_enquiries,   icon: MessageSquare,   gradient: "from-orange-500 to-orange-700" },
     { label: "Total Enquiries",   value: stats.enquiries,         icon: MessageSquare,   gradient: "from-cyan-500 to-cyan-700" },
+    { label: "Home Loan Enquiries", value: stats.loan_enquiries,  icon: TrendingUp,      gradient: "from-amber-600 to-yellow-700" },
     { label: "Projects",          value: stats.projects,          icon: FolderOpen,      gradient: "from-purple-500 to-purple-700" },
     { label: "Notifications",     value: stats.unread_notifications, icon: Bell,         gradient: "from-pink-500 to-pink-700" },
   ];

@@ -60,6 +60,8 @@ async def stats(admin: dict = Depends(_admin)):
     enquiries_count = await db.enquiries().count_documents({})
     services_count  = await db.service_requests().count_documents({})
     projects_count  = await db.get_db()["projects"].count_documents({})
+    loan_enq_total  = await db.get_db()["loan_enquiries"].count_documents({})
+    loan_enq_new    = await db.get_db()["loan_enquiries"].count_documents({"status": "new"})
 
     # Unread admin notifications
     unread_notif = await db.notifications().count_documents({
@@ -104,6 +106,8 @@ async def stats(admin: dict = Depends(_admin)):
         "today_enquiries":       today_enquiries,
         "service_requests":      services_count,
         "projects":              projects_count,
+        "loan_enquiries":        loan_enq_total,
+        "loan_enquiries_new":    loan_enq_new,
         "unread_notifications":  unread_notif,
         "recent_users":          recent_users,
         "recent_properties":     recent_props,
@@ -706,3 +710,113 @@ async def change_password(body: dict, admin: dict = Depends(_admin)):
     )
     await _log(admin["id"], "Changed password")
     return {"ok": True}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HOME LOAN ENQUIRIES (Admin)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _loan_enq():
+    return db.get_db()["loan_enquiries"]
+
+
+@router.get("/home-loan-enquiries/stats")
+async def loan_enquiry_stats(_: dict = Depends(_admin)):
+    """Summary counts for Admin Home Loan Enquiries."""
+    pipeline = [
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+    ]
+    cursor = _loan_enq().aggregate(pipeline)
+    counts = {doc["_id"]: doc["count"] async for doc in cursor}
+    total = sum(counts.values())
+    return {
+        "total":       total,
+        "new":         counts.get("new", 0),
+        "contacted":   counts.get("contacted", 0),
+        "follow_up":   counts.get("follow_up", 0),
+        "in_progress": counts.get("in_progress", 0),
+        "converted":   counts.get("converted", 0),
+        "closed":      counts.get("closed", 0),
+    }
+
+
+@router.get("/home-loan-enquiries")
+async def list_loan_enquiries(
+    _: dict = Depends(_admin),
+    status: str | None = None,
+    employment_type: str | None = None,
+    search: str | None = None,
+    sort: str = "newest",
+):
+    """List all home loan enquiries with optional filter/search/sort."""
+    q: dict = {}
+    if status and status != "all":
+        q["status"] = status
+    if employment_type and employment_type != "all":
+        q["employment_type"] = employment_type
+    if search:
+        s = search.strip()
+        q["$or"] = [
+            {"full_name":       {"$regex": s, "$options": "i"}},
+            {"phone":           {"$regex": s, "$options": "i"}},
+            {"email":           {"$regex": s, "$options": "i"}},
+            {"loan_enquiry_id": {"$regex": s, "$options": "i"}},
+            {"property_name":   {"$regex": s, "$options": "i"}},
+        ]
+
+    sort_field = "created_at"
+    sort_dir = -1
+    if sort == "oldest":
+        sort_dir = 1
+    elif sort == "name":
+        sort_field = "full_name"
+        sort_dir = 1
+
+    items = await (
+        _loan_enq()
+        .find(q, {"_id": 0})
+        .sort(sort_field, sort_dir)
+        .limit(500)
+        .to_list(500)
+    )
+    return items
+
+
+@router.get("/home-loan-enquiries/{eid}")
+async def get_loan_enquiry(eid: str, _: dict = Depends(_admin)):
+    """Get single home loan enquiry by id or display id."""
+    item = await _loan_enq().find_one(
+        {"$or": [{"id": eid}, {"loan_enquiry_id": eid}]}, {"_id": 0}
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Loan enquiry not found")
+    return item
+
+
+@router.put("/home-loan-enquiries/{eid}")
+async def update_loan_enquiry(eid: str, body: dict, admin: dict = Depends(_admin)):
+    """Update status, assigned_to, and/or admin_notes."""
+    allowed = {"status", "assigned_to", "admin_notes"}
+    upd = {k: v for k, v in body.items() if k in allowed}
+    if not upd:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    upd["updated_at"] = now_iso()
+    res = await _loan_enq().update_one({"id": eid}, {"$set": upd})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Loan enquiry not found")
+    await _log(admin["id"], f"Updated loan enquiry {eid}", str(upd))
+    return {"ok": True}
+
+
+@router.get("/reports/home-loan-enquiries")
+async def report_loan_enquiries(_: dict = Depends(_admin)):
+    """CSV export of all home loan enquiries."""
+    rows = await _loan_enq().find({}, {"_id": 0}).to_list(10000)
+    fields = [
+        "loan_enquiry_id", "full_name", "phone", "email",
+        "property_name", "preferred_location", "property_value",
+        "loan_amount", "employment_type", "monthly_income_range",
+        "preferred_bank", "status", "assigned_to", "source", "created_at",
+    ]
+    return _csv_response(rows, fields, "home_loan_enquiries.csv")
+
