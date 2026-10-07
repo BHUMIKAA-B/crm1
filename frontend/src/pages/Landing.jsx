@@ -18,10 +18,10 @@ import { applyAccentColor } from "@/lib/theme";
 
 const DEFAULT_HERO = {
   image_url:
-    "https://images.unsplash.com/photo-1748063578185-3d68121b11ff?w=1920&auto=format&fit=crop&q=80",
-  headline: "Find Your Dream Property. Zero Brokerage.",
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&auto=format&fit=crop&q=80",
+  headline: "Buy Your Dream Property. Pay Zero Brokerage.",
   sub_headline:
-    "Buy property, pay no brokerage. We connect you directly to verified sellers — every listing vetted by our team.",
+    "Discover verified homes and commercial spaces directly from owners & premium builders — transparent, hassle-free, and 100% commission-free for buyers.",
   cta_text: "Explore Properties",
   cta_link: "/properties",
 };
@@ -73,65 +73,186 @@ const Landing = () => {
       <section
         ref={heroRef}
         id="hero"
-        className="relative overflow-hidden pt-[200px] pb-0 bg-cover bg-center"
+        data-testid="hero-root"
+        className="relative overflow-hidden pt-28 md:pt-36 pb-16 md:pb-24 bg-cover bg-center transition-all duration-700"
         style={{
-          backgroundImage: `linear-gradient(rgba(120,175,207,0.36) 54.0991%, rgba(115,192,255,0) 100%), url(${hero.image_url})`,
+          backgroundImage: `linear-gradient(to bottom, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.88)), url(${hero.image_url})`,
         }}
       >
-        <div className="absolute inset-0 bg-[#F8FBFF]/30 dark:bg-black/50 pointer-events-none" />
+        {/* Decorative ambient lighting overlays */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-vs-primary/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 right-0 w-96 h-96 bg-vs-gold/15 rounded-full blur-3xl pointer-events-none" />
+
         <div className="relative max-w-[80rem] mx-auto px-6 lg:px-12">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.95fr] items-center min-h-[520px]">
-            <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-8 text-[#0F2233] dark:text-slate-100">
-              <motion.div variants={fadeUp} className="inline-flex items-center gap-3 rounded-full bg-white/80 dark:bg-slate-900/85 dark:text-slate-200 dark:border dark:border-slate-800 px-4 py-2 text-sm font-medium shadow-sm shadow-slate-200 dark:shadow-none backdrop-blur-sm">
-                Zero Brokerage · Verified Listings · Direct support
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center min-h-[540px]">
+            {/* Left Content Column */}
+            <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-6 text-white">
+              {/* Trust Tag */}
+              <motion.div variants={fadeUp} className="inline-flex items-center gap-2.5 rounded-full bg-white/10 text-white border border-white/20 px-4 py-2 text-xs md:text-sm font-medium backdrop-blur-md shadow-lg">
+                <BadgeCheck size={16} className="text-vs-gold" />
+                <span>Zero Brokerage · 100% Verified Properties · Direct Owner Connect</span>
               </motion.div>
-              <motion.div variants={fadeUp} className="space-y-6">
-                <h1 className="font-display text-5xl md:text-6xl lg:text-7xl leading-tight tracking-[-0.03em] text-slate-950 dark:text-white">
-                  Discover the perfect place to call home
+
+              {/* Main Headline & Subtitle */}
+              <motion.div variants={fadeUp} className="space-y-4">
+                <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold leading-[1.15] tracking-tight text-white drop-shadow-sm">
+                  {hero.headline || "Buy Your Dream Property. Pay Zero Brokerage."}
                 </h1>
-                <p className="max-w-3xl text-lg md:text-xl leading-relaxed text-slate-700 dark:text-slate-200">
-                  Your trusted real estate agency for luxury homes, offering exquisite properties with zero brokerage and verified sellers across India.
+                <p className="max-w-2xl text-base sm:text-lg md:text-xl leading-relaxed text-slate-200 font-normal">
+                  {hero.sub_headline || "Discover verified homes and commercial spaces directly from owners & premium builders — transparent, hassle-free, and 100% commission-free for buyers."}
                 </p>
               </motion.div>
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-4 items-center">
-                <Link to="/properties" className="inline-flex items-center justify-center rounded-full bg-slate-950 dark:bg-vs-gold dark:text-vs-bg px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-200 dark:shadow-none transition hover:-translate-y-0.5 hover:bg-slate-800">
-                  View listings
+
+              {/* Action Buttons */}
+              <motion.div variants={fadeUp} className="flex flex-wrap gap-4 items-center pt-2">
+                <Link
+                  to={hero.cta_link || "/properties"}
+                  data-testid="hero-cta-primary"
+                  className="inline-flex items-center justify-center rounded-xl bg-vs-gold hover:bg-amber-400 text-slate-950 font-semibold px-7 py-3.5 text-sm md:text-base shadow-xl shadow-amber-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  {hero.cta_text || "Explore Properties"} <ArrowRight size={18} className="ml-2" />
                 </Link>
-                <button type="button" onClick={() => setValuationOpen(true)} className="inline-flex items-center justify-center rounded-full border border-vs-border bg-vs-bg px-6 py-3 text-sm font-semibold text-vs-text-primary transition hover:bg-vs-surface hover:-translate-y-0.5">
-                  Get free valuation
+                <Link
+                  to="/loan-assistance"
+                  data-testid="hero-cta-secondary"
+                  className="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 hover:bg-white/20 text-white font-medium px-6 py-3.5 text-sm md:text-base backdrop-blur-md transition-all hover:-translate-y-0.5"
+                >
+                  <Landmark size={18} className="mr-2 text-vs-gold" /> Home Loan Assistance
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setValuationOpen(true)}
+                  className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-slate-900/40 hover:bg-slate-900/60 text-slate-300 font-medium px-5 py-3.5 text-sm backdrop-blur-md transition-all hover:-translate-y-0.5"
+                >
+                  Get Free Valuation
                 </button>
               </motion.div>
-              <motion.div variants={fadeUp} className="max-w-3xl">
-                <div className="rounded-[2rem] bg-vs-bg p-2 shadow-xl shadow-slate-200/70 dark:shadow-none backdrop-blur-sm border border-vs-border/30">
+
+              {/* AI Search Bar */}
+              <motion.div variants={fadeUp} className="pt-2">
+                <div className="rounded-2xl bg-white/95 dark:bg-slate-900/90 p-2.5 shadow-2xl backdrop-blur-md border border-white/30 dark:border-slate-800">
                   <AISearchBar />
                 </div>
               </motion.div>
-              <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-[1.75rem] border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/90 p-6 shadow-[0_35px_70px_-30px_rgba(15,34,51,0.12)]">
-                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950/10 text-slate-950 dark:bg-vs-gold/20 dark:text-vs-gold">
-                    <BadgeCheck size={22} />
+
+              {/* Value Highlights Pill Grid */}
+              <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div className="rounded-xl border border-white/15 bg-white/10 p-4 backdrop-blur-md flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-vs-gold/20 text-vs-gold shrink-0">
+                    <BadgeCheck size={18} />
                   </div>
-                  <h3 className="font-display text-lg font-semibold text-slate-950 dark:text-white">Verified Listings</h3>
-                  <p className="mt-3 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">Every property is checked and approved by our in-house team.</p>
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">Verified Listings</h4>
+                    <p className="text-xs text-slate-300 mt-0.5">Every property inspected by our team.</p>
+                  </div>
                 </div>
-                <div className="rounded-[1.75rem] border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/90 p-6 shadow-[0_35px_70px_-30px_rgba(15,34,51,0.12)]">
-                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950/10 text-slate-950 dark:bg-vs-gold/20 dark:text-vs-gold">
-                    <Sparkles size={22} />
+                <div className="rounded-xl border border-white/15 bg-white/10 p-4 backdrop-blur-md flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-vs-gold/20 text-vs-gold shrink-0">
+                    <Sparkles size={18} />
                   </div>
-                  <h3 className="font-display text-lg font-semibold text-slate-950 dark:text-white">Zero Brokerage</h3>
-                  <p className="mt-3 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">Buy or list without commission — the cost stays between buyer and seller only.</p>
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">Zero Brokerage</h4>
+                    <p className="text-xs text-slate-300 mt-0.5">Buyers pay ₹0 commission fees.</p>
+                  </div>
                 </div>
-                <div className="rounded-[1.75rem] border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/90 p-6 shadow-[0_35px_70px_-30px_rgba(15,34,51,0.12)]">
-                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950/10 text-slate-950 dark:bg-vs-gold/20 dark:text-vs-gold">
-                    <HeadphonesIcon size={22} />
+                <div className="rounded-xl border border-white/15 bg-white/10 p-4 backdrop-blur-md flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-vs-gold/20 text-vs-gold shrink-0">
+                    <HeadphonesIcon size={18} />
                   </div>
-                  <h3 className="font-display text-lg font-semibold text-slate-950 dark:text-white">Dedicated Support</h3>
-                  <p className="mt-3 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">Talk to our team directly — no brokers, no middlemen, no confusion.</p>
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">Direct Support</h4>
+                    <p className="text-xs text-slate-300 mt-0.5">Dedicated assistance end-to-end.</p>
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
 
-            <div className="relative" />
+            {/* Right Visual Card Showcase */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative hidden lg:block"
+            >
+              <div className="relative mx-auto max-w-md">
+                {/* Main Hero Featured Property Preview Card */}
+                <div className="overflow-hidden rounded-3xl border border-white/20 bg-slate-900/80 p-3 shadow-2xl backdrop-blur-xl transition-transform hover:scale-[1.01]">
+                  <div className="relative h-72 w-full overflow-hidden rounded-2xl">
+                    <img
+                      src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80"
+                      alt="Featured Luxury Property"
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute top-3 left-3 rounded-full bg-slate-950/70 px-3 py-1 text-xs font-semibold text-vs-gold border border-vs-gold/40 backdrop-blur-md">
+                      Featured Direct Listing
+                    </div>
+                    <div className="absolute bottom-3 left-3 right-3 rounded-xl bg-slate-950/85 p-3 backdrop-blur-md border border-white/10 text-white flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-slate-400">Average Savings</p>
+                        <p className="text-sm font-semibold text-vs-gold">₹1.5 Lakh - ₹5 Lakhs Brokerage</p>
+                      </div>
+                      <span className="rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-2.5 py-1 font-medium">
+                        0% Commission
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs uppercase font-medium tracking-wider text-vs-gold">Verified Property</span>
+                      <span className="text-xs text-slate-400">Direct Deal</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white line-clamp-1">Luxury 3 & 4 BHK Modern Apartments</h3>
+                    <p className="text-xs text-slate-300">Prime Locations across Bangalore, Hyderabad, Pune & Delhi NCR</p>
+                    <div className="pt-2 flex items-center justify-between border-t border-white/10">
+                      <div>
+                        <span className="text-xs text-slate-400">Starting from</span>
+                        <p className="text-base font-bold text-white">₹65 Lakhs onwards</p>
+                      </div>
+                      <Link
+                        to="/properties"
+                        className="rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-4 py-2 transition"
+                      >
+                        Explore Now →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Floating Creative Accent Cards */}
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -bottom-6 -left-8 rounded-2xl border border-white/20 bg-white/95 dark:bg-slate-900/90 p-4 shadow-2xl backdrop-blur-md text-slate-900 dark:text-white max-w-[210px]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                      100%
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold leading-snug">Verified Ownership</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">No fake listings</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  animate={{ y: [0, 8, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  className="absolute -top-6 -right-6 rounded-2xl border border-white/20 bg-white/95 dark:bg-slate-900/90 p-4 shadow-2xl backdrop-blur-md text-slate-900 dark:text-white max-w-[200px]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-vs-gold/20 text-vs-gold">
+                      <Landmark size={18} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold leading-snug">Easy Home Loan</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Partner Bank Rates</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
