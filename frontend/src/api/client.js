@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/authStore";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || (typeof window !== "undefined" && window.location.origin.startsWith("http") ? window.location.origin : "");
 export const API_BASE = `${BACKEND_URL}/api`;
 
 const api = axios.create({ baseURL: API_BASE });

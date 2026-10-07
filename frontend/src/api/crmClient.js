@@ -2,7 +2,7 @@ import axios from "axios";
 import { useCrmAuthStore } from "../store/crmAuthStore";
 import { useCrmGatewayStore } from "../store/crmGatewayStore";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || (typeof window !== "undefined" && window.location.origin.startsWith("http") ? window.location.origin : "");
 const crmApi = axios.create({
   baseURL: `${BACKEND_URL}/api/crm`,
   headers: {
