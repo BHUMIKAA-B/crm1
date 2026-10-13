@@ -125,6 +125,8 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal overflow from carousel strips on narrow viewports */
+  overflow-x: hidden;
 }
 
 body {
@@ -135,6 +137,7 @@ body {
   font-size: 1rem;
   line-height: 1.6;
   letter-spacing: 0.01em;
+  overflow-x: hidden;
 }
 
 /* ========================================
@@ -298,6 +301,37 @@ body {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
+}
+
+/* btn-outline — secondary ghost style, used in popup "Maybe Later" */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--vs-text-secondary);
+  background-color: transparent;
+  border: 1px solid var(--vs-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--transition-medium), color var(--transition-medium), background-color var(--transition-medium);
+  text-decoration: none;
+}
+
+.btn-outline:hover {
+  border-color: var(--vs-primary);
+  color: var(--vs-primary);
+  background-color: var(--vs-primary-muted);
+}
+
+.btn-outline:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .btn-ghost {

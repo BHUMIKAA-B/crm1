@@ -40,7 +40,7 @@ const PropertyCard = ({ property, onSave, isSaved, showBrochure = true }) => {
           </div>
         )}
       </Link>
-      <div className="p-6 flex flex-col gap-4">
+      <div className="p-5 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-display text-lg font-semibold text-vs-text-primary leading-snug line-clamp-2">
             <Link
@@ -79,21 +79,20 @@ const PropertyCard = ({ property, onSave, isSaved, showBrochure = true }) => {
             <Maximize2 size={14} className="text-vs-primary" /> {formatArea(property.area)}
           </span>
         </div>
-        <div className="mt-auto border-t border-vs-border pt-4 flex items-center justify-between gap-4">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-vs-text-muted mb-1">Price</div>
-            <div className="font-display text-xl font-semibold text-vs-primary">
+        <div className="border-t border-vs-border pt-3 mt-1">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-vs-text-muted mb-0.5">Price</div>
+          <div className="font-display text-xl font-semibold text-vs-primary mb-2">
               {INR(property.price)}
               {property.category === "rental" && (
                 <span className="text-xs font-normal text-vs-text-muted ml-1">/mo</span>
-              )}
-            </div>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          {/* flex-wrap prevents overflow on narrow carousel cards */}
+          <div className="flex flex-wrap items-center gap-2">
             {showBrochure && (
               <button
                 onClick={(e) => { e.preventDefault(); setBrochureOpen(true); }}
-                className="btn-primary text-xs px-3 py-2"
+                className="btn-primary text-xs px-3 py-2 flex-1 min-w-[90px] justify-center"
                 title="Download Brochure"
               >
                 <FileDown size={13} /> Brochure
@@ -102,7 +101,7 @@ const PropertyCard = ({ property, onSave, isSaved, showBrochure = true }) => {
             <Link
               to={`/properties/${property.id}`}
               data-testid={`property-view-${property.id}`}
-              className="btn-secondary text-xs px-4 py-2"
+              className="btn-secondary text-xs px-4 py-2 flex-1 min-w-[90px] justify-center"
             >
               View Details
             </Link>

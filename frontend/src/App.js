@@ -26,6 +26,7 @@ import NotFound from "@/pages/NotFound";
 import ChatPage from "@/pages/ChatPage";
 import ProjectDetail from "@/pages/ProjectDetail";
 import ChatBot from "@/components/ChatBot";
+import EnquiryReminderPopup from "@/components/EnquiryReminderPopup";
 import { RequireAuth } from "@/components/RequireAuth";
 
 // CRM Pages
@@ -224,6 +225,9 @@ function App() {
 
           {/* Floating chatbot bubble — visible on all pages except /chat */}
           <ChatBot />
+
+          {/* Recurring enquiry reminder — public pages only, 5-s interval */}
+          <EnquiryReminderPopup />
         </BrowserRouter>
         <Toaster
           position="top-right"

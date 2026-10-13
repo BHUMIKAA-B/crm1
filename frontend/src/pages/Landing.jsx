@@ -709,11 +709,20 @@ const TopRatedCarousel = ({ items }) => {
   const speed = Math.max(cards.length * 4, 20); // seconds
 
   return (
-    <section className="py-8 bg-transparent overflow-hidden">
+    /* overflow-hidden is CRITICAL — prevents the scrolling strip from creating
+       a page-level horizontal scrollbar on narrow viewports. */
+    <section className="py-8 bg-transparent overflow-hidden" aria-label="Top-rated listings carousel">
       <style>{`
         @keyframes vs-carousel-scroll {
           from { transform: translateX(0); }
           to   { transform: translateX(-50%); }
+        }
+        /* On mobile, pause the animation while the user is touching so they
+           can inspect a card without it sliding away. */
+        @media (hover: none) {
+          .vs-carousel-track:active {
+            animation-play-state: paused;
+          }
         }
       `}</style>
       <div className="max-w-[80rem] mx-auto px-6 lg:px-12 mb-4">
@@ -722,25 +731,35 @@ const TopRatedCarousel = ({ items }) => {
       </div>
 
       <div
-        className="cursor-grab active:cursor-grabbing"
+        className="cursor-grab active:cursor-grabbing select-none"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         onTouchStart={() => setPaused(true)}
         onTouchEnd={() => setPaused(false)}
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div
+          className="vs-carousel-track"
           style={{
             display: "flex",
-            gap: "24px",
+            gap: "20px",
             width: "max-content",
-            padding: "16px 24px",
+            padding: "16px 20px",
             animation: `vs-carousel-scroll ${speed}s linear infinite`,
             animationPlayState: paused ? "paused" : "running",
             willChange: "transform",
           }}
         >
           {doubled.map((p, i) => (
-            <div key={`${p.id}-${i}`} style={{ minWidth: "320px", flexShrink: 0 }}>
+            <div
+              key={`${p.id}-${i}`}
+              style={{
+                /* clamp keeps the card at 320 px on large screens but shrinks
+                   gracefully to ~80 vw on phones so the full card is visible. */
+                width: "clamp(280px, 80vw, 320px)",
+                flexShrink: 0,
+              }}
+            >
               <PropertyCard property={p} />
             </div>
           ))}
