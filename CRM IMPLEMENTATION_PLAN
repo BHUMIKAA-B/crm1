@@ -1,0 +1,92 @@
+# Visit Sarva — Private Real Estate CRM Implementation Plan
+
+This document outlines the strategy for transforming the existing Visit Sarva web application into a complete private internal Real Estate CRM. The primary objective is to implement an enterprise-grade, internal business management tool while preserving the existing public-facing property capabilities.
+
+## User Review Required
+
+> [!WARNING]
+> **Existing Role Schema Update**
+> The current `models.py` uses `UserRole = Literal["buyer", "seller", "admin"]`. 
+> I will extend this to include internal employee roles: `"trainee", "executive", "team_lead", "bdo", "founder"`. Alternatively, we can create a separate `Employee` collection specifically for the CRM logic if we want to keep public users and employees completely segregated. I propose merging them into the existing users collection but using a specific role, or keeping an `employees` collection linked to auth. We will use a separate `Employee` model for cleaner separation. Please confirm if this is acceptable.
+
+## Open Questions
+
+> [!IMPORTANT]
+> 1. **Public vs. Internal App routing**: Should the CRM UI be built directly into the existing React app under a new namespace like `/crm/...` alongside the public pages, or should it replace the existing `/admin` dashboard entirely? The plan assumes it replaces the `/admin` with `/crm` or `/internal` routes but keeps the public buyer/seller app intact.
+> 2. **Authentication Flow**: Do employees log in through the same `/login` endpoint, or should they have a dedicated `/crm/login` to ensure separation from normal buyers and sellers?
+
+## Proposed Changes
+
+### Backend - Database and Models
+
+The CRM will utilize the existing MongoDB infrastructure but introduce numerous internal business models and robust RBAC (Role-Based Access Control).
+
+#### [MODIFY] backend/models.py
+- Add `EmployeeRole` Literal: `trainee, executive, team_lead, bdo, founder`.
+- Add `Employee` schema (User ID, Role, Department, Manager, Status, etc.).
+- Add `Lead` schema (Source, Status, Assigned To, Timeline tracking).
+- Add `Customer` profile schema.
+- Add `Requirement` schema (Buy/Sell, Budget, Location, Specs).
+- Add `PropertyOwner`, `Broker`, `Deal`, `SiteVisit`, `Followup`, `Task`, `Document` schemas.
+- Add `AuditLog` schema.
+
+#### [NEW] backend/routers/crm_auth_router.py
+- Add specific endpoints for employee authentication and robust session/token issuance.
+
+#### [NEW] backend/routers/crm_*.py
+- Create organized routers for each module:
+  - `crm_leads.py`: Lead assignment, timeline updates.
+  - `crm_properties.py`: Internal property tracking, rule-based matching.
+  - `crm_deals.py`: Negotiations, commission tracking (restricted access).
+  - `crm_tasks.py`: Follow-ups, site visits, assignments.
+  - `crm_users.py`: Employee management (Founder/Admin only).
+
+#### [NEW] backend/services/rbac_service.py
+- Centralized permission service determining access dynamically based on `USER -> ROLE -> PERMISSION -> RESOURCE -> OWNERSHIP`.
+
+#### [MODIFY] backend/server.py
+- Mount new CRM routes securely.
+
+---
+
+### Frontend - Architecture & Routes
+
+We will construct a new internal dashboard inside the React app, reusing the design system (Tailwind, MUI, Radix) but creating enterprise CRM layouts.
+
+#### [MODIFY] frontend/src/App.js
+- Add routing for `/crm/*` with `RequireAuth` specifying employee roles.
+
+#### [NEW] frontend/src/pages/crm/*
+- **Dashboard Layouts**: Different layouts depending on the user role (Trainee vs Founder).
+- **Leads Module**: Table view, filters, lead details, timeline view, assignment controls.
+- **Properties/Inventory Module**: Property matching UI, document uploads.
+- **Deals & Finance**: Negotiation UI, Deal closing UI (with restricted financial visibility).
+- **Reports**: Analytics and Founder drill-down dashboard.
+
+#### [NEW] frontend/src/lib/permissions.js
+- Frontend RBAC validation functions to conditionally hide UI elements, buttons, and financial numbers based on the user's role and data ownership.
+
+---
+
+### Security & RBAC Implementation
+
+> [!CAUTION]
+> Security is paramount. The CRM will implement layered security:
+> - **API Level**: Every internal CRM route will run through an RBAC dependency that validates the JWT, the user's internal role, and whether they own the requested resource or have an override role (like Founder).
+> - **Data Scrubbing**: API responses for deals/properties will omit sensitive financial fields (e.g., commissions) if the requesting employee does not have clearance.
+> - **Audit Logs**: Every mutation (create/update/assign) will write to an immutable audit log collection.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Create Python/pytest tests in `backend/tests/test_crm_rbac.py` asserting that executives cannot access other executives' leads (403 Forbidden).
+- Test commission visibility rules for varying roles.
+- Test that duplicate lead numbers throw appropriate conflicts.
+
+### Manual Verification
+- Seed the database with demo users for all 5 roles (`founder@visitsarva.com`, `executive@...`, etc.).
+- Log into the UI as each role to verify dashboard visibility.
+- Walk through the entire business process manually: `Lead -> Requirement -> Property Match -> Site Visit -> Deal -> Commission`.
+- Check URL tampering (e.g., changing lead IDs in the URL) to ensure the backend blocks unauthorized access.

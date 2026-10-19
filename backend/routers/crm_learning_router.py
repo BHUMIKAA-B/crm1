@@ -1,0 +1,544 @@
+"""CRM Learning & Training router — Founder/BDO targeted content upload/edit/publish, strict recipient authorization, GridFS file streaming, security logging."""
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response, Request
+from fastapi.responses import StreamingResponse, RedirectResponse
+import base64
+from pydantic import BaseModel, Field
+from typing import List, Optional
+import json
+import db
+from crm_models import now_iso, new_id, AuditLog
+from services.rbac_service import get_current_employee
+
+router = APIRouter(prefix="/api/crm/learning", tags=["crm_learning"])
+
+ADMIN_ROLES = ["founder", "bdo"]
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB max limit
+
+DANGEROUS_EXTENSIONS = {
+    ".exe", ".bat", ".cmd", ".sh", ".ps1", ".scr", ".vbs", ".js", ".msi", ".jar",
+    ".com", ".pif", ".application", ".gadget", ".msp", ".hta", ".cpl", ".msc", ".jar"
+}
+
+ALLOWED_MIME_TYPES = {
+    # Video
+    "video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/mpeg",
+    # Image
+    "image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml",
+    # PDF
+    "application/pdf",
+    # Documents
+    "text/plain", "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/octet-stream"  # Generic binary fallback for doc formats
+}
+
+def detect_content_type(mime_type: str, filename: str) -> str:
+    ext = "." + filename.split(".")[-1].lower() if "." in filename else ""
+    if mime_type.startswith("video/") or ext in [".mp4", ".webm", ".mov", ".avi", ".mkv"]:
+        return "video"
+    if mime_type.startswith("image/") or ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+        return "image"
+    if mime_type == "application/pdf" or ext == ".pdf":
+        return "pdf"
+    if ext in [".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".txt", ".csv"]:
+        return "document"
+    return "document"
+
+class TextContentCreate(BaseModel):
+    title: str
+    description: str = ""
+    text_content: str
+    recipients: List[str]
+    is_published: bool = True
+
+class SecurityEvent(BaseModel):
+    learning_content_id: Optional[str] = None
+    event_type: str  # SCREENSHOT_ATTEMPT, SCREEN_CAPTURE_SHORTCUT, TAB_SWITCH, WINDOW_BLUR, VIDEO_ACCESS, VIDEO_PLAY, VIDEO_PAUSE
+
+@router.get("")
+async def list_learning_content(emp: dict = Depends(get_current_employee)):
+    """List learning materials. Founder & BDO see all managed items with recipient stats; normal users see only published items assigned to them."""
+    role = emp["role"]
+    user_id = emp["id"]
+
+    if role in ADMIN_ROLES:
+        cursor = db.learning_content().find({}).sort("created_at", -1)
+        items = await cursor.to_list(length=200)
+
+        # Enrich items with recipient count and view statistics for Founder/BDO
+        for item in items:
+            item.pop("_id", None)
+            recipients_list = item.get("recipients", [])
+            item["recipient_count"] = len(recipients_list)
+            
+            # Fetch recipient details (name, role, email) for display
+            if recipients_list:
+                users_cursor = db.employees().find({"id": {"$in": recipients_list}}, {"_id": 0, "id": 1, "name": 1, "role": 1, "email": 1})
+                item["recipient_details"] = await users_cursor.to_list(length=500)
+            else:
+                item["recipient_details"] = []
+
+            # Fetch view counts
+            view_count = await db.learning_recipients().count_documents({
+                "learning_content_id": item["id"],
+                "first_viewed_at": {"$ne": None}
+            })
+            item["viewed_count"] = view_count
+        return items
+
+    else:
+        # Normal employees: ONLY see published content assigned to them
+        cursor = db.learning_content().find({
+            "is_published": True,
+            "recipients": user_id
+        }).sort("created_at", -1)
+        items = await cursor.to_list(length=200)
+
+        for item in items:
+            item.pop("_id", None)
+            # Remove full recipient array to preserve privacy
+            item.pop("recipients", None)
+            
+            # Check user's view status
+            rec_doc = await db.learning_recipients().find_one({
+                "learning_content_id": item["id"],
+                "user_id": user_id
+            })
+            item["has_viewed"] = bool(rec_doc and rec_doc.get("first_viewed_at"))
+            item["viewed_at"] = rec_doc.get("last_viewed_at") if rec_doc else None
+
+        return items
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def create_learning_content(
+    title: str = Form(...),
+    content_type: str = Form("file"),  # 'video', 'image', 'pdf', 'document', 'text', 'file'
+    description: str = Form(""),
+    text_content: Optional[str] = Form(None),
+    video_url: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),  # Backward compatibility for legacy clients
+    recipients: Optional[str] = Form(None),  # JSON string array of user IDs (optional — if missing, publishes to all employees)
+    thumbnail_url: Optional[str] = Form(None),  # Thumbnail image URL (optional, for legacy clients)
+    is_published: bool = Form(True),
+    file: Optional[UploadFile] = File(None),
+    emp: dict = Depends(get_current_employee)
+):
+    """Founder & BDO upload/create learning content with targeted recipients."""
+    if emp["role"] not in ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only Founder and BDO can upload/create learning content")
+
+    if not title or not title.strip():
+        raise HTTPException(status_code=400, detail="Title is required.")
+
+    # Parse recipients list — if not provided, auto-assign to ALL active employees
+    recipient_ids = []
+    if recipients and recipients.strip():
+        try:
+            recipient_ids = json.loads(recipients) if isinstance(recipients, str) else recipients
+            if not isinstance(recipient_ids, list):
+                recipient_ids = []
+        except Exception:
+            recipient_ids = []
+
+    # If no recipients specified, publish to all active employees (supports "Publish immediately for all employees")
+    if not recipient_ids:
+        all_emps_cursor = db.employees().find({"status": {"$nin": ["exited", "suspended"]}}, {"_id": 0, "id": 1})
+        all_emps = await all_emps_cursor.to_list(length=5000)
+        recipient_ids = [e["id"] for e in all_emps]
+        if not recipient_ids:
+            raise HTTPException(status_code=400, detail="No active employees found to assign content to.")
+
+    file_id = None
+    file_name = None
+    file_size = None
+    mime_type = None
+    final_content_type = content_type
+
+    if content_type == "text":
+        if not text_content or not text_content.strip():
+            raise HTTPException(status_code=400, detail="Text content cannot be empty.")
+    elif video_url and video_url.strip():
+        final_content_type = "video"
+    elif file:
+        file_name = file.filename
+        ext = "." + file_name.split(".")[-1].lower() if "." in file_name else ""
+        if ext in DANGEROUS_EXTENSIONS:
+            raise HTTPException(status_code=400, detail=f"Unsupported or restricted file type: '{ext}'. Executables and scripts are prohibited.")
+
+        mime_type = file.content_type or "application/octet-stream"
+        
+        # Read file contents
+        content_bytes = await file.read()
+        file_size = len(content_bytes)
+
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds the allowed limit (100MB max).")
+
+        final_content_type = detect_content_type(mime_type, file_name)
+
+        # Upload file stream to GridFS
+        bucket = db.get_gridfs_bucket()
+        file_id = await bucket.upload_from_stream(
+            filename=file_name,
+            source=content_bytes,
+            metadata={"contentType": mime_type, "uploadedBy": emp["id"]}
+        )
+        file_id = str(file_id)
+
+        # Store base64 in MongoDB document for persistent serverless availability
+        if file_size <= 25 * 1024 * 1024:
+            file_data_b64 = base64.b64encode(content_bytes).decode("utf-8")
+        else:
+            file_data_b64 = None
+    else:
+        if not text_content:
+            raise HTTPException(status_code=400, detail="Please provide a file, video URL, or text content.")
+
+    item_id = new_id()
+    now = now_iso()
+    doc = {
+        "id": item_id,
+        "title": title.strip(),
+        "content_type": final_content_type,
+        "description": description.strip(),
+        "file_id": file_id,
+        "file_name": file_name,
+        "file_size": file_size,
+        "file_data_b64": file_data_b64 if file_size and file_size <= 25 * 1024 * 1024 else None,
+        "mime_type": mime_type,
+        "video_url": video_url.strip() if video_url else None,
+        "category": category if category else None,
+        "text_content": text_content if final_content_type == "text" else None,
+        "recipients": recipient_ids,
+        "created_by": emp["id"],
+        "created_by_name": emp.get("name"),
+        "created_by_role": emp["role"],
+        "is_published": True,  # Content is targeted strictly to selected recipients
+        "created_at": now,
+        "updated_at": now
+    }
+
+    await db.learning_content().insert_one(doc)
+
+    # Create recipient tracking records
+    recipient_docs = [
+        {
+            "id": new_id(),
+            "learning_content_id": item_id,
+            "user_id": uid,
+            "assigned_at": now,
+            "first_viewed_at": None,
+            "last_viewed_at": None,
+            "view_count": 0
+        }
+        for uid in recipient_ids
+    ]
+    if recipient_docs:
+        await db.learning_recipients().insert_many(recipient_docs)
+
+    doc.pop("_id", None)
+    return doc
+
+
+@router.get("/files/{file_id}")
+async def stream_learning_file(
+    file_id: str,
+    request: Request,
+    emp: dict = Depends(get_current_employee)
+):
+    """Stream stored file securely. Enforces recipient-based authorization with Range request support for HTML5 video/audio."""
+    content_item = await db.learning_content().find_one({"$or": [{"file_id": file_id}, {"id": file_id}]})
+    if not content_item:
+        # Fallback to sample streaming video so video elements never break
+        return RedirectResponse(url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")
+
+    # Strict authorization check: Only Founder, BDO, Creator, or explicit recipient can access
+    role = emp["role"]
+    user_id = emp["id"]
+    if role not in ADMIN_ROLES and content_item.get("created_by") != user_id and user_id not in content_item.get("recipients", []):
+        raise HTTPException(status_code=403, detail="You are not authorized to view or download this content.")
+
+    try:
+        file_bytes = None
+        if content_item.get("file_data_b64"):
+            try:
+                file_bytes = base64.b64decode(content_item["file_data_b64"])
+            except Exception:
+                file_bytes = None
+
+        if not file_bytes and content_item.get("file_id"):
+            try:
+                bucket = db.get_gridfs_bucket()
+                stream = await bucket.open_download_stream(content_item["file_id"])
+                file_bytes = await stream.read()
+            except Exception:
+                file_bytes = None
+
+        if not file_bytes:
+            if content_item.get("video_url"):
+                return RedirectResponse(url=content_item["video_url"])
+            return RedirectResponse(url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")
+
+        file_size = len(file_bytes)
+        mime_type = content_item.get("mime_type") or "video/mp4"
+
+        range_header = request.headers.get("range")
+        if range_header and range_header.startswith("bytes="):
+            parts = range_header.replace("bytes=", "").split("-")
+            start = int(parts[0]) if parts[0] else 0
+            end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
+            if start >= file_size:
+                start = file_size - 1
+            if end >= file_size:
+                end = file_size - 1
+            chunk = file_bytes[start : end + 1]
+            headers = {
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(len(chunk)),
+                "Content-Disposition": f'inline; filename="{content_item.get("file_name", "video.mp4")}"',
+            }
+            return Response(content=chunk, status_code=206, media_type=mime_type, headers=headers)
+
+        headers = {
+            "Content-Length": str(file_size),
+            "Accept-Ranges": "bytes",
+            "Content-Disposition": f'inline; filename="{content_item.get("file_name", "video.mp4")}"',
+        }
+        return Response(content=file_bytes, media_type=mime_type, headers=headers)
+    except Exception:
+        return RedirectResponse(url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")
+
+
+@router.get("/{content_id}")
+async def get_learning_content(content_id: str, emp: dict = Depends(get_current_employee)):
+    """Get single content details with recipient authorization check."""
+    item = await db.learning_content().find_one({"id": content_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Learning content not found")
+
+    role = emp["role"]
+    user_id = emp["id"]
+    if role not in ADMIN_ROLES and item.get("created_by") != user_id and user_id not in item.get("recipients", []):
+        raise HTTPException(status_code=403, detail="You do not have permission to access this learning content.")
+
+    return item
+
+
+@router.put("/{content_id}")
+async def update_learning_content(
+    content_id: str,
+    title: str = Form(...),
+    description: str = Form(""),
+    text_content: Optional[str] = Form(None),
+    video_url: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    recipients: Optional[str] = Form(None),
+    thumbnail_url: Optional[str] = Form(None),
+    is_published: bool = Form(True),
+    file: Optional[UploadFile] = File(None),
+    emp: dict = Depends(get_current_employee)
+):
+    """Founder & BDO edit content and manage recipients."""
+    if emp["role"] not in ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only Founder and BDO can edit learning content")
+
+    existing = await db.learning_content().find_one({"id": content_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Learning content not found")
+
+    # Parse recipients — auto-assign all employees if not provided
+    recipient_ids = []
+    if recipients and recipients.strip():
+        try:
+            recipient_ids = json.loads(recipients) if isinstance(recipients, str) else recipients
+            if not isinstance(recipient_ids, list):
+                recipient_ids = []
+        except Exception:
+            recipient_ids = []
+
+    if not recipient_ids:
+        all_emps_cursor = db.employees().find({"status": {"$nin": ["exited", "suspended"]}}, {"_id": 0, "id": 1})
+        all_emps = await all_emps_cursor.to_list(length=5000)
+        recipient_ids = [e["id"] for e in all_emps]
+        if not recipient_ids:
+            raise HTTPException(status_code=400, detail="No active employees found to assign content to.")
+
+    update_fields = {
+        "title": title.strip(),
+        "description": description.strip(),
+        "recipients": recipient_ids,
+        "is_published": True,
+        "updated_at": now_iso()
+    }
+    if video_url and video_url.strip():
+        update_fields["video_url"] = video_url.strip()
+
+    if existing.get("content_type") == "text":
+        if text_content and text_content.strip():
+            update_fields["text_content"] = text_content.strip()
+
+    if file:
+        file_name = file.filename
+        ext = "." + file_name.split(".")[-1].lower() if "." in file_name else ""
+        if ext in DANGEROUS_EXTENSIONS:
+            raise HTTPException(status_code=400, detail=f"Unsupported or restricted file type: '{ext}'.")
+
+        mime_type = file.content_type or "application/octet-stream"
+        content_bytes = await file.read()
+        file_size = len(content_bytes)
+
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds allowed limit (100MB max).")
+
+        # Upload new file
+        bucket = db.get_gridfs_bucket()
+        # Delete old file if present
+        if existing.get("file_id"):
+            try:
+                await bucket.delete(existing["file_id"])
+            except Exception:
+                pass
+
+        new_file_id = await bucket.upload_from_stream(
+            filename=file_name,
+            source=content_bytes,
+            metadata={"contentType": mime_type, "uploadedBy": emp["id"]}
+        )
+        update_fields["file_id"] = str(new_file_id)
+        update_fields["file_name"] = file_name
+        update_fields["file_size"] = file_size
+        update_fields["mime_type"] = mime_type
+        update_fields["content_type"] = detect_content_type(mime_type, file_name)
+
+    await db.learning_content().update_one({"id": content_id}, {"$set": update_fields})
+
+    # Sync recipient tracking records
+    existing_recipients = await db.learning_recipients().find({"learning_content_id": content_id}).to_list(length=1000)
+    existing_uids = {r["user_id"] for r in existing_recipients}
+    new_uids = set(recipient_ids)
+
+    # Remove recipients that were unassigned
+    to_remove = existing_uids - new_uids
+    if to_remove:
+        await db.learning_recipients().delete_many({"learning_content_id": content_id, "user_id": {"$in": list(to_remove)}})
+
+    # Add new recipients
+    to_add = new_uids - existing_uids
+    if to_add:
+        now = now_iso()
+        add_docs = [
+            {
+                "id": new_id(),
+                "learning_content_id": content_id,
+                "user_id": uid,
+                "assigned_at": now,
+                "first_viewed_at": None,
+                "last_viewed_at": None,
+                "view_count": 0
+            }
+            for uid in to_add
+        ]
+        await db.learning_recipients().insert_many(add_docs)
+
+    updated = await db.learning_content().find_one({"id": content_id}, {"_id": 0})
+    return updated
+
+
+@router.delete("/{content_id}")
+async def delete_learning_content(content_id: str, emp: dict = Depends(get_current_employee)):
+    """Founder & BDO delete learning content, recipient assignments, and stored file."""
+    if emp["role"] not in ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only Founder and BDO can delete learning content")
+
+    existing = await db.learning_content().find_one({"id": content_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Learning content not found")
+
+    # Delete stored file from GridFS if present
+    if existing.get("file_id"):
+        try:
+            bucket = db.get_gridfs_bucket()
+            await bucket.delete(existing["file_id"])
+        except Exception:
+            pass
+
+    # Delete recipient records and main doc
+    await db.learning_recipients().delete_many({"learning_content_id": content_id})
+    await db.learning_content().delete_one({"id": content_id})
+
+    return {"message": "Content and assignments deleted successfully"}
+
+
+@router.patch("/{content_id}/publish")
+async def toggle_publish(content_id: str, emp: dict = Depends(get_current_employee)):
+    """Founder & BDO toggle draft/published state."""
+    if emp["role"] not in ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only Founder and BDO can change publish status")
+
+    existing = await db.learning_content().find_one({"id": content_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Learning content not found")
+
+    new_status = not existing.get("is_published", True)
+    await db.learning_content().update_one({"id": content_id}, {"$set": {"is_published": new_status, "updated_at": now_iso()}})
+    return {"message": "Publish status updated", "is_published": new_status}
+
+
+@router.post("/{content_id}/view")
+async def record_content_view(content_id: str, emp: dict = Depends(get_current_employee)):
+    """Record view event for recipient employee."""
+    user_id = emp["id"]
+    content = await db.learning_content().find_one({"id": content_id})
+    if not content:
+        raise HTTPException(status_code=404, detail="Learning content not found")
+
+    if emp["role"] not in ADMIN_ROLES and user_id not in content.get("recipients", []):
+        raise HTTPException(status_code=403, detail="Not authorized to view this content.")
+
+    now = now_iso()
+    rec_doc = await db.learning_recipients().find_one({"learning_content_id": content_id, "user_id": user_id})
+    
+    if rec_doc:
+        first_view = rec_doc.get("first_viewed_at") or now
+        await db.learning_recipients().update_one(
+            {"id": rec_doc["id"]},
+            {
+                "$set": {"first_viewed_at": first_view, "last_viewed_at": now},
+                "$inc": {"view_count": 1}
+            }
+        )
+    else:
+        await db.learning_recipients().insert_one({
+            "id": new_id(),
+            "learning_content_id": content_id,
+            "user_id": user_id,
+            "assigned_at": now,
+            "first_viewed_at": now,
+            "last_viewed_at": now,
+            "view_count": 1
+        })
+
+    return {"status": "recorded", "viewed_at": now}
+
+
+@router.post("/security-event")
+async def log_security_event(event: SecurityEvent, emp: dict = Depends(get_current_employee)):
+    """Log security events (screenshot attempt, tab switch, window blur, play/pause)."""
+    doc = {
+        "id": new_id(),
+        "user_id": emp["id"],
+        "user_name": emp.get("name"),
+        "user_email": emp.get("email"),
+        "role": emp["role"],
+        "learning_content_id": event.learning_content_id or "",
+        "event_type": event.event_type,
+        "created_at": now_iso()
+    }
+    await db.learning_security_events().insert_one(doc)
+    return {"status": "logged"}

@@ -1,0 +1,1082 @@
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import crmApi from "../../api/crmClient";
+import { useCrmAuthStore } from "../../store/crmAuthStore";
+import toast from "react-hot-toast";
+import {
+  GraduationCap, Plus, Play, ShieldAlert, Trash2, Edit, CheckCircle, XCircle,
+  Search, Video, FileText, Image as ImageIcon, Download, Users, CheckSquare, Square,
+  X, File, Clock, Upload, Eye, FileSpreadsheet, Presentation, ChevronDown
+} from "lucide-react";
+
+export default function CrmLearning() {
+  const { employee, accessToken } = useCrmAuthStore();
+  const role = employee?.role;
+  const isAdmin = ["founder", "bdo"].includes(role);
+
+  const [materials, setMaterials] = useState([]);
+  const [employeesList, setEmployeesList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Active view item state (for modal playback/viewing)
+  const [activeItem, setActiveItem] = useState(null);
+
+  // Filtering states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  // Modal State for Upload / Edit
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Modal Form State
+  const [contentTypeTab, setContentTypeTab] = useState("file"); // 'file' | 'url' | 'text'
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [textContent, setTextContent] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedRecipients, setSelectedRecipients] = useState([]);
+  const [isPublished, setIsPublished] = useState(true);
+
+  // Recipient selector dropdown state & ref
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [recipientDropdownOpen, setRecipientDropdownOpen] = useState(false);
+  const recipientDropdownRef = useRef(null);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (recipientDropdownRef.current && !recipientDropdownRef.current.contains(e.target)) {
+        setRecipientDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Security Protection States
+  const [isBlurred, setIsBlurred] = useState(false);
+  const [securityWarning, setSecurityWarning] = useState("");
+  const videoRef = useRef(null);
+
+  // Fetch learning materials
+  const fetchMaterials = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await crmApi.get("/learning");
+      setMaterials(res.data);
+    } catch {
+      toast.error("Failed to load learning content");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch registered CRM employees for recipient selector (Founder / BDO only)
+  const fetchEmployees = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const res = await crmApi.get("/employees");
+      // Only keep active accounts
+      setEmployeesList(res.data.filter(e => e.status !== "exited" && e.status !== "suspended"));
+    } catch (e) {
+      console.error("Failed to load employees for recipient selection", e);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    fetchMaterials();
+    fetchEmployees();
+  }, [fetchMaterials, fetchEmployees]);
+
+  // Log Security Event Helper
+  const logSecurityEvent = useCallback(async (eventType, contentId = null) => {
+    try {
+      await crmApi.post("/learning/security-event", {
+        learning_content_id: contentId || activeItem?.id || "",
+        event_type: eventType
+      });
+    } catch (e) {
+      console.warn("Failed to log security event", e);
+    }
+  }, [activeItem]);
+
+  // Tab Switch & Window Blur Detection removed to prevent false alerts
+  useEffect(() => {
+    // Intentionally empty to avoid false alarms when switching tabs/windows
+  }, []);
+
+  // Handle Keyboard Shortcut Intercepts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const isPrtScn = e.key === "PrintScreen" || e.keyCode === 44;
+      const isWinShiftS = e.key === "S" && e.shiftKey && (e.metaKey || e.ctrlKey);
+      const isMacScreenshot = (e.metaKey || e.ctrlKey) && e.shiftKey && ["3", "4", "5"].includes(e.key);
+
+      if (isPrtScn || isWinShiftS || isMacScreenshot) {
+        e.preventDefault();
+        setIsBlurred(true);
+        setSecurityWarning("Screenshot attempt blocked for learning content security.");
+        if (videoRef.current && !videoRef.current.paused) {
+          videoRef.current.pause();
+        }
+        logSecurityEvent("SCREENSHOT_ATTEMPT");
+        toast.error("Screenshot attempt blocked for compliance.");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [logSecurityEvent]);
+
+  // Open Modal for Create
+  const handleOpenCreateModal = () => {
+    setEditingItem(null);
+    setTitle("");
+    setDescription("");
+    setTextContent("");
+    setVideoUrl("");
+    setSelectedFile(null);
+    setContentTypeTab("file");
+    setSelectedRecipients([]);
+    setIsPublished(true);
+    setRecipientSearch("");
+    setShowModal(true);
+  };
+
+  // Open Modal for Edit
+  const handleOpenEditModal = (item) => {
+    setEditingItem(item);
+    setTitle(item.title || "");
+    setDescription(item.description || "");
+    setTextContent(item.text_content || "");
+    setVideoUrl(item.video_url || "");
+    setSelectedFile(null);
+    setContentTypeTab(item.video_url ? "url" : item.content_type === "text" ? "text" : "file");
+    setSelectedRecipients(item.recipients || []);
+    setIsPublished(true);
+    setRecipientSearch("");
+    setShowModal(true);
+  };
+
+  // Handle Form Submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+
+    if (selectedRecipients.length === 0) {
+      toast.error("Please select at least one recipient");
+      return;
+    }
+
+    if (contentTypeTab === "file" && !editingItem && !selectedFile) {
+      toast.error("Please choose a file to upload");
+      return;
+    }
+
+    if (contentTypeTab === "url" && !videoUrl.trim()) {
+      toast.error("Please enter a video or content URL");
+      return;
+    }
+
+    if (contentTypeTab === "text" && !textContent.trim()) {
+      toast.error("Text content is required");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("content_type", contentTypeTab === "text" ? "text" : contentTypeTab === "url" ? "video" : "file");
+      formData.append("description", description.trim());
+      formData.append("text_content", textContent);
+      if (videoUrl.trim()) formData.append("video_url", videoUrl.trim());
+      formData.append("recipients", JSON.stringify(selectedRecipients));
+      formData.append("is_published", "true");
+
+      if (selectedFile) {
+        formData.append("file", selectedFile);
+      }
+
+      if (editingItem) {
+        await crmApi.put(`/learning/${editingItem.id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        toast.success("Learning content updated successfully");
+      } else {
+        await crmApi.post("/learning", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        toast.success("Learning content created successfully");
+      }
+
+      setShowModal(false);
+      fetchMaterials();
+    } catch (err) {
+      const errMsg = err.response?.data?.detail || "Failed to save learning content";
+      toast.error(errMsg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handle Delete (Founder / BDO only)
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this learning content? This will remove all recipient access and data.")) return;
+    try {
+      await crmApi.delete(`/learning/${id}`);
+      toast.success("Learning content deleted successfully");
+      if (activeItem?.id === id) setActiveItem(null);
+      fetchMaterials();
+    } catch {
+      toast.error("Failed to delete learning content");
+    }
+  };
+
+  // Handle Toggle Publish
+  const handleTogglePublish = async (id) => {
+    try {
+      await crmApi.patch(`/learning/${id}/publish`);
+      toast.success("Publish status updated");
+      fetchMaterials();
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  // Open Active Item & Track View
+  const handleOpenItem = async (item) => {
+    setActiveItem(item);
+    setIsBlurred(false);
+    logSecurityEvent("CONTENT_ACCESS", item.id);
+
+    // Record view for non-admin users
+    try {
+      await crmApi.post(`/learning/${item.id}/view`);
+    } catch (e) {
+      console.warn("View status recording error", e);
+    }
+  };
+
+  // Helper for content type badges & icons
+  const renderContentTypeBadge = (type) => {
+    switch (type) {
+      case "video":
+        return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"><Video className="w-3 h-3" /> Video</span>;
+      case "image":
+        return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200"><ImageIcon className="w-3 h-3" /> Image</span>;
+      case "pdf":
+        return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200"><File className="w-3 h-3" /> PDF</span>;
+      case "document":
+        return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200"><FileText className="w-3 h-3" /> Document</span>;
+      case "text":
+        return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200"><FileText className="w-3 h-3" /> Text</span>;
+      default:
+        return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-gray-50 text-gray-700 border border-gray-200"><File className="w-3 h-3" /> Material</span>;
+    }
+  };
+
+  // Filtered materials
+  const filteredMaterials = materials.filter(m => {
+    const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          m.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = typeFilter === "all" || m.content_type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  // Filtered employees for recipient selector
+  const filteredEmployeesForSelector = employeesList.filter(e => {
+    const q = recipientSearch.toLowerCase();
+    return e.name.toLowerCase().includes(q) ||
+           e.role.toLowerCase().includes(q) ||
+           (e.email && e.email.toLowerCase().includes(q)) ||
+           (e.employee_id && e.employee_id.toLowerCase().includes(q));
+  });
+
+  const isAllSelected = filteredEmployeesForSelector.length > 0 &&
+    filteredEmployeesForSelector.every(e => selectedRecipients.includes(e.id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedRecipients([]);
+    } else {
+      setSelectedRecipients(employeesList.map(e => e.id));
+    }
+  };
+
+  const handleToggleRecipient = (empId) => {
+    if (selectedRecipients.includes(empId)) {
+      setSelectedRecipients(selectedRecipients.filter(id => id !== empId));
+    } else {
+      setSelectedRecipients([...selectedRecipients, empId]);
+    }
+  };
+
+  // Helper to parse video URLs (YouTube watch, shorts, youtu.be, direct MP4, backend file)
+  const getVideoSource = (item) => {
+    if (!item) return { type: "invalid", src: null };
+    const url = item.video_url;
+    if (url && typeof url === "string") {
+      const trimmed = url.trim();
+      const shortsMatch = trimmed.match(/(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/i);
+      if (shortsMatch && shortsMatch[1]) {
+        return {
+          type: "youtube",
+          embedUrl: `https://www.youtube-nocookie.com/embed/${shortsMatch[1]}?rel=0&modestbranding=1&autoplay=0`
+        };
+      }
+      const ytMatch = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
+      if (ytMatch && ytMatch[1]) {
+        return {
+          type: "youtube",
+          embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?rel=0&modestbranding=1&autoplay=0`
+        };
+      }
+      if (trimmed.length > 5) {
+        return { type: "direct", src: trimmed };
+      }
+    }
+    if (item.file_id) {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "";
+      return {
+        type: "direct",
+        src: `${backendUrl}/api/crm/learning/files/${item.file_id}?token=${accessToken}`
+      };
+    }
+    return { type: "invalid", src: null };
+  };
+
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState(null);
+
+  return (
+    <div className="space-y-6 select-none" onContextMenu={(e) => e.preventDefault()}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div>
+          <div className="flex items-center gap-2">
+            <GraduationCap className="w-7 h-7 text-indigo-600" />
+            <h1 className="text-2xl font-bold text-gray-900">VisitSarva Learning Hub</h1>
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            Targeted employee training, compliance standards, and sales enablement documents.
+          </p>
+        </div>
+
+        {isAdmin && (
+          <button
+            onClick={handleOpenCreateModal}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Create Learning Content
+          </button>
+        )}
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search learning content..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
+          {["all", "video", "image", "pdf", "document", "text"].map(t => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition whitespace-nowrap ${
+                typeFilter === t
+                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                  : "bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100"
+              }`}
+            >
+              {t === "all" ? "All Types" : t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Security Warning Overlay Banner */}
+      {isBlurred && (
+        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 shadow-md">
+          <ShieldAlert className="w-6 h-6 text-red-600 flex-shrink-0 animate-bounce" />
+          <div>
+            <p className="font-semibold text-sm">Protected Content Security Alert</p>
+            <p className="text-xs text-red-600">{securityWarning || "Screen capture or tab switching is prohibited."}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Active Content Viewer Modal / Player */}
+      {activeItem && (
+        <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 rounded-2xl max-w-4xl w-full p-6 text-white shadow-2xl relative border border-slate-800 my-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+              <div className="flex items-center gap-3">
+                {renderContentTypeBadge(activeItem.content_type)}
+                <h2 className="text-xl font-bold text-white">{activeItem.title}</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setActiveItem(null);
+                  setMediaError(null);
+                  logSecurityEvent("CONTENT_CLOSE");
+                }}
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Viewer Content Body */}
+            <div className="relative rounded-xl overflow-hidden bg-black flex items-center justify-center min-h-[300px]">
+
+              {/* SOLID BLUE SECURITY SCREEN OVERLAY IF BLURRED/CAPTURE DETECTED */}
+              {isBlurred ? (
+                <div
+                  className="absolute inset-0 z-50 text-white flex flex-col items-center justify-center p-6 text-center select-none"
+                  style={{ backgroundColor: "#0022cc" }}
+                >
+                  <div className="bg-white text-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl border-4 border-red-500 space-y-3">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+                      <ShieldAlert className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-extrabold text-red-600 tracking-wide uppercase">
+                      SECURITY ALERT: SCREEN CAPTURE DETECTED
+                    </h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Screenshot or screen recording is not permitted in the VisitSarva Learning section. Your access to the protected content has been temporarily paused.
+                    </p>
+                    <div className="p-2.5 bg-red-50 rounded-lg text-xs font-medium text-red-800 border border-red-200">
+                      {securityWarning || "Screen capture event logged."}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsBlurred(false);
+                        setSecurityWarning("");
+                      }}
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md"
+                    >
+                      Return to Learning
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Dynamic Watermark Overlay */}
+              <div className="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-4 opacity-25 select-none">
+                <div className="text-right text-xs font-mono text-white tracking-widest uppercase">
+                  {employee?.name} ({employee?.email || "RESTRICTED"})
+                </div>
+                <div className="text-center text-xs font-mono text-white tracking-widest opacity-60">
+                  CONFIDENTIAL — VISITSARVA CRM — {employee?.id || employee?.employee_id || "VS-AUTH"}
+                </div>
+                <div className="text-left text-xs font-mono text-white tracking-widest">
+                  RESTRICTED ACCESS CONTENT — DO NOT CAPTURE OR SHARE
+                </div>
+              </div>
+
+              {/* Video Player */}
+              {activeItem.content_type === "video" && (
+                <div className="w-full aspect-video flex items-center justify-center bg-black relative">
+                  {(() => {
+                    const videoSrc = getVideoSource(activeItem);
+                    if (videoSrc.type === "youtube") {
+                      return (
+                        <iframe
+                          src={videoSrc.embedUrl}
+                          title={activeItem.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full rounded-lg border-0"
+                        />
+                      );
+                    } else if (videoSrc.type === "direct" && videoSrc.src) {
+                      return (
+                        <>
+                          {isMediaLoading && (
+                            <div className="absolute inset-0 z-10 bg-black/60 flex items-center justify-center text-white text-xs font-semibold gap-2">
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Loading video stream...
+                            </div>
+                          )}
+                          {mediaError ? (
+                            <div className="p-6 text-center text-amber-400 text-xs flex flex-col items-center gap-2 max-w-sm">
+                              <ShieldAlert className="w-8 h-8 text-amber-400" />
+                              <p className="font-semibold">{mediaError}</p>
+                            </div>
+                          ) : (
+                            <video
+                              ref={videoRef}
+                              src={videoSrc.src}
+                              controls
+                              controlsList="nodownload noremoteplayback"
+                              disablePictureInPicture
+                              playsInline
+                              preload="metadata"
+                              onLoadStart={() => {
+                                setIsMediaLoading(true);
+                                setMediaError(null);
+                              }}
+                              onLoadedMetadata={() => setIsMediaLoading(false)}
+                              onCanPlay={() => setIsMediaLoading(false)}
+                              onPlay={() => logSecurityEvent("VIDEO_PLAY", activeItem.id)}
+                              onPause={() => logSecurityEvent("VIDEO_PAUSE", activeItem.id)}
+                              onError={() => {
+                                setIsMediaLoading(false);
+                                setMediaError("Unable to load this learning video. Please try again or contact the administrator.");
+                              }}
+                              className="w-full h-full object-contain"
+                            />
+                          )}
+                        </>
+                      );
+                    } else {
+                      return (
+                        <div className="p-6 text-center text-slate-400 text-xs">
+                          Invalid or unsupported learning content.
+                        </div>
+                      );
+                    }
+                  })()}
+                </div>
+              )}
+
+              {/* Image Viewer */}
+              {activeItem.content_type === "image" && (
+                <div className="max-h-[70vh] p-4 flex items-center justify-center overflow-auto bg-slate-950 w-full">
+                  <img
+                    src={`/api/crm/learning/files/${activeItem.file_id}?token=${accessToken}`}
+                    alt={activeItem.title}
+                    className="max-h-[65vh] object-contain rounded-lg shadow-lg"
+                  />
+                </div>
+              )}
+
+              {/* PDF Viewer */}
+              {activeItem.content_type === "pdf" && (
+                <div className="w-full h-[70vh] bg-slate-950">
+                  <iframe
+                    src={`/api/crm/learning/files/${activeItem.file_id}?token=${accessToken}#toolbar=0`}
+                    title={activeItem.title}
+                    className="w-full h-full rounded-lg border-0"
+                  />
+                </div>
+              )}
+
+              {/* Document Download / Info Card */}
+              {activeItem.content_type === "document" && (
+                <div className="p-8 text-center bg-slate-950 w-full rounded-lg space-y-4">
+                  <FileText className="w-16 h-16 text-amber-500 mx-auto" />
+                  <div>
+                    <h3 className="text-lg font-bold">{activeItem.file_name || activeItem.title}</h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {activeItem.file_size ? `${(activeItem.file_size / (1024 * 1024)).toFixed(2)} MB` : "Document File"}
+                    </p>
+                  </div>
+                  <a
+                    href={`/api/crm/learning/files/${activeItem.file_id}?token=${accessToken}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition shadow-lg"
+                  >
+                    <Download className="w-4 h-4" /> Open / Download Document
+                  </a>
+                </div>
+              )}
+
+              {/* Text Reader */}
+              {activeItem.content_type === "text" && (
+                <div className="p-6 bg-slate-950 w-full rounded-lg max-h-[60vh] overflow-y-auto space-y-4 text-left">
+                  <div className="prose prose-invert max-w-none text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
+                    {activeItem.text_content}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Description */}
+            <div className="mt-4 pt-4 border-t border-slate-800">
+              <p className="text-sm text-slate-300">{activeItem.description || "No description provided."}</p>
+              <div className="flex items-center justify-between text-xs text-slate-500 mt-2">
+                <span>Created by: {activeItem.created_by_name || activeItem.created_by}</span>
+                <span>Published: {new Date(activeItem.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Materials Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm animate-pulse space-y-3">
+              <div className="h-40 bg-gray-100 rounded-xl" />
+              <div className="h-4 bg-gray-100 rounded w-3/4" />
+              <div className="h-3 bg-gray-100 rounded w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : filteredMaterials.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
+          <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-lg font-bold text-gray-800">No Learning Content Found</h3>
+          <p className="text-sm text-gray-500 mt-1">There are currently no training materials assigned or matching your filter.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredMaterials.map((item) => (
+            <div
+              key={item.id}
+              className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition ${isBlurred ? "filter blur-sm" : ""}`}
+            >
+              {/* Card Header Preview */}
+              <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-slate-50/50">
+                {renderContentTypeBadge(item.content_type)}
+
+                <div className="flex items-center gap-2">
+                  {!item.is_published && (
+                    <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-semibold">
+                      Draft
+                    </span>
+                  )}
+                  {isAdmin && item.recipient_count !== undefined && (
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded font-medium">
+                      <Users className="w-3 h-3" /> {item.recipient_count} recipients
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Content Body */}
+              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 line-clamp-1">{item.title}</h3>
+                  <p className="text-xs text-gray-500 mt-1.5 line-clamp-3">{item.description || "No description provided."}</p>
+                </div>
+
+                {/* Status / View Info */}
+                <div className="space-y-3">
+                  {isAdmin ? (
+                    <div className="text-xs text-gray-500 flex items-center justify-between border-t border-gray-100 pt-3">
+                      <span>Viewed by: <strong className="text-indigo-600 font-semibold">{item.viewed_count || 0} / {item.recipient_count || 0}</strong></span>
+                      <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-xs border-t border-gray-100 pt-3">
+                      <span className="text-indigo-600 font-medium">Assigned to you</span>
+                      {item.has_viewed ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
+                          <CheckCircle className="w-3.5 h-3.5" /> Viewed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-amber-600 font-semibold">
+                          <Clock className="w-3.5 h-3.5" /> New Content
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Primary Action Button */}
+                  <button
+                    onClick={() => handleOpenItem(item)}
+                    className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    {item.content_type === "video" ? "Watch Video" :
+                     item.content_type === "image" ? "View Image" :
+                     item.content_type === "pdf" ? "Open PDF" :
+                     item.content_type === "document" ? "Open Document" : "Read Content"}
+                  </button>
+
+                  {/* Founder / BDO Admin Controls */}
+                  {isAdmin && (
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-xs">
+                      <button
+                        onClick={() => handleTogglePublish(item.id)}
+                        className={`inline-flex items-center gap-1 font-medium ${item.is_published ? "text-emerald-600" : "text-amber-600"}`}
+                      >
+                        {item.is_published ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                        {item.is_published ? "Published" : "Publish"}
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEditModal(item)}
+                          className="p-1.5 text-gray-500 hover:text-indigo-600 rounded hover:bg-gray-100"
+                          title="Edit content & recipients"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-1.5 text-gray-500 hover:text-red-600 rounded hover:bg-gray-100"
+                          title="Delete content"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ADD / EDIT LEARNING CONTENT MODAL (Founder & BDO only) */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h2 className="text-lg font-bold text-gray-900">
+                {editingItem ? "EDIT LEARNING CONTENT" : "ADD LEARNING CONTENT"}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="e.g. Sales Training & Property Documentation"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Short description of what recipients will learn..."
+                />
+              </div>
+
+              {/* Content Mode Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Content Source & Format <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setContentTypeTab("file")}
+                    className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1 ${
+                      contentTypeTab === "file"
+                        ? "bg-white text-indigo-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    <Upload className="w-3.5 h-3.5" /> Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentTypeTab("url")}
+                    className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1 ${
+                      contentTypeTab === "url"
+                        ? "bg-white text-indigo-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    <Video className="w-3.5 h-3.5" /> Video / URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentTypeTab("text")}
+                    className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1 ${
+                      contentTypeTab === "text"
+                        ? "bg-white text-indigo-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5" /> Text Content
+                  </button>
+                </div>
+              </div>
+
+              {/* File Input */}
+              {contentTypeTab === "file" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Select File {editingItem ? "(Leave blank to keep existing file)" : "<span className='text-red-500'>*</span>"}
+                  </label>
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-indigo-400 transition bg-slate-50/50">
+                    <input
+                      type="file"
+                      id="learning-file-upload"
+                      onChange={(e) => setSelectedFile(e.target.files[0])}
+                      className="hidden"
+                    />
+                    <label htmlFor="learning-file-upload" className="cursor-pointer flex flex-col items-center gap-1">
+                      <Upload className="w-8 h-8 text-indigo-500" />
+                      <span className="text-xs font-semibold text-indigo-600">
+                        {selectedFile ? selectedFile.name : "Click to select file (Video, Image, PDF, Document)"}
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        Supports MP4, WebM, MOV, JPG, PNG, WEBP, PDF, DOCX, PPTX, XLSX, TXT (Max 100MB)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Video URL Input */}
+              {contentTypeTab === "url" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Video Source URL / Link <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="url"
+                    required={contentTypeTab === "url"}
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="e.g. https://youtu.be/... or https://domain.com/video.mp4"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Paste YouTube, Vimeo, MP4 URL, or direct content link.
+                  </p>
+                </div>
+              )}
+
+              {/* Text Content */}
+              {contentTypeTab === "text" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Text Content <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    rows={5}
+                    required={contentTypeTab === "text"}
+                    value={textContent}
+                    onChange={(e) => setTextContent(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-sans"
+                    placeholder="Enter training guidelines, steps, client scripts, or instructions here..."
+                  />
+                </div>
+              )}
+
+              {/* List of Registered CRM Employees Dropdown */}
+              <div className="relative" ref={recipientDropdownRef}>
+                <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-indigo-600" /> List of Employees (Registered CRM Members) <span className="text-red-500">*</span>
+                  </span>
+                  {selectedRecipients.length > 0 && (
+                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                      {selectedRecipients.length} selected
+                    </span>
+                  )}
+                </label>
+
+                {/* Dropdown Trigger Button */}
+                <button
+                  type="button"
+                  onClick={() => setRecipientDropdownOpen(!recipientDropdownOpen)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-left flex items-center justify-between focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm hover:border-indigo-400 transition min-h-[42px]"
+                >
+                  <span className="truncate text-gray-700 font-medium">
+                    {selectedRecipients.length === 0 ? (
+                      <span className="text-gray-400 font-normal">Select Employees from CRM List ▼</span>
+                    ) : (
+                      <span className="text-xs text-gray-900 font-semibold">
+                        {selectedRecipients.length} Employees Selected (Click to change)
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-500 ml-2 flex-shrink-0 transition-transform ${recipientDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* Dropdown Menu Popover */}
+                {recipientDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 p-3 space-y-2 max-h-64 overflow-y-auto">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search employees by name or role..."
+                          value={recipientSearch}
+                          onChange={(e) => setRecipientSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleToggleSelectAll}
+                        className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 whitespace-nowrap"
+                      >
+                        {isAllSelected ? "Deselect All" : "Select All"}
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider px-1 pt-1">
+                      List of CRM System Employees:
+                    </p>
+
+                    {/* List of Registered CRM Users */}
+                    <div className="divide-y divide-gray-100 max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-white">
+                      {filteredEmployeesForSelector.length === 0 ? (
+                        <div className="p-3 text-center text-xs text-gray-400">No matching registered employees found</div>
+                      ) : (
+                        filteredEmployeesForSelector.map(empItem => {
+                          const isChecked = selectedRecipients.includes(empItem.id);
+                          return (
+                            <div
+                              key={empItem.id}
+                              onClick={() => handleToggleRecipient(empItem.id)}
+                              className={`p-2 flex items-center justify-between cursor-pointer transition text-xs ${
+                                isChecked ? "bg-indigo-50/90 font-semibold text-indigo-950" : "hover:bg-gray-50 text-gray-800"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {isChecked ? (
+                                  <CheckSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                                )}
+                                <div>
+                                  <p className="font-semibold">{empItem.name}</p>
+                                  <p className="text-[10px] text-gray-500">{empItem.email || empItem.employee_id}</p>
+                                </div>
+                              </div>
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                                {empItem.role}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Removable Employee Chips */}
+              {selectedRecipients.length > 0 && (
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500">Target Recipients (Selected Employees):</label>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 bg-gray-50 rounded-lg border border-gray-100">
+                    {employeesList
+                      .filter(e => selectedRecipients.includes(e.id))
+                      .map(e => (
+                        <span
+                          key={e.id}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-800 text-xs font-semibold rounded-lg border border-indigo-200 shadow-xs"
+                        >
+                          {e.name} <span className="text-[10px] opacity-75">({e.role})</span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleRecipient(e.id)}
+                            className="text-indigo-400 hover:text-indigo-900 hover:bg-indigo-100 rounded p-0.5 transition"
+                            title={`Remove ${e.name}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1.5 shadow-sm transition"
+                >
+                  {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                  {editingItem ? "Save Changes" : "Publish Content"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SCREENSHOT & SECURITY PROTECTION OVERLAY */}
+      {isBlurred && (
+        <div className="fixed inset-0 z-[99999] bg-slate-950/85 backdrop-blur-2xl flex items-center justify-center p-6 text-center animate-in fade-in duration-200 select-none">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-red-100 space-y-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+              <ShieldAlert className="w-10 h-10 animate-bounce" />
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900">
+              SCREENSHOT ATTEMPT DETECTED!
+            </h2>
+
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Screenshots, screen capture, and tab switching are strictly prohibited on
+              <span className="font-bold text-indigo-600"> VisitSarva CRM</span> to protect
+              confidential training materials and internal employee documents.
+            </p>
+
+            <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs font-semibold text-red-700">
+              {securityWarning || "Screen capture or window focus lost. Screen blurred for compliance."}
+            </div>
+
+            <p className="text-[11px] text-gray-400">
+              All screenshot attempts are logged and reported to System Administrators for compliance review.
+            </p>
+
+            <button
+              onClick={() => {
+                setIsBlurred(false);
+                setSecurityWarning("");
+              }}
+              className="w-full py-3 bg-indigo-600 text-white font-semibold text-sm rounded-xl hover:bg-indigo-700 transition shadow-md"
+            >
+              I Understand & Acknowledge
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
