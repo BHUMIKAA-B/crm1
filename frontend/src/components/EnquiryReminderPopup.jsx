@@ -346,7 +346,7 @@ export default function EnquiryReminderPopup() {
     return () => {
       clearTimer();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // mount-once: the timer manages itself via scheduleNext
 
   // Stop popup from appearing on blocked routes reactively
