@@ -11,7 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
 import asyncio
-from services.whatsapp_queue import process_pending_jobs
+from backend.services.whatsapp_queue import process_pending_jobs
 
 # Import after env is loaded
 from routers.auth_router import router as auth_router  # noqa: E402

@@ -47,12 +47,12 @@ function UserMessage({ text }) {
   );
 }
 
-export default function ChatBot({ forceOpen = false, fullPage = false }) {
+export default function ChatBot({ forceOpen = false, fullPage = false, initialSessionId = null }) {
   const [open, setOpen] = useState(forceOpen || fullPage);
   const [messages, setMessages] = useState([{ role: "bot", text: WELCOME }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
+  const [sessionId, setSessionId] = useState(initialSessionId);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const { user } = useAuthStore();

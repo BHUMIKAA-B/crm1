@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 import db
 import auth as auth_utils
+from models.chat import ChatConversation
 from models import EnquiryCreate, new_id, now_iso
 from routers.cms_router import push_notification
 from services.email import send_email, tpl_new_enquiry, tpl_welcome
@@ -60,16 +61,44 @@ async def create_enquiry(
             seller_phone = seller.get("phone", "")
             if seller_phone:
                 wa_msg = (
-                    f"\U0001f3e0 *New Enquiry \u2014 VisitSarva*\n\n"
+                    f"\U0001f3e0 *New Enquiry — VisitSarva*\n\n"
                     f"Property: {prop.get('title', '')}\n"
                     f"From: {payload.name}\n"
                     f"Phone: {payload.phone}\n"
                     f"Email: {email_str or '(not provided)'}\n"
                     f"Message: {payload.message or '(none)'}\n\n"
-                    f"Reply to the buyer on VisitSarva \u2192 /seller/enquiries"
+                    f"Reply to the buyer on VisitSarva → /seller/enquiries"
                 )
-                await send_whatsapp(seller_phone, wa_msg)
-    doc.pop("_id", None)
+                sent = await send_whatsapp(seller_phone, wa_msg)
+                if not sent:
+                    # Enqueue for retry via background worker
+                    from services.whatsapp_queue import enqueue_whatsapp_job
+                    await enqueue_whatsapp_job(
+                        enquiry_id=doc["id"],
+                        to_phone=seller_phone,
+                        message=wa_msg,
+                    )
+        # Send WhatsApp to buyer (the person who filled the enquiry)
+        buyer_phone = payload.phone.strip()
+        if buyer_phone:
+            buyer_msg = (
+                f"🟢 *Your enquiry has been received — VisitSarva*\n\n"
+                f"Property: {prop.get('title', '')}\n"
+                f"From: {payload.name}\n"
+                f"Phone: {payload.phone}\n"
+                f"Email: {email_str or '(not provided)'}\n"
+                f"Message: {payload.message or '(none)'}\n\n"
+                f"We will get back to you shortly."
+            )
+            sent_buyer = await send_whatsapp(buyer_phone, buyer_msg)
+            if not sent_buyer:
+                from services.whatsapp_queue import enqueue_whatsapp_job
+                await enqueue_whatsapp_job(
+                    enquiry_id=doc["id"],
+                    to_phone=buyer_phone,
+                    message=buyer_msg,
+                )
+        doc.pop("_id", None)
 
     # ── AI Calling: queue a call job for this enquiry (fire-and-forget) ──────
     try:
@@ -94,6 +123,10 @@ async def create_enquiry(
         )
     # ─────────────────────────────────────────────────────────────────────────
 
+    # Start a native chatbot session linked to this enquiry
+    convo = ChatConversation(enquiry_id=doc["id"])
+    await db.chat_conversations().insert_one(convo.model_dump())
+    doc["chat_session_id"] = convo.id
     return doc
 
 
@@ -131,6 +164,10 @@ async def create_project_enquiry(
         "created_at": now_iso(),
     }
     await db.enquiries().insert_one(doc)
+    # Create chat session linked to this project enquiry
+    proj_convo = ChatConversation(enquiry_id=doc["id"])
+    await db.chat_conversations().insert_one(proj_convo.model_dump())
+    doc["chat_session_id"] = proj_convo.id
     doc.pop("_id", None)
 
     # ── AI Calling: queue a call job for this project enquiry ─────────────────

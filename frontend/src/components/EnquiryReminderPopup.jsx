@@ -15,6 +15,7 @@
  * No extra npm packages required.
  */
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import ChatBotWidget from "./ChatBotWidget";
 import ReactDOM from "react-dom";
 import { useLocation } from "react-router-dom";
 import { X, Loader2, Phone, Mail, MessageSquare, ArrowUpRight } from "lucide-react";
@@ -51,7 +52,7 @@ function PopupForm({ onSuccess, onCancel }) {
     }
     setLoading(true);
     try {
-      await api.post("/project-enquiries", {
+      const { data } = await api.post("/project-enquiries", {
         project_id: "general",
         project_title: "General Property Enquiry",
         project_location: "",
@@ -61,9 +62,11 @@ function PopupForm({ onSuccess, onCancel }) {
         message: form.message.trim() || "Submitted via enquiry reminder popup.",
         contact_preference: form.contact_preference,
       });
+      // data includes chat_session_id from backend
+      const chatId = data?.chat_session_id || null;
       sessionStorage.setItem(SESSION_KEY, "1");
       toast.success("Enquiry submitted! Our team will contact you soon.");
-      onSuccess();
+      onSuccess(chatId);
     } catch {
       toast.error("Could not submit enquiry. Please try again.");
     } finally {
@@ -285,39 +288,29 @@ function ReminderDialog({ onDismiss, onSubmitted }) {
 }
 
 /* ── Controller — manages the timer lifecycle ──────────────────────────────── */
-const REMINDER_DELAY_MS = 5000; // 5 seconds – restored original interval
+const REMINDER_DELAY_MS = 60000; // 1 minute – reminder interval
 
 export default function EnquiryReminderPopup() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const timerRef = useRef(null);
+  const [chatSessionId, setChatSessionId] = useState(null);
+  const [showChat, setShowChat] = useState(false);
+  const intervalRef = useRef(null);
   const submittedRef = useRef(false);
 
-  const clearTimer = () => {
-    if (timerRef.current !== null) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  const scheduleNext = useCallback(() => {
-    clearTimer();
-    timerRef.current = setTimeout(() => {
-      // Guard: no popup if already submitted, blocked route, or another dialog is open
-      if (submittedRef.current) return;
-      if (isBlockedRoute(window.location.pathname)) {
-        scheduleNext(); // retry after another interval
-        return;
-      }
-      // Check for other open dialogs (aria-modal elements besides ours)
+  // Set up a repeating interval that checks the page state every minute
+  useEffect(() => {
+    if (isBlockedRoute(location.pathname)) return;
+    // Run check immediately on mount as well
+    const checkAndOpen = () => {
+      if (submittedRef.current) return; // already submitted – stop showing reminders
+      if (open) return; // popup already visible
+      // Do not show if another modal/dialog is present
       const otherModals = document.querySelectorAll(
         '[role="dialog"][aria-modal="true"]'
       );
-      if (otherModals.length > 0) {
-        scheduleNext();
-        return;
-      }
-      // Check if user is actively typing in a form
+      if (otherModals.length > 0) return;
+      // Do not show while user is typing in an input field
       const active = document.activeElement;
       const isTyping =
         active &&
@@ -325,31 +318,21 @@ export default function EnquiryReminderPopup() {
           active.tagName === "TEXTAREA" ||
           active.tagName === "SELECT" ||
           active.isContentEditable);
-      if (isTyping) {
-        scheduleNext();
-        return;
-      }
+      if (isTyping) return;
+      // All clear – open the reminder
       setOpen(true);
-    }, REMINDER_DELAY_MS);
-  }, []);
+    };
 
-  useEffect(() => {
-    // Check session flag first
-    if (sessionStorage.getItem(SESSION_KEY)) {
-      submittedRef.current = true;
-      return;
-    }
-    if (isBlockedRoute(location.pathname)) return;
-
-    scheduleNext();
-
+    // Initial check
+    checkAndOpen();
+    // Set interval for subsequent checks
+    intervalRef.current = setInterval(checkAndOpen, REMINDER_DELAY_MS);
     return () => {
-      clearTimer();
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // mount-once: the timer manages itself via scheduleNext
+  }, [open, location.pathname]);
 
-  // Stop popup from appearing on blocked routes reactively
   useEffect(() => {
     if (isBlockedRoute(location.pathname)) {
       clearTimer();
@@ -360,15 +343,24 @@ export default function EnquiryReminderPopup() {
   const handleDismiss = useCallback(() => {
     setOpen(false);
     if (!submittedRef.current) {
-      scheduleNext(); // restart 5-second timer
+      scheduleNext();
     }
   }, [scheduleNext]);
 
-  const handleSubmitted = useCallback(() => {
+  const handleSubmitted = useCallback((sessionId) => {
     submittedRef.current = true;
+    sessionStorage.setItem(SESSION_KEY, "true");
     clearTimer();
+    setChatSessionId(sessionId);
+    setShowChat(true); // ensure chatbot shows even if sessionId is null
     setOpen(false);
+    console.log('Enquiry submitted, chatSessionId:', sessionId);
   }, []);
+
+  if (showChat) {
+    // Render the chatbot widget after successful enquiry (sessionId may be null)
+    return <ChatBotWidget sessionId={chatSessionId} />;
+  }
 
   if (!open || submittedRef.current) return null;
 

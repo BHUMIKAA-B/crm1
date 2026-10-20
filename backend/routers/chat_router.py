@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field
 
 import db
 from auth import get_current_user_optional
+from models.chat import ChatConversation, ChatMessage, ChatStartRequest, ChatStartResponse
+from models.chat import now_iso
 
 log = logging.getLogger("visitsarva")
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -361,11 +363,43 @@ async def send_message(
     current_user: Optional[dict] = Depends(get_current_user_optional),
 ):
     session_id = body.session_id or str(uuid.uuid4())
+    # Persist user message
+    await db.chat_messages().insert_one({
+        "conversation_id": session_id,
+        "role": "user",
+        "content": body.message,
+    })
     reply = await _dispatch(body.message)
+    # Persist assistant reply
+    await db.chat_messages().insert_one({
+        "conversation_id": session_id,
+        "role": "assistant",
+        "content": reply,
+    })
+    # Update conversation's updated_at and question_index if needed (simple touch)
+    await db.chat_conversations().update_one(
+        {"id": session_id}, {"$set": {"updated_at": now_iso()}}
+    )
     return ChatMessageResponse(reply=reply, session_id=session_id)
 
 
 @router.delete("/session/{session_id}")
 async def clear_session(session_id: str):
     """Reset chat session (called by the Reset button in the UI)."""
+    # Remove messages and conversation
+    await db.chat_messages().delete_many({"conversation_id": session_id})
+    await db.chat_conversations().delete_one({"id": session_id})
     return {"cleared": True}
+
+
+@router.post("/start", response_model=ChatStartResponse)
+async def start_chat(request: ChatStartRequest):
+    """Create a new chat conversation linked to an enquiry.
+    Returns a session_id that the frontend uses for subsequent messages.
+    """
+    convo = ChatConversation(
+        enquiry_id=request.enquiry_id,
+        category=request.category or "property_purchase",
+    )
+    await db.chat_conversations().insert_one(convo.model_dump())
+    return ChatStartResponse(session_id=convo.id)

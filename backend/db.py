@@ -183,6 +183,13 @@ def learning_security_events():
 def whatsapp_jobs():
     return get_db()["whatsapp_jobs"]
 
+def chat_conversations():
+    """Return the Mongo collection for chat conversations."""
+    return get_db()["chat_conversations"]
+
+def chat_messages():
+    """Return the Mongo collection for chat messages."""
+    return get_db()["chat_messages"]
 
 def report_download_history():
     """Tracks report downloads for baseline calculation (work since last report)."""
