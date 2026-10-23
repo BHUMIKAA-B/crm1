@@ -258,7 +258,7 @@ const Landing = () => {
           </div>
         </div>
       </section>
-        <section id="our-services" className="py-24 md:py-28 bg-vs-bg" data-testid="our-services-section">
+        <!-- Removed obsolete Our Services block -->
         
           <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
             <motion.div
@@ -326,8 +326,11 @@ const Landing = () => {
         </section>
 
       {/* ===== TOP RATED (AUTO-SCROLL CAROUSEL) ===== */}
-              <TopRatedCarousel items={featured} />
+              <TopRatedCarousel />
+
+        <section id=\"our-services\" className=\"py-24 md:py-28 bg-vs-bg\" data-testid=\"our-services-section\">\n          <div className=\"max-w-[80rem] mx-auto px-6 lg:px-12\">\n            <motion.div\n              initial=\"hidden\"\n              whileInView=\"visible\"\n              viewport={{ once: true, margin: \"-100px\" }}\n              variants={stagger}\n              className=\\\"max-w-2xl mb-10\\\"\n            >\n              <motion.div variants={fadeUp} className=\\\"eyebrow text-vs-gold mb-4\\\">Our Services</motion.div>\n              <motion.h2 variants={fadeUp} className=\\\"font-display text-3xl md:text-4xl font-medium text-vs-text-primary\\\">\n                Everything you need for your property, all in one place (updated).\n              </motion.h2>\n            </motion.div>\n            <div className=\\\"grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4\\\">\n              {/* Service cards data */}\n              {[\n                {\n                  title: \\\"Interior Designing\\\",\n                  Icon: Home, // fallback icon\n                  imgUrl: \\\"https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600\\u0026auto=format\\u0026fit=crop\\u0026crop=entropy\\\",\n                },\n                {\n                  title: \\\"Khata Services\\\",\n                  Icon: FileCheck,\n                  imgUrl: \\\"https://images.unsplash.com/photo-1519205482928-7c49caf0c9df?w=600\\u0026auto=format\\u0026fit=crop\\u0026crop=entropy\\\",\n                  subOptions: [\\\"E-Khata\\\", \\\"B to A Khata\\\", \\\"Mutation / Khata Transfer\\\", \\\"E-Khata Corrections\\\"],\n                },\n                {\n                  title: \\\"Encumbrance Certificate (EC)\\\",\n                  Icon: FileSearch2,\n                  imgUrl: \\\"https://images.unsplash.com/photo-1593279003741-95ca73e482dd?w=600\\u0026auto=format\\u0026fit=crop\\u0026crop=entropy\\\",\n                },\n                {\n                  title: \\\"Certified Sale Deed Copy\\\",\n                  Icon: FileSignature,\n                  imgUrl: \\\"https://images.unsplash.com/photo-1604079621134-2761c040e02e?w=600\\u0026auto=format\\u0026fit=crop\\u0026crop=entropy\\\",\n                },\n                {\n                  title: \\\"Painting Services\\\",\n                  Icon: Palette,\n                  imgUrl: \\\"https://images.unsplash.com/photo-1580910051079-b93bb802b564?w=600\\u0026auto=format\\u0026fit=crop\\u0026crop=entropy\\\",\n                },\n                {\n                  title: \\\"Renovation / Alteration Services\\\",\n                  Icon: Hammer,\n                  imgUrl: \\\"https://images.unsplash.com/photo-1531081109619-1ac4281f42b6?w=600\\u0026auto=format\\u0026fit=crop\\u0026crop=entropy\\\",\n                },\n                {\n                  title: \\\"Packers and Movers\\\",\n                  Icon: Truck,\n                  imgUrl: \\\"https://images.unsplash.com/photo-1588091850440-259c4b31da97?w=600\\u0026auto=format\\u0026fit=crop\\u0026crop=entropy\\\",\n                },\n              ].map((svc) => (\n                <FreshServiceCard\n                  key={svc.title}\n                  title={svc.title}\n                  Icon={svc.Icon}\n                  imgUrl={svc.imgUrl}\n                  subOptions={svc.subOptions}\n                />\n              ))}\n            </div>\n          </div>\n        </section>
         </section>
+
 
       <ValuationModal open={valuationOpen} onClose={() => setValuationOpen(false)} />
 
