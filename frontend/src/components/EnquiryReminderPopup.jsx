@@ -296,6 +296,40 @@ export default function EnquiryReminderPopup() {
   const [chatSessionId, setChatSessionId] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const intervalRef = useRef(null);
+  // Optional timeout for a single delayed popup after dismiss
+  const timeoutRef = useRef(null);
+
+  // Clear any existing interval or timeout
+  const clearTimer = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  // Schedule a single next popup after the reminder delay
+  const scheduleNext = useCallback(() => {
+    clearTimer();
+    timeoutRef.current = setTimeout(() => {
+      // Re‑run the same checks as the interval would
+      if (submittedRef.current) return;
+      const otherModals = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (otherModals.length > 0) return;
+      const active = document.activeElement;
+      const isTyping =
+        active &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.tagName === "SELECT" ||
+          active.isContentEditable);
+      if (isTyping) return;
+      setOpen(true);
+    }, REMINDER_DELAY_MS);
+  }, [clearTimer]);
   const submittedRef = useRef(false);
 
   // Set up a repeating interval that checks the page state every minute
