@@ -1,3 +1,4 @@
+/* Trigger redeploy */
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
@@ -327,21 +328,7 @@ const Landing = () => {
       {/* ===== TOP RATED (AUTO-SCROLL CAROUSEL) ===== */}
       <TopRatedCarousel items={featured} />
 
-        {/* ==== OUR SERVICES SECTION ==== */}
-        <section id="our-services" className="py-24 md:py-28 bg-vs-bg" data-testid="our-services-section">
-          <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={stagger}
-              className="max-w-2xl mb-10"
-            >
-              <motion.div variants={fadeUp} className="eyebrow text-vs-gold mb-4">Our Services</motion.div>
-              <motion.h2 variants={fadeUp} className="font-display text-3xl md:text-4xl font-medium text-vs-text-primary">
-                Everything you need for your property, all in one place.
-              </motion.h2>
-            </motion.div>
+
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {/* Service cards data */}
               {[
