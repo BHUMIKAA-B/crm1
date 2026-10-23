@@ -258,7 +258,7 @@ const Landing = () => {
         </div>
       </section>
         {/* ==== OUR SERVICES SECTION ==== */}
-        <section id="our-services" className="py-24 md:py-28 bg-vs-bg" data-testid="our-services-section">
+        
           <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
             <motion.div
               initial="hidden"
@@ -326,6 +326,73 @@ const Landing = () => {
 
       {/* ===== TOP RATED (AUTO-SCROLL CAROUSEL) ===== */}
       <TopRatedCarousel items={featured} />
+
+        {/* ==== OUR SERVICES SECTION ==== */}
+        <section id="our-services" className="py-24 md:py-28 bg-vs-bg" data-testid="our-services-section">
+          <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={stagger}
+              className="max-w-2xl mb-10"
+            >
+              <motion.div variants={fadeUp} className="eyebrow text-vs-gold mb-4">Our Services</motion.div>
+              <motion.h2 variants={fadeUp} className="font-display text-3xl md:text-4xl font-medium text-vs-text-primary">
+                Everything you need for your property, all in one place.
+              </motion.h2>
+            </motion.div>
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {/* Service cards data */}
+              {[
+                {
+                  title: "Interior Designing",
+                  Icon: Home, // fallback icon
+                  imgUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&auto=format&fit=crop&crop=entropy",
+                },
+                {
+                  title: "Khata Services",
+                  Icon: FileCheck,
+                  imgUrl: "https://images.unsplash.com/photo-1519205482928-7c49caf0c9df?w=600&auto=format&fit=crop&crop=entropy",
+                  subOptions: ["E-Khata", "B to A Khata", "Mutation / Khata Transfer", "E-Khata Corrections"],
+                },
+                {
+                  title: "Encumbrance Certificate (EC)",
+                  Icon: FileSearch2,
+                  imgUrl: "https://images.unsplash.com/photo-1593279003741-95ca73e482dd?w=600&auto=format&fit=crop&crop=entropy",
+                },
+                {
+                  title: "Certified Sale Deed Copy",
+                  Icon: FileSignature,
+                  imgUrl: "https://images.unsplash.com/photo-1604079621134-2761c040e02e?w=600&auto=format&fit=crop&crop=entropy",
+                },
+                {
+                  title: "Painting Services",
+                  Icon: Palette,
+                  imgUrl: "https://images.unsplash.com/photo-1580910051079-b93bb802b564?w=600&auto=format&fit=crop&crop=entropy",
+                },
+                {
+                  title: "Renovation / Alteration Services",
+                  Icon: Hammer,
+                  imgUrl: "https://images.unsplash.com/photo-1531081109619-1ac4281f42b6?w=600&auto=format&fit=crop&crop=entropy",
+                },
+                {
+                  title: "Packers and Movers",
+                  Icon: Truck,
+                  imgUrl: "https://images.unsplash.com/photo-1588091850440-259c4b31da97?w=600&auto=format&fit=crop&crop=entropy",
+                },
+              ].map((svc) => (
+                <FreshServiceCard
+                  key={svc.title}
+                  title={svc.title}
+                  Icon={svc.Icon}
+                  imgUrl={svc.imgUrl}
+                  subOptions={svc.subOptions}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
 
       <ValuationModal open={valuationOpen} onClose={() => setValuationOpen(false)} />
 
