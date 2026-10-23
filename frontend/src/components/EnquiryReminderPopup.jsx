@@ -288,7 +288,7 @@ function ReminderDialog({ onDismiss, onSubmitted }) {
 }
 
 /* ── Controller — manages the timer lifecycle ──────────────────────────────── */
-const REMINDER_DELAY_MS = 0; // Immediate reminder
+const REMINDER_DELAY_MS = 60000; // 1 minute – reminder interval
 
 export default function EnquiryReminderPopup() {
   const location = useLocation();
