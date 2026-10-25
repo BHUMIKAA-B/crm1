@@ -333,14 +333,7 @@ export default function EnquiryReminderPopup() {
     }
 
     const otherModals = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
-    const active = document.activeElement;
-    const isTyping =
-      active &&
-      (active.tagName === "INPUT" ||
-        active.tagName === "TEXTAREA" ||
-        active.tagName === "SELECT" ||
-        active.isContentEditable);
-    if (otherModals.length > 0 || isTyping) return;
+    if (otherModals.length > 0) return;
 
     dueRef.current = false;
     setPopupOpen(true);
