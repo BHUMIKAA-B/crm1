@@ -393,12 +393,8 @@ const Landing = () => {
           </div >
         </section >
         */
-{/* ===== TOP RATED (AUTO-SCROLL CAROUSEL) ===== */ }
-                              \n        </section>
 
-
-
-  < ValuationModal open = { valuationOpen } onClose = {() => setValuationOpen(false)} />
+      <ValuationModal open={valuationOpen} onClose={() => setValuationOpen(false)} />
 
 {/* ===== NEWLY LAUNCHED PROJECTS ===== */ }
 <NewlyLaunched />
