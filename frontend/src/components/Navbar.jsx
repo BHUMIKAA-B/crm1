@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, LogOut, LayoutDashboard, Bookmark, Inbox, ChevronDown, MessageCircle, Building2, Landmark } from "lucide-react";
 import Logo from "@/components/Logo";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
@@ -21,6 +21,7 @@ const Navbar = () => {
   const [sectorsOpen, setSectorsOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
   const sectorRef = useRef(null);
   const userRef = useRef(null);
   const navigate = useNavigate();
@@ -43,10 +44,26 @@ const Navbar = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (location.pathname !== "/" || location.hash !== "#our-services") return;
+    requestAnimationFrame(() => {
+      document.getElementById("our-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [location.pathname, location.hash]);
+
   const handleLogout = () => {
     logout();
     setMenu(false);
     navigate("/");
+  };
+
+  const handleServicesNavigation = () => {
+    setOpen(false);
+    if (location.pathname === "/") {
+      requestAnimationFrame(() => {
+        document.getElementById("our-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   };
 
   const dashboardPath =
@@ -115,6 +132,7 @@ const Navbar = () => {
               </div>
             )}
           </div>
+          <NavLink to="/#our-services" onClick={handleServicesNavigation}>Our Services</NavLink>
           <NavLink to="/properties">Browse</NavLink>
           <NavLink to="/construction">Construction</NavLink>
           <NavLink to="/loan-assistance">
@@ -251,6 +269,7 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="border-t border-vs-border my-4" />
+            <NavLink to="/#our-services" onClick={handleServicesNavigation}>Our Services</NavLink>
             <NavLink to="/properties" onClick={() => setOpen(false)}>Browse all</NavLink>
             <NavLink to="/construction" onClick={() => setOpen(false)}>Construction</NavLink>
             <NavLink to="/loan-assistance" onClick={() => setOpen(false)}>
