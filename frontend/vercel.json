@@ -8,6 +8,20 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "web"
+      }
     }
-  ]
+  ],
+  "services": {
+    "web": {
+      "root": ".",
+      "framework": "create-react-app",
+      "buildCommand": "npm install && npm run build"
+    }
+  }
 }
