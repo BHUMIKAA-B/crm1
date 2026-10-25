@@ -228,7 +228,7 @@ function App() {
           {/* Floating chatbot bubble — visible on all pages except /chat */}
           <ChatBot />
 
-          {/* Recurring enquiry reminder — public pages only, 5-s interval */}
+          {/* Recurring enquiry reminder — public pages only, 60-s cadence */}
           <EnquiryReminderPopup />
         </BrowserRouter>
         <Toaster

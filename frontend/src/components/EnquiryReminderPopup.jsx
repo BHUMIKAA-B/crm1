@@ -1,13 +1,13 @@
 /**
  * EnquiryReminderPopup
  *
- * Shows a polished enquiry-reminder dialog approximately every 5 seconds while
- * a visitor browses the public site. Timing rules:
- *   – First popup fires ~5 s after the component mounts.
- *   – Dismissing ("Maybe Later") restarts the 5-s timer.
- *   – After a successful enquiry submission the popup is never shown again in
- *     this browser session (sessionStorage flag).
- *   – Only one timer runs at a time; cleanup on unmount prevents leaks.
+ * Shows one enquiry reminder per 60-second public-site cadence.
+ * Timing rules:
+ *   – The first reminder appears 60 seconds after entering the public site.
+ *   – Later reminders stay anchored to that cadence, even if the dialog stays open.
+ *   – Public-route navigation does not reset the timer.
+ *   – A successful enquiry stops reminders for this browser session.
+ *   – Only one scheduled callback and one dialog can exist at a time.
  *   – Does not appear on /crm, /admin, /login, /register, /auth routes.
  *   – Does not appear when another modal is likely to be in focus.
  *   – Respects prefers-reduced-motion.
@@ -288,108 +288,122 @@ function ReminderDialog({ onDismiss, onSubmitted }) {
 }
 
 /* ── Controller — manages the timer lifecycle ──────────────────────────────── */
-const REMINDER_DELAY_MS = 60000; // 1 minute – reminder interval
+const REMINDER_INTERVAL_MS = 60000;
+
+function wasEnquirySubmitted() {
+  try {
+    return sessionStorage.getItem(SESSION_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
 
 export default function EnquiryReminderPopup() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [chatSessionId, setChatSessionId] = useState(null);
   const [showChat, setShowChat] = useState(false);
-  const intervalRef = useRef(null);
-  // Optional timeout for a single delayed popup after dismiss
+  const openRef = useRef(false);
+  const submittedRef = useRef(wasEnquirySubmitted());
+  const dueRef = useRef(false);
+  const nextReminderAtRef = useRef(null);
   const timeoutRef = useRef(null);
+  const routeIsBlocked = isBlockedRoute(location.pathname);
 
-  // Clear any existing interval or timeout
+  const setPopupOpen = useCallback((nextOpen) => {
+    openRef.current = nextOpen;
+    setOpen(nextOpen);
+  }, []);
+
   const clearTimer = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
   }, []);
 
-  // Schedule a single next popup after the reminder delay
-  const scheduleNext = useCallback(() => {
-    clearTimer();
-    timeoutRef.current = setTimeout(() => {
-      // Re‑run the same checks as the interval would
-      if (submittedRef.current) return;
-      const otherModals = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
-      if (otherModals.length > 0) return;
-      const active = document.activeElement;
-      const isTyping =
-        active &&
-        (active.tagName === "INPUT" ||
-          active.tagName === "TEXTAREA" ||
-          active.tagName === "SELECT" ||
-          active.isContentEditable);
-      if (isTyping) return;
-      setOpen(true);
-    }, REMINDER_DELAY_MS);
-  }, [clearTimer]);
-  const submittedRef = useRef(false);
-
-  // Set up a repeating interval that checks the page state every minute
-  useEffect(() => {
-    if (isBlockedRoute(location.pathname)) return;
-    // Run check immediately on mount as well
-    const checkAndOpen = () => {
-      if (submittedRef.current) return; // already submitted – stop showing reminders
-      if (open) return; // popup already visible
-      // Do not show if another modal/dialog is present
-      const otherModals = document.querySelectorAll(
-        '[role="dialog"][aria-modal="true"]'
-      );
-      if (otherModals.length > 0) return;
-      // Do not show while user is typing in an input field
-      const active = document.activeElement;
-      const isTyping =
-        active &&
-        (active.tagName === "INPUT" ||
-          active.tagName === "TEXTAREA" ||
-          active.tagName === "SELECT" ||
-          active.isContentEditable);
-      if (isTyping) return;
-      // All clear – open the reminder
-      setOpen(true);
-    };
-
-    // Initial check
-    checkAndOpen();
-    // Set interval for subsequent checks
-    intervalRef.current = setInterval(checkAndOpen, REMINDER_DELAY_MS);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, location.pathname]);
-
-  useEffect(() => {
-    if (isBlockedRoute(location.pathname)) {
-      clearTimer();
-      setOpen(false);
+  const showDueReminder = useCallback(() => {
+    if (
+      !dueRef.current ||
+      submittedRef.current ||
+      openRef.current ||
+      document.visibilityState === "hidden"
+    ) {
+      return;
     }
-  }, [location.pathname, clearTimer]);
+
+    const otherModals = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+    const active = document.activeElement;
+    const isTyping =
+      active &&
+      (active.tagName === "INPUT" ||
+        active.tagName === "TEXTAREA" ||
+        active.tagName === "SELECT" ||
+        active.isContentEditable);
+    if (otherModals.length > 0 || isTyping) return;
+
+    dueRef.current = false;
+    setPopupOpen(true);
+  }, [setPopupOpen]);
+
+  useEffect(() => {
+    if (routeIsBlocked || submittedRef.current) {
+      clearTimer();
+      dueRef.current = false;
+      nextReminderAtRef.current = null;
+      setPopupOpen(false);
+      return undefined;
+    }
+
+    nextReminderAtRef.current = Date.now() + REMINDER_INTERVAL_MS;
+    const scheduleNextDeadline = () => {
+      const delay = Math.max(0, nextReminderAtRef.current - Date.now());
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
+        nextReminderAtRef.current += REMINDER_INTERVAL_MS;
+        if (!submittedRef.current && !openRef.current) {
+          dueRef.current = true;
+          showDueReminder();
+        }
+        scheduleNextDeadline();
+      }, delay);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") showDueReminder();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    scheduleNextDeadline();
+
+    return () => {
+      clearTimer();
+      dueRef.current = false;
+      nextReminderAtRef.current = null;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [routeIsBlocked, clearTimer, setPopupOpen, showDueReminder]);
+
+  useEffect(() => {
+    if (!open && dueRef.current) showDueReminder();
+  }, [open, showDueReminder]);
 
   const handleDismiss = useCallback(() => {
-    setOpen(false);
-    if (!submittedRef.current) {
-      scheduleNext();
-    }
-  }, [scheduleNext]);
+    setPopupOpen(false);
+    showDueReminder();
+  }, [setPopupOpen, showDueReminder]);
 
   const handleSubmitted = useCallback((sessionId) => {
     submittedRef.current = true;
-    sessionStorage.setItem(SESSION_KEY, "true");
+    try {
+      sessionStorage.setItem(SESSION_KEY, "true");
+    } catch {}
     clearTimer();
     setChatSessionId(sessionId);
     setShowChat(true); // ensure chatbot shows even if sessionId is null
-    setOpen(false);
-    console.log('Enquiry submitted, chatSessionId:', sessionId);
-  }, [clearTimer]);
+    dueRef.current = false;
+    setPopupOpen(false);
+  }, [clearTimer, setPopupOpen]);
 
   if (showChat) {
     // Render the chatbot widget after successful enquiry (sessionId may be null)
