@@ -192,16 +192,18 @@ class SmartSearchResponse(BaseModel):
     summary: str
     filters: dict = {}
     results: List[dict] = []
-    # ─── WhatsApp Messaging Job model ────────────────────────────────────────
-    class WhatsAppJob(BaseModel):
-        id: str = Field(..., description="UUID for the job")
-        enquiry_id: str = Field(..., description="Link to the enquiry")
-        to_phone: str = Field(..., description="E.164 formatted phone number")
-        direction: Literal["outbound", "inbound"] = Field(..., description="Message direction")
-        message: str = Field(..., description="Message text content")
-        twilio_sid: Optional[str] = Field(None, description="Twilio Message SID after sending")
-        status: Literal["queued", "sent", "delivered", "failed"] = Field("queued", description="Current job status")
-        created_at: str = Field(..., description="ISO timestamp when created")
-        updated_at: str = Field(..., description="ISO timestamp when last updated")
-        retry_count: int = Field(0, description="Number of retry attempts")
     count: int = 0
+
+
+# ─── WhatsApp Messaging Job model ────────────────────────────────────────
+class WhatsAppJob(BaseModel):
+    id: str = Field(..., description="UUID for the job")
+    enquiry_id: str = Field(..., description="Link to the enquiry")
+    to_phone: str = Field(..., description="E.164 formatted phone number")
+    direction: Literal["outbound", "inbound"] = Field(..., description="Message direction")
+    message: str = Field(..., description="Message text content")
+    twilio_sid: Optional[str] = Field(None, description="Twilio Message SID after sending")
+    status: Literal["queued", "sent", "delivered", "failed"] = Field("queued", description="Current job status")
+    created_at: str = Field(..., description="ISO timestamp when created")
+    updated_at: str = Field(..., description="ISO timestamp when last updated")
+    retry_count: int = Field(0, description="Number of retry attempts")

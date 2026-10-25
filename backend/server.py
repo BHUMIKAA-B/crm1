@@ -53,7 +53,13 @@ from routers.crm_settings_router import router as crm_settings_router
 from routers.crm_org_router import router as crm_org_router
 from routers.crm_learning_router import router as crm_learning_router
 from routers.crm_loan_enquiries_router import router as crm_loan_enquiries_router
-from routers.calling_router import router as calling_router  # AI Calling Agent
+try:
+    from routers.calling_router import router as calling_router  # AI Calling Agent
+except ModuleNotFoundError as exc:
+    if exc.name != "routers.calling_router":
+        raise
+    calling_router = None
+    logging.getLogger("visitsarva").warning("Optional AI calling router is not installed")
 from routers.whatsapp_router import router as whatsapp_router  # WhatsApp inbound webhook
 
 
@@ -139,7 +145,8 @@ app.include_router(crm_settings_router)
 app.include_router(crm_org_router)
 app.include_router(crm_learning_router)
 app.include_router(crm_loan_enquiries_router)
-app.include_router(calling_router)  # AI Calling Agent
+if calling_router is not None:
+    app.include_router(calling_router)  # AI Calling Agent
 app.include_router(admin_reset_router)
 
 # WhatsApp inbound webhook
