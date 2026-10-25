@@ -45,6 +45,7 @@ const fadeUp = {
 };
 
 const stagger = {
+  hidden: {},
   visible: { transition: { staggerChildren: 0.1 } },
 };
 
@@ -337,62 +338,62 @@ const Landing = () => {
 
       <ValuationModal open={valuationOpen} onClose={() => setValuationOpen(false)} />
 
-{/* ===== NEWLY LAUNCHED PROJECTS ===== */ }
-<NewlyLaunched />
+      {/* ===== NEWLY LAUNCHED PROJECTS ===== */}
+      <NewlyLaunched />
 
-{/* ===== ACTIVE PROJECTS ===== */ }
-<ActiveProjects />
+      {/* ===== ACTIVE PROJECTS ===== */}
+      <ActiveProjects />
 
-{/* ===== LISTINGS PREVIEW ===== */ }
-{
-  featured.length > 0 && (
-    <section className="py-24 md:py-28 bg-vs-surface">
-      <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={stagger}
-          className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-12"
-        >
-          <motion.div variants={fadeUp}>
-            <div className="eyebrow text-vs-primary mb-3">Listings</div>
-            <h2 className="font-display text-3xl md:text-4xl font-semibold text-vs-text-primary tracking-tight">
-              Find homes that perfectly match your lifestyle
-            </h2>
-            <p className="mt-4 max-w-xl text-vs-text-secondary leading-relaxed">
-              Browse the newest curated properties and discover the right place for your next chapter.
-            </p>
-          </motion.div>
-          <motion.div variants={fadeUp}>
-            <Link
-              to="/properties"
-              className="btn-secondary inline-flex items-center gap-2"
-            >
-              View all listings <ArrowRight size={14} />
-            </Link>
-          </motion.div>
-        </motion.div>
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={stagger}
-          className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
-        >
-          {featured.slice(0, 6).map((p) => (
-            <motion.div key={p.id} variants={fadeUp}>
-              <PropertyCard property={p} />
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </section>
-  )
-}
+      {/* ===== LISTINGS PREVIEW ===== */}
+      {
+        featured.length > 0 && (
+          <section className="py-24 md:py-28 bg-vs-surface">
+            <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-100px" }}
+                variants={stagger}
+                className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-12"
+              >
+                <motion.div variants={fadeUp}>
+                  <div className="eyebrow text-vs-primary mb-3">Listings</div>
+                  <h2 className="font-display text-3xl md:text-4xl font-semibold text-vs-text-primary tracking-tight">
+                    Find homes that perfectly match your lifestyle
+                  </h2>
+                  <p className="mt-4 max-w-xl text-vs-text-secondary leading-relaxed">
+                    Browse the newest curated properties and discover the right place for your next chapter.
+                  </p>
+                </motion.div>
+                <motion.div variants={fadeUp}>
+                  <Link
+                    to="/properties"
+                    className="btn-secondary inline-flex items-center gap-2"
+                  >
+                    View all listings <ArrowRight size={14} />
+                  </Link>
+                </motion.div>
+              </motion.div>
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-100px" }}
+                variants={stagger}
+                className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
+              >
+                {featured.slice(0, 6).map((p) => (
+                  <motion.div key={p.id} variants={fadeUp}>
+                    <PropertyCard property={p} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          </section>
+        )
+      }
 
-{/* ===== BUYER / SELLER CARDS ===== */ }
-<section className="py-24 md:py-28 bg-vs-surface border-y border-vs-border" data-testid="role-cta-section">
+      {/* ===== BUYER / SELLER CARDS ===== */}
+      <section className="py-24 md:py-28 bg-vs-surface border-y border-vs-border" data-testid="role-cta-section">
   <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
     <motion.div
       initial="hidden"
@@ -432,10 +433,10 @@ const Landing = () => {
       </motion.div>
     </motion.div>
   </div>
-</section>
+      </section>
 
-{/* ===== HOME LOAN & FINANCING SECTION ===== */ }
-<section className="py-16 bg-vs-bg border-b border-vs-border" data-testid="loan-financing-section">
+      {/* ===== HOME LOAN & FINANCING SECTION ===== */}
+      <section className="py-16 bg-vs-bg border-b border-vs-border" data-testid="loan-financing-section">
   <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
     <div className="card p-8 md:p-12 border-vs-gold/30 bg-gradient-to-br from-vs-gold/10 via-vs-surface to-vs-bg relative overflow-hidden">
       <div className="grid lg:grid-cols-12 gap-8 items-center">
@@ -463,10 +464,10 @@ const Landing = () => {
       </div>
     </div>
   </div>
-</section>
+      </section>
 
-{/* ===== MOTIVE ===== */ }
-<section id="motive" className="py-28 md:py-36 bg-vs-bg text-vs-text-primary relative overflow-hidden" data-testid="motive-section">
+      {/* ===== MOTIVE ===== */}
+      <section id="motive" className="py-28 md:py-36 bg-vs-bg text-vs-text-primary relative overflow-hidden" data-testid="motive-section">
   <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 30% 30%, var(--vs-primary) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-vs-gold/5 rounded-full blur-3xl" />
   <motion.div
@@ -497,13 +498,13 @@ const Landing = () => {
       </motion.div>
     </motion.div>
   </motion.div>
-</section>
+      </section>
 
-{/* ===== 8-SECTOR SHOWCASE GRID ===== */ }
-<SectorShowcase />
+      {/* ===== 8-SECTOR SHOWCASE GRID ===== */}
+      <SectorShowcase />
 
-{/* ===== HOW IT WORKS ===== */ }
-<section className="py-24 md:py-28 bg-vs-surface border-y border-vs-border" data-testid="how-it-works">
+      {/* ===== HOW IT WORKS ===== */}
+      <section className="py-24 md:py-28 bg-vs-surface border-y border-vs-border" data-testid="how-it-works">
   <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
     <motion.div
       initial="hidden"
@@ -570,10 +571,10 @@ const Landing = () => {
       ))}
     </motion.div>
   </div>
-</section>
+      </section>
 
-{/* ===== ALL-IN-ONE DOCUMENTS ===== */ }
-<section id="services" className="py-24 md:py-28 bg-vs-bg" data-testid="services-section">
+      {/* ===== ALL-IN-ONE DOCUMENTS ===== */}
+      <section id="services" className="py-24 md:py-28 bg-vs-bg" data-testid="services-section">
   <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
     <motion.div
       initial="hidden"
@@ -645,10 +646,10 @@ const Landing = () => {
       ))}
     </motion.div>
   </div>
-</section>
+      </section>
 
-{/* ===== STATS ===== */ }
-<section className="py-20 bg-vs-surface border-y border-vs-border" data-testid="stats-section">
+      {/* ===== STATS ===== */}
+      <section className="py-20 bg-vs-surface border-y border-vs-border" data-testid="stats-section">
   <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
     <motion.div
       initial="hidden"
@@ -672,9 +673,9 @@ const Landing = () => {
       ))}
     </motion.div>
   </div>
-</section>
+      </section>
 
-{/* ===== TESTIMONIALS ===== */ }
+      {/* ===== TESTIMONIALS ===== */}
       <section className="py-24 md:py-28 bg-vs-bg">
         <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
           <motion.div

@@ -389,7 +389,7 @@ export default function EnquiryReminderPopup() {
     setShowChat(true); // ensure chatbot shows even if sessionId is null
     setOpen(false);
     console.log('Enquiry submitted, chatSessionId:', sessionId);
-  }, [clearTimer, scheduleNext]);
+  }, [clearTimer]);
 
   if (showChat) {
     // Render the chatbot widget after successful enquiry (sessionId may be null)
