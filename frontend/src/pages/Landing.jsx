@@ -259,140 +259,81 @@ const Landing = () => {
           </div>
         </div>
       </section>
-        {/* ===== OUR SERVICES ===== */}
-        <section id="our-services" className="py-24 md:py-28 bg-vs-bg" data-testid="our-services-section">
-          <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={stagger}
-              className="max-w-2xl mb-14"
-            >
-              <motion.div variants={fadeUp} className="eyebrow text-vs-gold mb-4">Our Services</motion.div>
-              <motion.h2 variants={fadeUp} className="font-display text-3xl md:text-4xl font-medium text-vs-text-primary">
-                Everything you need for your property, all in one place (updated).
-              </motion.h2>
-            </motion.div>
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {/* Service cards data */}
-              {[
-                {
-                  title: "Interior Designing",
-                  Icon: Home, // fallback icon
-                  imgUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&auto=format&fit=crop&crop=entropy",
-                },
-                {
-                  title: "Khata Services",
-                  Icon: FileCheck,
-                  imgUrl: "https://images.unsplash.com/photo-1519205482928-7c49caf0c9df?w=600&auto=format&fit=crop&crop=entropy",
-                  subOptions: ["E-Khata", "B to A Khata", "Mutation / Khata Transfer", "E-Khata Corrections"],
-                },
-                {
-                  title: "Encumbrance Certificate (EC)",
-                  Icon: FileSearch2,
-                  imgUrl: "https://images.unsplash.com/photo-1593279003741-95ca73e482dd?w=600&auto=format&fit=crop&crop=entropy",
-                },
-                {
-                  title: "Certified Sale Deed Copy",
-                  Icon: FileSignature,
-                  imgUrl: "https://images.unsplash.com/photo-1604079621134-2761c040e02e?w=600&auto=format&fit=crop&crop=entropy",
-                },
-                {
-                  title: "Painting Services",
-                  Icon: Palette,
-                  imgUrl: "https://images.unsplash.com/photo-1580910051079-b93bb802b564?w=600&auto=format&fit=crop&crop=entropy",
-                },
-                {
-                  title: "Renovation / Alteration Services",
-                  Icon: Hammer,
-                  imgUrl: "https://images.unsplash.com/photo-1531081109619-1ac4281f42b6?w=600&auto=format&fit=crop&crop=entropy",
-                },
-                {
-                  title: "Packers and Movers",
-                  Icon: Truck,
-                  imgUrl: "https://images.unsplash.com/photo-1588091850440-259c4b31da97?w=600&auto=format&fit=crop&crop=entropy",
-                },
-              ].map((s) => (
-                <motion.div key={s.title} variants={fadeUp} className="card p-6 flex flex-col cursor-pointer transition-all duration-300 hover:border-vs-primary/30">
-                  <div className="w-12 h-12 rounded-lg bg-vs-gold/10 text-vs-gold flex items-center justify-center mb-4">
-                    <s.Icon size={22} strokeWidth={1.5} />
-                  </div>
-                  <h3 className="font-display text-lg font-medium text-vs-text-primary mb-2">{s.title}</h3>
-                  {s.subOptions && (
-                    <ul className="list-disc list-inside text-sm text-vs-text-muted mb-2">
-                      {s.subOptions.map((opt) => (
-                        <li key={opt}>{opt}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <a href="#" className="mt-auto text-sm text-vs-gold hover:text-vs-primary transition-colors flex items-center">
-                    Learn More <ArrowRight size={14} className="ml-1" />
-                  </a>
-                </motion.div>
-              ))}
-            </div>
+      {/* ===== OUR SERVICES ===== */}
+      <section id="our-services" className="py-24 md:py-28 bg-vs-bg" data-testid="our-services-section">
+        <div className="max-w-[80rem] mx-auto px-6 lg:px-12">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={stagger}
+            className="max-w-2xl mb-14"
+          >
+            <motion.div variants={fadeUp} className="eyebrow text-vs-gold mb-4">Our Services</motion.div>
+            <motion.h2 variants={fadeUp} className="font-display text-3xl md:text-4xl font-medium text-vs-text-primary">
+              Everything you need for your property, all in one place (updated).
+            </motion.h2>
+          </motion.div>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {/* Service cards data */}
+            {[
+              {
+                title: "Interior Designing",
+                Icon: Home, // fallback icon
+                imgUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&auto=format&fit=crop&crop=entropy",
+              },
+              {
+                title: "Khata Services",
+                Icon: FileCheck,
+                imgUrl: "https://images.unsplash.com/photo-1519205482928-7c49caf0c9df?w=600&auto=format&fit=crop&crop=entropy",
+                subOptions: ["E-Khata", "B to A Khata", "Mutation / Khata Transfer", "E-Khata Corrections"],
+              },
+              {
+                title: "Encumbrance Certificate (EC)",
+                Icon: FileSearch2,
+                imgUrl: "https://images.unsplash.com/photo-1593279003741-95ca73e482dd?w=600&auto=format&fit=crop&crop=entropy",
+              },
+              {
+                title: "Certified Sale Deed Copy",
+                Icon: FileSignature,
+                imgUrl: "https://images.unsplash.com/photo-1604079621134-2761c040e02e?w=600&auto=format&fit=crop&crop=entropy",
+              },
+              {
+                title: "Painting Services",
+                Icon: Palette,
+                imgUrl: "https://images.unsplash.com/photo-1580910051079-b93bb802b564?w=600&auto=format&fit=crop&crop=entropy",
+              },
+              {
+                title: "Renovation / Alteration Services",
+                Icon: Hammer,
+                imgUrl: "https://images.unsplash.com/photo-1531081109619-1ac4281f42b6?w=600&auto=format&fit=crop&crop=entropy",
+              },
+              {
+                title: "Packers and Movers",
+                Icon: Truck,
+                imgUrl: "https://images.unsplash.com/photo-1588091850440-259c4b31da97?w=600&auto=format&fit=crop&crop=entropy",
+              },
+            ].map((s) => (
+              <motion.div key={s.title} variants={fadeUp} className="card p-6 flex flex-col cursor-pointer transition-all duration-300 hover:border-vs-primary/30">
+                <div className="w-12 h-12 rounded-lg bg-vs-gold/10 text-vs-gold flex items-center justify-center mb-4">
+                  <s.Icon size={22} strokeWidth={1.5} />
+                </div>
+                <h3 className="font-display text-lg font-medium text-vs-text-primary mb-2">{s.title}</h3>
+                {s.subOptions && (
+                  <ul className="list-disc list-inside text-sm text-vs-text-muted mb-2">
+                    {s.subOptions.map((opt) => (
+                      <li key={opt}>{opt}</li>
+                    ))}
+                  </ul>
+                )}
+                <a href="#" className="mt-auto text-sm text-vs-gold hover:text-vs-primary transition-colors flex items-center">
+                  Learn More <ArrowRight size={14} className="ml-1" />
+                </a>
+              </motion.div>
+            ))}
           </div>
-        </section>
-
-
-
-      {/*
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={stagger}
-              className=\"max-w-2xl mb-10\"
-            >
-              <motion.div variants={fadeUp} className=\"eyebrow text-vs-gold mb-4\">Our Services</motion.div>
-              <motion.h2 variants={fadeUp} className=\"font-display text-3xl md:text-4xl font-medium text-vs-text-primary\">
-                Everything you need for your property, all in one place (updated).
-              </motion.h2>
-            </motion.div>
-            <div className=\"grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4\">
-              {/* Service cards data */}
-      {[
-        {
-          title: \"Interior Designing\",
-      Icon: Home, // fallback icon
-      imgUrl: \"https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&auto=format&fit=crop&crop=entropy\",
-                },
-      {
-        title: \"Khata Services\",
-      Icon: FileCheck,
-      imgUrl: \"https://images.unsplash.com/photo-1519205482928-7c49caf0c9df?w=600&auto=format&fit=crop&crop=entropy\",
-      subOptions: [\"E-Khata\", \"B to A Khata\", \"Mutation / Khata Transfer\", \"E-Khata Corrections\"],
-                },
-      {
-        title: \"Encumbrance Certificate (EC)\",
-      Icon: FileSearch2,
-      imgUrl: \"https://images.unsplash.com/photo-1593279003741-95ca73e482dd?w=600&auto=format&fit=crop&crop=entropy\",
-                },
-      {
-        title: \"Certified Sale Deed Copy\",
-      Icon: FileSignature,
-      imgUrl: \"https://images.unsplash.com/photo-1604079621134-2761c040e02e?w=600&auto=format&fit=crop&crop=entropy\",
-                },
-      {
-        title: \"Painting Services\",
-      Icon: Palette,
-      imgUrl: \"https://images.unsplash.com/photo-1580910051079-b93bb802b564?w=600&auto=format&fit=crop&crop=entropy\",
-                },
-      {
-        title: \"Renovation / Alteration Services\",
-      Icon: Hammer,
-      imgUrl: \"https://images.unsplash.com/photo-1531081109619-1ac4281f42b6?w=600&auto=format&fit=crop&crop=entropy\",
-                },
-      {
-        title: \"Packers and Movers\",
-      Icon: Truck,
-      imgUrl: \"https://images.unsplash.com/photo-1588091850440-259c4b31da97?w=600&auto=format&fit=crop&crop=entropy\",
-                },
-
-    </div>
-          </div >
-        </section >
-        */
+        </div>
+      </section>
 
       <ValuationModal open={valuationOpen} onClose={() => setValuationOpen(false)} />
 
@@ -788,8 +729,8 @@ const RoleCard = ({ role, title, copy, points, variant = "default" }) => {
     <div
       data-testid={`role-card-${role}`}
       className={`relative p-8 md:p-10 rounded-xl border transition-all duration-300 ${isGold
-          ? "bg-vs-gold/10 border-vs-gold/30 hover:border-vs-gold"
-          : "bg-vs-bg border-vs-border hover:border-vs-gold/50"
+        ? "bg-vs-gold/10 border-vs-gold/30 hover:border-vs-gold"
+        : "bg-vs-bg border-vs-border hover:border-vs-gold/50"
         }`}
     >
       <h3 className={`font-display text-2xl md:text-3xl font-medium ${isGold ? "text-vs-gold" : "text-vs-text-primary"}`}>
