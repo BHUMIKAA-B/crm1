@@ -29,11 +29,11 @@ export const CATEGORY_LABEL = Object.fromEntries(
 );
 
 export const SERVICE_TYPES = [
-  { value: "pre_registration", label: "Pre-Registration Assistance" },
-  { value: "khata_assistance", label: "Khata Assistance" },
-  { value: "property_valuation", label: "Property Valuation" },
-  { value: "land_approval", label: "Land Approval" },
-  { value: "plan_approval", label: "Plan Approval" },
-  { value: "property_conversion", label: "Property Conversion" },
-  { value: "government_approval", label: "Government Approval" },
+  { value: "pre_registration", label: "Interior Designing" },
+  { value: "khata_assistance", label: "Khata Services" },
+  { value: "property_valuation", label: "Encumbrance Certificate" },
+  { value: "land_approval", label: "Certified Sale Deed Copy" },
+  { value: "plan_approval", label: "Painting Services" },
+  { value: "property_conversion", label: "Renovation / Alteration Services" },
+  { value: "government_approval", label: "Packers and Movers" },
 ];

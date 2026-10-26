@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { Loader2, FileCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DocumentsDonutChart from "@/components/DocumentsDonutChart";
@@ -19,6 +19,7 @@ const Services = () => {
     description: "",
   });
   const [loading, setLoading] = useState(false);
+  const [showKhataOptions, setShowKhataOptions] = useState(false);
   const set = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.value }));
 
   const submit = async (e) => {
@@ -91,36 +92,65 @@ const Services = () => {
           </motion.div>
 
           <motion.div
-            className="grid sm:grid-cols-2 gap-4"
+            className="flex flex-wrap justify-center gap-6"
             initial="hidden"
             whileInView="visible"
             viewport={viewportOnce}
             variants={stagger(0.08)}
           >
-            {SERVICE_TYPES.map((s) => (
-              <motion.div
-                key={s.value}
-                variants={fadeUp}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                whileTap={{ scale: 0.98 }}
-                className={`card p-5 cursor-pointer transition-all duration-300 ${
-                  form.request_type === s.value
-                    ? "border-vs-primary ring-2 ring-vs-primary/20 shadow-md"
-                    : "hover:border-vs-primary/40"
-                }`}
-                onClick={() => setForm((f) => ({ ...f, request_type: s.value }))}
-                data-testid={`service-pick-${s.value}`}
-              >
-                <FileCheck size={18} className="text-vs-primary" />
-                <h3 className="mt-3 font-display font-semibold text-vs-text-primary">
-                  {s.label}
-                </h3>
-                <p className="mt-1.5 text-xs text-vs-text-secondary">
-                  Specialist team · end-to-end paperwork
-                </p>
-              </motion.div>
-            ))}
+            {SERVICE_TYPES.map((s) => {
+              const isKhata = s.value === "khata_assistance";
+              const isActive = form.request_type === s.value;
+              return (
+                <motion.button
+                  key={s.value}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`service-orb flex items-center justify-center cursor-pointer ${isActive ? "ring-2 ring-vs-primary/50" : ""}`}
+                  onClick={() => {
+                    if (isKhata) {
+                      setShowKhataOptions((prev) => !prev);
+                    } else {
+                      setShowKhataOptions(false);
+                      setForm((f) => ({ ...f, request_type: s.value }));
+                    }
+                  }}
+                  data-testid={`service-pick-${s.value}`}
+                >
+                  <span className="text-center text-sm font-medium text-white">
+                    {s.label}
+                  </span>
+                </motion.button>
+              );
+            })}
           </motion.div>
+
+          {/* Khata subservices */}
+          {showKhataOptions && (
+            <motion.div
+              className="mt-4 flex flex-col items-center gap-2"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {[
+                { value: "ekhata", label: "E‑Khata" },
+                { value: "b_to_a_khata", label: "B to A Khata" },
+                { value: "mutation", label: "Mutation / Khata Transfer" },
+                { value: "ekhata_corrections", label: "E‑Khata Corrections" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  className="px-4 py-2 bg-vs-primary text-white rounded-md"
+                  onClick={() => {
+                    setForm((f) => ({ ...f, request_type: opt.value }));
+                    setShowKhataOptions(false);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </motion.div>
+          )}
         </div>
 
         <motion.form
