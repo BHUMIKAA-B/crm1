@@ -1,0 +1,455 @@
+.vs-universe {
+  --vs-universe-ink: #173b33;
+  --vs-universe-muted: #68766f;
+  --vs-universe-line: #cbd7ce;
+  position: relative;
+  overflow: hidden;
+  color: var(--vs-universe-ink);
+  background:
+    radial-gradient(ellipse at 52% 44%, rgba(215, 226, 216, 0.62), transparent 44%),
+    #f4f5ef;
+}
+
+.vs-universe__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.vs-universe__eyebrow {
+  color: #a16443;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.vs-universe__title {
+  color: var(--vs-universe-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 4vw, 3.15rem);
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.vs-universe__intro {
+  color: var(--vs-universe-muted);
+}
+
+.vs-universe__constellation {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-areas:
+    ". interior khata encumbrance ."
+    "deed centre centre centre painting"
+    ". renovation . movers .";
+  align-items: center;
+  gap: 1.75rem 1.35rem;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0.5rem 0;
+}
+
+.vs-universe__routes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.vs-universe__routes--tablet,
+.vs-universe__routes--mobile {
+  display: none;
+}
+
+.vs-universe__routes path {
+  fill: none;
+  stroke: var(--vs-universe-line);
+  stroke-dasharray: 5 9;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+
+.vs-universe__routes circle {
+  fill: #b0784f;
+}
+
+.vs-universe__center {
+  position: relative;
+  z-index: 1;
+  grid-area: centre;
+  justify-self: center;
+  display: flex;
+  width: min(100%, 310px);
+  aspect-ratio: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cfdbd0;
+  border-radius: 50%;
+  background: rgba(250, 251, 246, 0.86);
+  text-align: center;
+  box-shadow: 0 22px 60px rgba(31, 66, 52, 0.08);
+}
+
+.vs-universe__center-mark {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  margin-bottom: 0.8rem;
+  border: 1px solid #c8d5c9;
+  border-radius: 50%;
+  color: #a16443;
+}
+
+.vs-universe__center-kicker {
+  color: #a16443;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.vs-universe__center-title {
+  margin-top: 0.45rem;
+  color: var(--vs-universe-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  line-height: 1.02;
+}
+
+.vs-universe__center-caption {
+  margin-top: 0.75rem;
+  color: var(--vs-universe-muted);
+  font-size: 0.75rem;
+}
+
+.vs-service {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  animation: vs-service-arrive 650ms both;
+  animation-delay: calc(var(--service-order, 0) * 70ms);
+}
+
+.vs-service--1 { grid-area: interior; --service-order: 0; }
+.vs-service--2 { grid-area: khata; --service-order: 1; }
+.vs-service--3 { grid-area: encumbrance; --service-order: 2; }
+.vs-service--4 { grid-area: deed; --service-order: 3; }
+.vs-service--5 { grid-area: painting; --service-order: 4; }
+.vs-service--6 { grid-area: renovation; --service-order: 5; }
+.vs-service--7 { grid-area: movers; --service-order: 6; }
+
+@media (min-width: 901px) {
+  .vs-service--4 { left: clamp(1.5rem, 4vw, 3.5rem); }
+  .vs-service--5 { right: clamp(1.5rem, 4vw, 3.5rem); }
+}
+
+.vs-service__button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vs-service__visual {
+  position: relative;
+  display: block;
+  height: 185px;
+  overflow: hidden;
+  border-radius: 50% 50% 0 0;
+  background: #d6ddd5;
+  box-shadow: 0 12px 26px rgba(26, 51, 41, 0.12);
+  isolation: isolate;
+}
+
+.vs-service__visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1), filter 350ms ease;
+}
+
+.vs-service__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(9, 24, 18, 0.08) 15%, rgba(9, 24, 18, 0.56) 100%);
+  transition: background 250ms ease;
+}
+
+.vs-service__number {
+  position: absolute;
+  top: 0.8rem;
+  left: 0.9rem;
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+}
+
+.vs-service__icon {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  color: white;
+  background: rgba(20, 41, 32, 0.28);
+  backdrop-filter: blur(5px);
+}
+
+.vs-service__action {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: white;
+  font-size: 0.74rem;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.vs-service__action span {
+  font-size: 1rem;
+}
+
+.vs-service__label-row {
+  display: flex;
+  min-height: 3.2rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.68rem 0.12rem 0;
+}
+
+.vs-service__label {
+  max-width: 15rem;
+  color: var(--vs-universe-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.vs-service__arrow {
+  flex: 0 0 auto;
+  color: #a16443;
+  font-size: 1.1rem;
+  line-height: 1.1;
+  transition: transform 180ms ease;
+}
+
+.vs-service__button:hover .vs-service__visual img,
+.vs-service__button:focus-visible .vs-service__visual img {
+  transform: scale(1.055);
+}
+
+.vs-service__button:hover .vs-service__action,
+.vs-service__button:focus-visible .vs-service__action {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.vs-service__button:hover .vs-service__arrow,
+.vs-service__button:focus-visible .vs-service__arrow {
+  transform: translate(2px, -2px);
+}
+
+.vs-service__button:focus-visible,
+.vs-service__options button:focus-visible {
+  outline: 3px solid #a16443;
+  outline-offset: 5px;
+}
+
+.vs-service--1 .vs-service__visual { height: 210px; }
+.vs-service--2 .vs-service__visual { height: 175px; }
+.vs-service--3 .vs-service__visual { height: 185px; }
+.vs-service--4 .vs-service__visual { height: 195px; }
+.vs-service--5 .vs-service__visual { height: 175px; }
+.vs-service--6 .vs-service__visual { height: 170px; }
+.vs-service--7 .vs-service__visual { height: 155px; }
+
+.vs-service--khata .vs-service__label-row {
+  min-height: 2.8rem;
+}
+
+.vs-service__options {
+  padding: 0.2rem 0 0;
+}
+
+.vs-service__options-title {
+  margin-bottom: 0.45rem;
+  color: var(--vs-universe-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.vs-service__option-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.vs-service__option-list button {
+  min-height: 38px;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #d3ddd4;
+  border-radius: 999px;
+  color: var(--vs-universe-ink);
+  background: rgba(250, 251, 246, 0.82);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.vs-service__option-list button:hover {
+  border-color: var(--vs-universe-ink);
+  color: white;
+  background: var(--vs-universe-ink);
+}
+
+.vs-service-dialog {
+  max-height: min(90vh, 700px);
+  overflow-y: auto;
+  padding: 1.15rem;
+}
+
+.vs-service-dialog__image {
+  position: relative;
+  height: 230px;
+  overflow: hidden;
+  border-radius: 10px 10px 48% 10px;
+  background: #d6ddd5;
+}
+
+.vs-service-dialog__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vs-service-dialog__image span {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #173b33;
+}
+
+.vs-service-dialog__title {
+  padding-top: 0.35rem;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.vs-service-dialog__description {
+  font-size: 0.95rem;
+}
+
+.vs-service-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+@keyframes vs-service-arrive {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .vs-universe__routes--desktop { display: none; }
+  .vs-universe__routes--tablet { display: block; }
+
+  .vs-universe__constellation {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "interior khata encumbrance"
+      "deed centre painting"
+      "renovation . movers";
+    gap: 1.5rem 1.15rem;
+  }
+
+  .vs-universe__center { width: min(100%, 260px); }
+  .vs-universe__center-title { font-size: 1.7rem; }
+  .vs-service__visual { height: 170px; }
+  .vs-service--1 .vs-service__visual { height: 190px; }
+}
+
+@media (max-width: 640px) {
+  .vs-universe { padding-top: 3.5rem; padding-bottom: 3.5rem; }
+  .vs-universe__heading { margin-bottom: 2rem; }
+  .vs-universe__constellation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "centre centre"
+      "khata khata"
+      "interior encumbrance"
+      "deed painting"
+      "renovation movers";
+    align-items: start;
+    gap: 1.25rem 1rem;
+    padding: 0;
+  }
+
+  .vs-universe__routes--tablet { display: none; }
+  .vs-universe__routes--mobile { display: block; }
+  .vs-universe__routes--mobile path { stroke-dasharray: none; stroke-width: 1.75; }
+  .vs-universe__center {
+    width: min(72vw, 250px);
+    margin: 0 auto 0.35rem;
+  }
+
+  .vs-service__visual,
+  .vs-service--1 .vs-service__visual,
+  .vs-service--2 .vs-service__visual,
+  .vs-service--3 .vs-service__visual,
+  .vs-service--4 .vs-service__visual,
+  .vs-service--5 .vs-service__visual,
+  .vs-service--6 .vs-service__visual,
+  .vs-service--7 .vs-service__visual {
+    height: 150px;
+  }
+
+  .vs-service--1 .vs-service__visual { height: 168px; }
+  .vs-service--7 .vs-service__visual { height: 170px; }
+  .vs-service__label { font-size: 0.98rem; }
+  .vs-service__label-row { min-height: 3.5rem; }
+  .vs-service__options-title { font-size: 0.68rem; }
+  .vs-service__option-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vs-service__option-list button { min-height: 40px; font-size: 0.75rem; }
+  .vs-service__action { opacity: 1; transform: none; font-size: 0.68rem; }
+  .vs-service-dialog { padding: 0.9rem; }
+  .vs-service-dialog__image { height: 190px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-service,
+  .vs-service__visual img,
+  .vs-service__action,
+  .vs-service__arrow,
+  .vs-service__option-list button {
+    animation: none !important;
+    transition: none !important;
+  }
+}
