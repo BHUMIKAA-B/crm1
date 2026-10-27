@@ -46,9 +46,13 @@ const Navbar = () => {
 
   useEffect(() => {
     if (location.pathname !== "/" || location.hash !== "#our-special-services") return;
-    requestAnimationFrame(() => {
-      document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    const scrollDelay = window.matchMedia("(max-width: 1023px)").matches ? 550 : 0;
+    const timeout = window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }, scrollDelay);
+    return () => window.clearTimeout(timeout);
   }, [location.pathname, location.hash]);
 
   const handleLogout = () => {
@@ -59,7 +63,7 @@ const Navbar = () => {
 
   const handleServicesNavigation = () => {
     setOpen(false);
-    if (location.pathname === "/") {
+    if (location.pathname === "/" && location.hash === "#our-special-services") {
       requestAnimationFrame(() => {
         document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
