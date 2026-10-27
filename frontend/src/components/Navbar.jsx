@@ -45,9 +45,9 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    if (location.pathname !== "/" || location.hash !== "#our-services") return;
+    if (location.pathname !== "/" || location.hash !== "#our-special-services") return;
     requestAnimationFrame(() => {
-      document.getElementById("our-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [location.pathname, location.hash]);
 
@@ -61,7 +61,7 @@ const Navbar = () => {
     setOpen(false);
     if (location.pathname === "/") {
       requestAnimationFrame(() => {
-        document.getElementById("our-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     }
   };
@@ -132,7 +132,6 @@ const Navbar = () => {
               </div>
             )}
           </div>
-          <NavLink to="/#our-services" onClick={handleServicesNavigation}>Our Services</NavLink>
           <NavLink to="/properties">Browse</NavLink>
           <NavLink to="/construction">Construction</NavLink>
           <NavLink to="/loan-assistance">
@@ -140,6 +139,7 @@ const Navbar = () => {
             <span>Home Loan</span>
           </NavLink>
           <NavLink to="/services">Documents</NavLink>
+          <NavLink to="/#our-special-services" onClick={handleServicesNavigation}>Our Special Services</NavLink>
           <NavLink to="/chat">
             <MessageCircle size={16} className="text-vs-gold" />
             <span>Assistant</span>
@@ -269,7 +269,6 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="border-t border-vs-border my-4" />
-            <NavLink to="/#our-services" onClick={handleServicesNavigation}>Our Services</NavLink>
             <NavLink to="/properties" onClick={() => setOpen(false)}>Browse all</NavLink>
             <NavLink to="/construction" onClick={() => setOpen(false)}>Construction</NavLink>
             <NavLink to="/loan-assistance" onClick={() => setOpen(false)}>
@@ -277,6 +276,7 @@ const Navbar = () => {
               <span>Home Loan Assistance</span>
             </NavLink>
             <NavLink to="/services" onClick={() => setOpen(false)}>Documents</NavLink>
+            <NavLink to="/#our-special-services" onClick={handleServicesNavigation}>Our Special Services</NavLink>
             <NavLink to="/chat" onClick={() => setOpen(false)}>
               <MessageCircle size={16} className="text-vs-gold" />
               <span>AI Assistant</span>

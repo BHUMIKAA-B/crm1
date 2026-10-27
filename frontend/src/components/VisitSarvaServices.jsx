@@ -75,16 +75,16 @@ const VisitSarvaServices = () => {
 
   return (
     <section
-      id="our-services"
+      id="our-special-services"
       className="vs-universe scroll-mt-20 py-16 md:py-24"
-      data-testid="our-services-section"
-      aria-labelledby="our-services-title"
+      data-testid="our-special-services-section"
+      aria-labelledby="our-special-services-title"
     >
       <div className="vs-universe__inner mx-auto max-w-[80rem] px-6 lg:px-12">
         <div className="vs-universe__heading mb-10 flex flex-col gap-3 sm:mb-14 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="vs-universe__eyebrow mb-2">VISITSARVA PROPERTY CARE</p>
-            <h2 id="our-services-title" className="vs-universe__title">Our Services</h2>
+            <h2 id="our-special-services-title" className="vs-universe__title">Our Special Services</h2>
           </div>
           <p className="vs-universe__intro max-w-lg text-sm leading-relaxed md:text-base">
             Thoughtful support for every chapter of owning a home.

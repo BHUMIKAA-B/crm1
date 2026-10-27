@@ -261,7 +261,6 @@ const Landing = () => {
           </div>
         </div>
       </section>
-      <VisitSarvaServices />
       <TopRatedCarousel items={featured} />
 
       <ValuationModal open={valuationOpen} onClose={() => setValuationOpen(false)} />
@@ -575,6 +574,7 @@ const Landing = () => {
     </motion.div>
   </div>
       </section>
+        <VisitSarvaServices />
 
       {/* ===== STATS ===== */}
       <section className="py-20 bg-vs-surface border-y border-vs-border" data-testid="stats-section">
