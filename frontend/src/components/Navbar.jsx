@@ -7,11 +7,13 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { useAuthStore } from "@/store/authStore";
 import { PROPERTY_CATEGORIES } from "@/utils/format";
 
+const PROPERTY_SECTOR_LINKS = PROPERTY_CATEGORIES.map((c) => ({
+  label: c.label,
+  to: c.value === "construction_interior" ? "/construction" : `/properties?category=${c.value}`,
+}));
+
 const SECTOR_LINKS = [
-  ...PROPERTY_CATEGORIES.map((c) => ({
-    label: c.label,
-    to: c.value === "construction_interior" ? "/construction" : `/properties?category=${c.value}`,
-  })),
+  ...PROPERTY_SECTOR_LINKS,
   { label: "Home Loan Assistance", to: "/loan-assistance" },
   { label: "All-in-One Documents", to: "/services" },
 ];
@@ -105,7 +107,7 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden lg:flex items-center gap-10 flex-1 justify-center">
+        <nav className="hidden xl:flex items-center gap-10 flex-1 justify-center">
           <div className="relative" ref={sectorRef}>
             <button
               data-testid="nav-sectors-btn"
@@ -155,7 +157,7 @@ const Navbar = () => {
         </nav>
 
         {/* Right section */}
-        <div className="hidden lg:flex items-center gap-4 shrink-0">
+        <div className="hidden xl:flex items-center gap-4 shrink-0">
           {!isAuthed ? (
             <>
               <ThemeToggle />
@@ -246,10 +248,12 @@ const Navbar = () => {
 
         {/* Mobile toggle */}
         <button
-          className="lg:hidden p-2 text-vs-text-primary hover:text-vs-gold transition-colors"
+          className="xl:hidden p-2 text-vs-text-primary hover:text-vs-gold transition-colors"
           onClick={() => setOpen((s) => !s)}
           data-testid="nav-mobile-toggle"
           aria-label="Toggle menu"
+          aria-expanded={open}
+          aria-controls="mobile-primary-navigation"
         >
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -257,8 +261,12 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       <div
-        className={`lg:hidden overflow-hidden transition-all duration-500 ${
-          open ? "max-h-[80vh] opacity-100" : "max-h-0 opacity-0"
+        id="mobile-primary-navigation"
+        aria-hidden={!open}
+        className={`xl:hidden overscroll-contain transition-[max-height,opacity,visibility] duration-500 ${
+          open
+            ? "visible max-h-[calc(100dvh-5rem)] overflow-y-auto opacity-100"
+            : "invisible max-h-0 overflow-hidden opacity-0 pointer-events-none"
         }`}
       >
         <div className="bg-vs-bg border-t border-vs-border">
@@ -266,7 +274,7 @@ const Navbar = () => {
             <div className="text-[10px] uppercase tracking-[0.2em] text-vs-text-muted mb-3">
               Sectors
             </div>
-            {SECTOR_LINKS.map((s) => (
+            {PROPERTY_SECTOR_LINKS.map((s) => (
               <Link
                 key={s.label}
                 to={s.to}

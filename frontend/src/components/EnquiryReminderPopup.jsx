@@ -76,7 +76,7 @@ function PopupForm({ onSuccess, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="p-5 space-y-4" noValidate>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="label">Full Name *</label>
           <input
@@ -222,7 +222,7 @@ function ReminderDialog({ onDismiss, onSubmitted }) {
 
   return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[9990] flex items-end sm:items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[9990] flex items-end justify-center p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:items-center sm:p-6"
       style={{ background: "rgba(0,0,0,0.52)", backdropFilter: "blur(2px)" }}
       role="dialog"
       aria-modal="true"
@@ -234,7 +234,7 @@ function ReminderDialog({ onDismiss, onSubmitted }) {
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="modal-panel w-full max-w-md outline-none"
+        className="modal-panel w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto outline-none"
         style={{
           /* Slide up from bottom on mobile, fade+scale on desktop */
           animation: "vsPopupEnter 0.25s cubic-bezier(0.22, 1, 0.36, 1) both",

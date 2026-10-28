@@ -56,14 +56,14 @@ const AISearchBar = ({ compact = false }) => {
         compact ? "" : "shadow-luxury"
       } bg-vs-surface border border-vs-border rounded-xl overflow-hidden`}
     >
-      <div className="flex items-center gap-3 px-5 py-4">
+      <div className="flex min-w-0 items-center gap-3 px-5 py-4">
         <Sparkles className="text-vs-gold shrink-0" size={18} />
         <input
           data-testid="ai-search-input"
           value={q}
           onChange={handleChange}
           placeholder='Describe what you need — e.g. "2 BHK flat in Bangalore under 80 lakhs with parking"'
-          className="flex-1 outline-none bg-transparent text-sm md:text-base text-vs-text-primary placeholder:text-vs-text-muted"
+          className="min-w-0 flex-1 outline-none bg-transparent text-sm md:text-base text-vs-text-primary placeholder:text-vs-text-muted"
           aria-label="Property search"
         />
         {q && (

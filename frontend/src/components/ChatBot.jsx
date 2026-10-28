@@ -150,11 +150,11 @@ export default function ChatBot({ forceOpen = false, fullPage = false, initialSe
   if (isChatPage) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[1000] flex flex-col items-end gap-3">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] right-[calc(env(safe-area-inset-right)+1.5rem)] z-[1000] flex flex-col items-end gap-3">
       {/* Chat window */}
       {open && (
         <div
-          className="w-[360px] max-h-[560px] flex flex-col bg-vs-bg rounded-2xl shadow-2xl border border-vs-border overflow-hidden"
+          className="w-[min(360px,calc(100vw-2rem))] max-h-[min(560px,calc(100dvh-8rem))] flex flex-col bg-vs-bg rounded-2xl shadow-2xl border border-vs-border overflow-hidden"
           style={{ animation: "slideUp 0.2s ease" }}
           role="dialog"
           aria-label="VisitSarva chatbot"

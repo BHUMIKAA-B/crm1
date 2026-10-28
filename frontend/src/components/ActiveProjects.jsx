@@ -81,7 +81,7 @@ const ActiveProjects = () => {
         {!featured ? (
           <div className="text-vs-text-muted py-8">No active projects in this category.</div>
         ) : (
-          <div className="grid lg:grid-cols-10 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-5">
             {/* Featured 70% */}
             <motion.article
               key={featured.id}
@@ -92,21 +92,23 @@ const ActiveProjects = () => {
               className="lg:col-span-7 card overflow-hidden group"
               data-testid={`active-featured-${featured.id}`}
             >
-              <div className="relative aspect-[16/9] overflow-hidden">
-                <img
-                  src={featured.image_url}
-                  alt={featured.title}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-vs-bg via-vs-bg/40 to-transparent" />
-                <span className="absolute top-4 left-4 px-3 py-1.5 text-[10px] tracking-wider uppercase rounded bg-vs-gold text-vs-bg font-medium">
-                  Featured Project
-                </span>
-                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                  <div className="text-[11px] tracking-[0.2em] uppercase text-vs-gold flex items-center gap-2">
+              <div className="relative overflow-hidden xl:aspect-[16/9]">
+                <div className="relative aspect-[16/9] overflow-hidden xl:absolute xl:inset-0">
+                  <img
+                    src={featured.image_url}
+                    alt={featured.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-vs-bg via-vs-bg/40 to-transparent" />
+                  <span className="absolute top-4 left-4 px-3 py-1.5 text-[10px] tracking-wider uppercase rounded bg-vs-gold text-vs-bg font-medium">
+                    Featured Project
+                  </span>
+                </div>
+                <div className="relative z-10 bg-vs-bg p-5 xl:absolute xl:bottom-0 xl:left-0 xl:right-0 xl:bg-transparent xl:p-6 2xl:p-8">
+                  <div className="text-[11px] tracking-[0.2em] uppercase text-vs-gold flex flex-wrap items-center gap-2 leading-relaxed">
                     {featured.builder} · <MapPin size={11} /> {featured.location}, {featured.city}
                   </div>
-                  <h3 className="mt-2 font-display font-medium text-vs-text-primary text-2xl md:text-4xl leading-tight">
+                  <h3 className="mt-2 break-words font-display font-medium text-vs-text-primary text-2xl md:text-4xl leading-tight">
                     {featured.title}
                   </h3>
                   <p className="mt-3 text-vs-text-secondary text-sm max-w-2xl">{featured.description}</p>
@@ -149,11 +151,11 @@ const ActiveProjects = () => {
                     <div className="w-24 h-24 shrink-0 bg-vs-surface rounded-l-lg overflow-hidden">
                       <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
                     </div>
-                    <div className="flex-1 py-3 pr-4">
+                    <div className="min-w-0 flex-1 py-3 pr-4">
                       <div className="text-[10px] uppercase tracking-wider text-vs-gold">
                         {p.area}
                       </div>
-                      <div className="font-display font-medium text-vs-text-primary text-sm leading-snug line-clamp-2 group-hover:text-vs-gold transition-colors duration-300">
+                      <div className="break-words font-display font-medium text-vs-text-primary text-sm leading-snug line-clamp-2 group-hover:text-vs-gold transition-colors duration-300">
                         {p.title}
                       </div>
                       <div className="text-xs text-vs-text-muted mt-1 flex items-center gap-1.5">

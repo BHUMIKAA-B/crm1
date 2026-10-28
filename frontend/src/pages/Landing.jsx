@@ -89,13 +89,13 @@ const Landing = () => {
         <div className="absolute top-1/2 right-0 w-96 h-96 bg-vs-gold/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative max-w-[80rem] mx-auto px-6 lg:px-12">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center min-h-[540px]">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center min-h-[540px]">
             {/* Left Content Column */}
-            <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-6 text-white">
+              <motion.div initial="hidden" animate="visible" variants={stagger} className="min-w-0 w-full space-y-6 text-white">
               {/* Trust Tag */}
-              <motion.div variants={fadeUp} className="inline-flex items-center gap-2.5 rounded-full bg-white/10 text-white border border-white/20 px-4 py-2 text-xs md:text-sm font-medium backdrop-blur-md shadow-lg">
+              <motion.div variants={fadeUp} className="inline-flex max-w-full flex-wrap items-center gap-2.5 rounded-full bg-white/10 text-white border border-white/20 px-4 py-2 text-xs md:text-sm font-medium backdrop-blur-md shadow-lg">
                 <BadgeCheck size={16} className="text-vs-gold" />
-                <span>Zero Brokerage · 100% Verified Properties · Direct Owner Connect</span>
+                <span className="min-w-0 flex-1 whitespace-normal">Zero Brokerage · 100% Verified Properties · Direct Owner Connect</span>
               </motion.div>
 
               {/* Main Headline & Subtitle */}
@@ -723,9 +723,21 @@ const TopRatedCarousel = ({ items }) => {
         }
         /* On mobile, pause the animation while the user is touching so they
            can inspect a card without it sliding away. */
-        @media (hover: none) {
+        @media (max-width: 767px), (hover: none) {
           .vs-carousel-track:active {
             animation-play-state: paused;
+          }
+          .vs-carousel-viewport {
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+            scroll-snap-type: x mandatory;
+          }
+          .vs-carousel-track {
+            animation: none !important;
+            will-change: auto;
+          }
+          .vs-carousel-track > div {
+            scroll-snap-align: start;
           }
         }
       `}</style>
@@ -735,7 +747,9 @@ const TopRatedCarousel = ({ items }) => {
       </div>
 
       <div
-        className="cursor-grab active:cursor-grabbing select-none"
+        className="vs-carousel-viewport overflow-hidden cursor-grab active:cursor-grabbing select-none"
+        tabIndex={0}
+        aria-label="Scroll through top-rated listings"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         onTouchStart={() => setPaused(true)}
