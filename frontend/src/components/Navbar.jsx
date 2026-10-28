@@ -24,6 +24,7 @@ const Navbar = () => {
   const location = useLocation();
   const sectorRef = useRef(null);
   const userRef = useRef(null);
+  const specialServicesNavigationRef = useRef(false);
   const navigate = useNavigate();
   const { user, accessToken, logout } = useAuthStore();
   const isAuthed = !!accessToken && !!user;
@@ -45,12 +46,14 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    if (location.pathname !== "/" || location.hash !== "#our-special-services") return;
+    if (
+      location.pathname !== "/" ||
+      location.hash !== "#our-special-services" ||
+      specialServicesNavigationRef.current
+    ) return;
     const scrollDelay = window.matchMedia("(max-width: 1023px)").matches ? 550 : 0;
     const timeout = window.setTimeout(() => {
-      requestAnimationFrame(() => {
-        document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
+      document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, scrollDelay);
     return () => window.clearTimeout(timeout);
   }, [location.pathname, location.hash]);
@@ -62,12 +65,13 @@ const Navbar = () => {
   };
 
   const handleServicesNavigation = () => {
+    const menuWasOpen = open;
     setOpen(false);
-    if (location.pathname === "/" && location.hash === "#our-special-services") {
-      requestAnimationFrame(() => {
-        document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
+    specialServicesNavigationRef.current = true;
+    window.setTimeout(() => {
+      document.getElementById("our-special-services")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      specialServicesNavigationRef.current = false;
+    }, menuWasOpen ? 550 : 0);
   };
 
   const dashboardPath =
