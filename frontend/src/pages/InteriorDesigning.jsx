@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -89,7 +89,7 @@ const FAQS = [
   { q: "Can I enquire if I have not finalised my budget?", a: "Absolutely. You can select 'Not decided yet' in the budget field. Our team will help you understand what is possible at different budget levels during the consultation." },
   { q: "Will I receive a quotation immediately after submitting the form?", a: "No. The online form is the first step to connect with our team. Actual pricing, material specifications, and execution details are discussed during the consultation after understanding your specific requirements." },
   { q: "Can VisitSarva help with both residential and commercial interiors?", a: "Yes, we work with residential properties (apartments, independent houses, villas) and commercial/office spaces." },
-  { q: "How will the team contact me after submission?", a: "Our team will contact you on the mobile number you provide in the form. Please ensure the number is reachable and OTP-verified to complete the submission." },
+  { q: "How will the team contact me after submission?", a: "Our team will contact you on the mobile number you provide in the form. Please ensure the number is reachable so we can follow up on your enquiry." },
 ];
 
 const WHATSAPP_NUMBER = "919108070000"; // WhatsApp number without +
@@ -106,137 +106,6 @@ const stagger = (delay = 0.08) => ({
   hidden: {},
   visible: { transition: { staggerChildren: delay } },
 });
-
-/* ─── OTP CONTROLS ─────────────────────────────────────────────────────────── */
-// Production OTP is delivered by the backend through the configured provider
-// (such as Twilio Verify). The frontend never stores or reveals provider
-// credentials or OTP values.
-
-function OtpSection({ mobile, onVerified }) {
-  const [step, setStep] = useState("idle"); // idle | sending | sent | verifying | verified
-  const [otp, setOtp] = useState("");
-  const [error, setError] = useState("");
-  const [countdown, setCountdown] = useState(0);
-  const timerRef = useRef(null);
-
-  const startCountdown = useCallback((secs = 60) => {
-    setCountdown(secs);
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) { clearInterval(timerRef.current); return 0; }
-        return prev - 1;
-      });
-    }, 1000);
-  }, []);
-
-  const handleSendOtp = async () => {
-    const digits = mobile.replace(/\D/g, "").replace(/^91/, "");
-    if (digits.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number first.");
-      return;
-    }
-    setError("");
-    setStep("sending");
-    try {
-      await api.post("/otp/send", { mobile: digits });
-      setStep("sent");
-      startCountdown(60);
-      toast.success("Verification code sent to your email.");
-    } catch (err) {
-      const detail = err?.response?.data?.detail || "";
-      setStep("idle");
-      setError(detail || "Failed to send verification code. Please try again.");
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) {
-      setError("Please enter the 6-digit verification code.");
-      return;
-    }
-    setError("");
-    setStep("verifying");
-    const digits = mobile.replace(/\D/g, "").replace(/^91/, "");
-    try {
-      await api.post("/otp/verify", { mobile: digits, otp });
-      setStep("verified");
-      onVerified(true, "verified_via_provider");
-      toast.success("Mobile number verified successfully!");
-    } catch (err) {
-      const detail = err?.response?.data?.detail || "";
-      setStep("sent");
-      setError(detail || "Invalid code. Please check and try again.");
-    }
-  };
-
-  if (step === "verified") {
-    return (
-      <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
-        <CheckCircle2 className="w-4 h-4" /> Mobile number verified
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {step === "idle" && (
-        <button
-          type="button"
-          onClick={handleSendOtp}
-          className="px-4 py-2 rounded-lg bg-vs-primary text-white text-sm font-medium hover:bg-vs-primary-hover transition-colors"
-        >
-        Send verification code
-        </button>
-      )}
-
-      {step === "sending" && (
-        <div className="flex items-center gap-2 text-sm text-vs-text-secondary">
-        <Loader2 className="w-4 h-4 animate-spin" /> Sending verification code…
-        </div>
-      )}
-
-      {step === "sent" && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={otp}
-              onChange={e => { setOtp(e.target.value.replace(/\D/g, "")); setError(""); }}
-            placeholder="Enter 6-digit code"
-              className="input-field w-40 text-center tracking-widest font-mono"
-            />
-            <button
-              type="button"
-              onClick={handleVerifyOtp}
-              className="px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
-            >
-            Verify code
-            </button>
-          </div>
-          <button
-            type="button"
-            disabled={countdown > 0}
-            onClick={handleSendOtp}
-            className="text-xs text-vs-text-secondary hover:text-vs-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-          {countdown > 0 ? `Resend code in ${countdown}s` : "Resend code"}
-          </button>
-        </div>
-      )}
-
-      {step === "verifying" && (
-        <div className="flex items-center gap-2 text-sm text-vs-text-secondary">
-        <Loader2 className="w-4 h-4 animate-spin" /> Verifying code…
-        </div>
-      )}
-
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
-  );
-}
 
 /* ─── FAQ ITEM ───────────────────────────────────────────────────────────────── */
 
@@ -318,7 +187,7 @@ export default function InteriorDesigning() {
   const [form, setForm] = useState({
     customer_name: "",
     mobile: "",
-    mobile_verified: false,
+    mobile_verified: true,
     otp_verification_ref: "",
     contact_consent: false,
     services_required: [],
@@ -366,7 +235,6 @@ export default function InteriorDesigning() {
     if (!form.customer_name.trim() || form.customer_name.trim().length < 2) errs.customer_name = "Please enter your full name.";
     const digits = form.mobile.replace(/\D/g, "").replace(/^91/, "");
     if (digits.length !== 10) errs.mobile = "Please enter a valid 10-digit Indian mobile number.";
-    if (!form.mobile_verified) errs.otp = "Please verify your mobile number with OTP before submitting.";
     if (form.services_required.length === 0) errs.services = "Please select at least one service category.";
     if (!form.property_type) errs.property_type = "Please select a property type.";
     if (!form.property_size) errs.property_size = "Please enter your property size / BHK.";
@@ -396,6 +264,8 @@ export default function InteriorDesigning() {
       // In production, upload files to cloud storage and pass the URL to the API.
       const payload = {
         ...form,
+        mobile_verified: true,
+        otp_verification_ref: "",
         floor_plan_url: floorPlanFile ? `[local-file:${floorPlanFile.name}]` : "",
         floor_plan_filename: floorPlanFile?.name || "",
         reference_images: refImages.map(f => `[local-file:${f.name}]`),
@@ -797,51 +667,29 @@ export default function InteriorDesigning() {
                 {errors.customer_name && <p className="text-xs text-red-500">{errors.customer_name}</p>}
               </div>
 
-              {/* ── G. Mobile + OTP ── */}
+              {/* ── G. Mobile ── */}
               <div className="space-y-3">
                 <div className="text-xs uppercase tracking-wider text-vs-gold font-semibold flex items-center gap-1.5">
                   <Phone size={13} /> G. Mobile Number <span className="text-red-500">*</span>
                 </div>
-                <div id="field-mobile" className="flex flex-wrap items-start gap-3">
-                  <div className="flex items-center border border-vs-border rounded-xl overflow-hidden bg-vs-surface flex-1 min-w-[200px] max-w-xs focus-within:border-vs-primary focus-within:ring-2 focus-within:ring-vs-primary/20 transition-all">
+                <div id="field-mobile" className="max-w-xs">
+                  <div className="flex items-center border border-vs-border rounded-xl overflow-hidden bg-vs-surface focus-within:border-vs-primary focus-within:ring-2 focus-within:ring-vs-primary/20 transition-all">
                     <span className="px-3 py-3.5 text-sm text-vs-text-secondary border-r border-vs-border bg-vs-bg select-none">+91</span>
                     <input
                       type="tel"
                       inputMode="numeric"
                       maxLength={10}
                       value={form.mobile}
-                      disabled={form.mobile_verified}
                       onChange={e => {
                         const v = e.target.value.replace(/\D/g, "");
                         setField("mobile", v);
-                        setField("mobile_verified", false);
-                        setField("otp_verification_ref", "");
                       }}
                       placeholder="10-digit mobile number"
                       className="flex-1 px-3 py-3.5 text-sm bg-transparent outline-none text-vs-text-primary placeholder-vs-text-muted"
                     />
                   </div>
-                  {!form.mobile_verified && (
-                    <OtpSection
-                      mobile={form.mobile}
-                      onVerified={(verified, ref) => {
-                        setField("mobile_verified", verified);
-                        setField("otp_verification_ref", ref);
-                      }}
-                    />
-                  )}
-                  {form.mobile_verified && (
-                    <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium py-3">
-                      <CheckCircle2 className="w-4 h-4" /> Verified
-                    </div>
-                  )}
                 </div>
                 {errors.mobile && <p id="field-mobile" className="text-xs text-red-500">{errors.mobile}</p>}
-                {errors.otp && <p id="field-otp" className="text-xs text-red-500 flex items-center gap-1"><Info className="w-3 h-3" /> {errors.otp}</p>}
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200/60 text-amber-800 text-xs">
-                  <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>OTP verification is required. The form cannot be submitted without verifying your mobile number.</span>
-                </div>
               </div>
 
               {/* ── H. Consent ── */}
