@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./VisitSarvaServices.css";
 import {
   Brush,
@@ -68,10 +69,19 @@ const SERVICE_OPTIONS = [
 const SERVICE_MESSAGE = "More details about this service will be available soon.";
 
 const VisitSarvaServices = () => {
+  const navigate = useNavigate();
   const [selectedService, setSelectedService] = useState("");
   const selectedServiceDetails = SERVICE_OPTIONS.find(
     ({ title, subOptions }) => title === selectedService || subOptions?.includes(selectedService)
   );
+
+  const handleServiceClick = (title) => {
+    if (title === "Interior Designing") {
+      navigate("/interior-designing");
+    } else {
+      setSelectedService(title);
+    }
+  };
 
   return (
     <section
@@ -134,7 +144,7 @@ const VisitSarvaServices = () => {
               <button
                 type="button"
                 className="vs-service__button"
-                onClick={() => setSelectedService(title)}
+                onClick={() => handleServiceClick(title)}
                 aria-label={`View details for ${title}`}
               >
                 <span className="vs-service__visual">
