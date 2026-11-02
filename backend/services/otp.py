@@ -13,10 +13,10 @@ import time
 from typing import Any
 
 from services.email import send_email
+from db import otp_verifications
 
 log = logging.getLogger("visitsarva.otp")
 
-_OTP_STORE: dict[str, tuple[str, float]] = {}
 _OTP_TTL_SECONDS = 300
 
 
@@ -50,12 +50,34 @@ def _require_email_otp_config() -> str:
     return target
 
 
+async def _store_otp(mobile: str, code: str) -> None:
+    expires_at = time.time() + _OTP_TTL_SECONDS
+    collection = otp_verifications()
+    await collection.update_one(
+        {"mobile": mobile},
+        {"$set": {"code": code, "expires_at": expires_at, "updated_at": int(time.time())}},
+        upsert=True,
+    )
+
+
+async def _read_otp(mobile: str) -> tuple[str, float] | None:
+    collection = otp_verifications()
+    doc = await collection.find_one({"mobile": mobile})
+    if not doc:
+        return None
+    expires_at = float(doc.get("expires_at", 0) or 0)
+    if time.time() > expires_at:
+        await collection.delete_one({"_id": doc.get("_id")})
+        return None
+    return str(doc.get("code", "")), expires_at
+
+
 async def send_otp_via_provider(phone: str) -> dict[str, Any]:
     """Send a 6-digit OTP via the existing email delivery service."""
     normalized = normalize_indian_mobile(phone)
     email_to = _require_email_otp_config()
     code = f"{random.randint(100000, 999999):06d}"
-    _OTP_STORE[normalized] = (code, time.time() + _OTP_TTL_SECONDS)
+    await _store_otp(normalized, code)
 
     subject = "VisitSarva verification code"
     html = f"""
@@ -69,7 +91,7 @@ async def send_otp_via_provider(phone: str) -> dict[str, Any]:
 
     sent = await send_email(email_to, subject, html, text=f"Your VisitSarva verification code is {code}. It expires in 5 minutes.")
     if not sent:
-        _OTP_STORE.pop(normalized, None)
+        await otp_verifications().delete_one({"mobile": normalized})
         raise RuntimeError("Failed to send OTP via configured email provider.")
 
     log.info("OTP email queued for %s via %s", normalized, email_to)
@@ -77,21 +99,17 @@ async def send_otp_via_provider(phone: str) -> dict[str, Any]:
 
 
 async def verify_otp_via_provider(phone: str, code: str) -> bool:
-    """Validate OTP against the in-process email-backed code store."""
+    """Validate OTP against the stored email-backed code record."""
     normalized = normalize_indian_mobile(phone)
     if not code or not code.isdigit() or len(code) != 6:
         raise ValueError("OTP must be a 6-digit numeric code.")
 
-    current = _OTP_STORE.get(normalized)
+    current = await _read_otp(normalized)
     if not current:
         return False
 
-    expected_code, expires_at = current
-    if time.time() > expires_at:
-        _OTP_STORE.pop(normalized, None)
-        return False
-
+    expected_code, _ = current
     is_valid = code == expected_code
     if is_valid:
-        _OTP_STORE.pop(normalized, None)
+        await otp_verifications().delete_one({"mobile": normalized})
     return is_valid

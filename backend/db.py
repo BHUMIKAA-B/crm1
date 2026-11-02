@@ -96,6 +96,10 @@ def project_enquiries():
     return get_db()["project_enquiries"]
 
 
+def otp_verifications():
+    return get_db()["otp_verifications"]
+
+
 # CRM Collections
 def employees():
     return get_db()["employees"]
