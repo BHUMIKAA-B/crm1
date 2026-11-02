@@ -107,11 +107,10 @@ const stagger = (delay = 0.08) => ({
   visible: { transition: { staggerChildren: delay } },
 });
 
-/* ─── OTP CONTROLS — note: Dev fallback mode ─────────────────────────────────── */
-// Production OTP requires a configured SMS provider (e.g. Twilio, MSG91).
-// Until the provider is configured, a DEVELOPMENT MODE is used that accepts
-// any 6-digit code entered. The backend endpoint for production OTP is 
-// /api/otp/send and /api/otp/verify and must be connected to an SMS provider.
+/* ─── OTP CONTROLS ─────────────────────────────────────────────────────────── */
+// Production OTP is delivered by the backend through the configured provider
+// (such as Twilio Verify). The frontend never stores or reveals provider
+// credentials or OTP values.
 
 function OtpSection({ mobile, onVerified }) {
   const [step, setStep] = useState("idle"); // idle | sending | sent | verifying | verified
@@ -140,21 +139,14 @@ function OtpSection({ mobile, onVerified }) {
     setError("");
     setStep("sending");
     try {
-      await api.post("/api/otp/send", { mobile: digits });
+      await api.post("/otp/send", { mobile: digits });
       setStep("sent");
       startCountdown(60);
       toast.success("OTP sent to your mobile number.");
     } catch (err) {
-      // DEVELOPMENT FALLBACK: If OTP provider is not configured, enter dev mode
       const detail = err?.response?.data?.detail || "";
-      if (err?.response?.status === 503 || detail.includes("not configured") || detail.includes("provider")) {
-        setStep("sent");
-        startCountdown(60);
-        toast("⚠️ OTP provider not configured — using development mode. Enter any 6 digits.", { icon: "🔧", duration: 6000 });
-      } else {
-        setStep("idle");
-        setError("Failed to send OTP. Please try again.");
-      }
+      setStep("idle");
+      setError(detail || "Failed to send OTP. Please try again.");
     }
   };
 
@@ -167,21 +159,14 @@ function OtpSection({ mobile, onVerified }) {
     setStep("verifying");
     const digits = mobile.replace(/\D/g, "").replace(/^91/, "");
     try {
-      await api.post("/api/otp/verify", { mobile: digits, otp });
+      await api.post("/otp/verify", { mobile: digits, otp });
       setStep("verified");
       onVerified(true, "verified_via_provider");
       toast.success("Mobile number verified successfully!");
     } catch (err) {
       const detail = err?.response?.data?.detail || "";
-      // Dev mode: accept any 6 digit code if endpoint returns 503/not configured
-      if (err?.response?.status === 503 || detail.includes("not configured") || detail.includes("provider")) {
-        setStep("verified");
-        onVerified(true, "dev_mode_bypass");
-        toast("✅ Dev mode: OTP accepted. Configure SMS provider for production.", { icon: "🔧" });
-      } else {
-        setStep("sent");
-        setError("Invalid OTP. Please check and try again.");
-      }
+      setStep("sent");
+      setError(detail || "Invalid OTP. Please check and try again.");
     }
   };
 
