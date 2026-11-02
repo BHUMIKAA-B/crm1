@@ -142,17 +142,17 @@ function OtpSection({ mobile, onVerified }) {
       await api.post("/otp/send", { mobile: digits });
       setStep("sent");
       startCountdown(60);
-      toast.success("OTP sent to your mobile number.");
+      toast.success("Verification code sent to your email.");
     } catch (err) {
       const detail = err?.response?.data?.detail || "";
       setStep("idle");
-      setError(detail || "Failed to send OTP. Please try again.");
+      setError(detail || "Failed to send verification code. Please try again.");
     }
   };
 
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) {
-      setError("Please enter the 6-digit OTP.");
+      setError("Please enter the 6-digit verification code.");
       return;
     }
     setError("");
@@ -166,7 +166,7 @@ function OtpSection({ mobile, onVerified }) {
     } catch (err) {
       const detail = err?.response?.data?.detail || "";
       setStep("sent");
-      setError(detail || "Invalid OTP. Please check and try again.");
+      setError(detail || "Invalid code. Please check and try again.");
     }
   };
 
@@ -186,13 +186,13 @@ function OtpSection({ mobile, onVerified }) {
           onClick={handleSendOtp}
           className="px-4 py-2 rounded-lg bg-vs-primary text-white text-sm font-medium hover:bg-vs-primary-hover transition-colors"
         >
-          Send OTP
+        Send verification code
         </button>
       )}
 
       {step === "sending" && (
         <div className="flex items-center gap-2 text-sm text-vs-text-secondary">
-          <Loader2 className="w-4 h-4 animate-spin" /> Sending OTP…
+        <Loader2 className="w-4 h-4 animate-spin" /> Sending verification code…
         </div>
       )}
 
@@ -205,7 +205,7 @@ function OtpSection({ mobile, onVerified }) {
               maxLength={6}
               value={otp}
               onChange={e => { setOtp(e.target.value.replace(/\D/g, "")); setError(""); }}
-              placeholder="Enter 6-digit OTP"
+            placeholder="Enter 6-digit code"
               className="input-field w-40 text-center tracking-widest font-mono"
             />
             <button
@@ -213,7 +213,7 @@ function OtpSection({ mobile, onVerified }) {
               onClick={handleVerifyOtp}
               className="px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
             >
-              Verify
+            Verify code
             </button>
           </div>
           <button
@@ -222,14 +222,14 @@ function OtpSection({ mobile, onVerified }) {
             onClick={handleSendOtp}
             className="text-xs text-vs-text-secondary hover:text-vs-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {countdown > 0 ? `Resend OTP in ${countdown}s` : "Resend OTP"}
+          {countdown > 0 ? `Resend code in ${countdown}s` : "Resend code"}
           </button>
         </div>
       )}
 
       {step === "verifying" && (
         <div className="flex items-center gap-2 text-sm text-vs-text-secondary">
-          <Loader2 className="w-4 h-4 animate-spin" /> Verifying…
+        <Loader2 className="w-4 h-4 animate-spin" /> Verifying code…
         </div>
       )}
 
