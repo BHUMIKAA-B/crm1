@@ -17,6 +17,7 @@ import Services from "@/pages/Services";
 import Construction from "@/pages/Construction";
 import HomeLoanAssistance from "@/pages/HomeLoanAssistance";
 import InteriorDesigning from "@/pages/InteriorDesigning";
+import PaintingServices from "@/pages/PaintingServices";
 import SellerDashboard from "@/pages/SellerDashboard";
 import NewListing from "@/pages/NewListing";
 import ListingEdit from "@/pages/ListingEdit";
@@ -60,6 +61,7 @@ import CrmAICalls from "@/pages/crm/CrmAICalls";
 import CrmLearning from "@/pages/crm/CrmLearning";
 import CrmLoanEnquiries from "@/pages/crm/CrmLoanEnquiries";
 import CrmInteriorEnquiries from "@/pages/crm/CrmInteriorEnquiries";
+import CrmPaintingEnquiries from "@/pages/crm/CrmPaintingEnquiries";
 import CrmSettings from "@/pages/crm/CrmSettings";
 import CrmSearch from "@/pages/crm/CrmSearch";
 import RequireCrmGateway from "@/components/RequireCrmGateway";
@@ -80,6 +82,7 @@ function AnimatedRoutes() {
         <Route path="/loan-assistance" element={<HomeLoanAssistance />} />
         <Route path="/home-loans" element={<HomeLoanAssistance />} />
         <Route path="/interior-designing" element={<InteriorDesigning />} />
+        <Route path="/painting-services" element={<PaintingServices />} />
 
         {/* Buyer */}
         <Route
@@ -179,6 +182,7 @@ function AnimatedRoutes() {
           <Route path="leads/:id" element={<CrmLeadDetail />} />
           <Route path="loan-enquiries" element={<CrmLoanEnquiries />} />
           <Route path="interior-enquiries" element={<CrmInteriorEnquiries />} />
+          <Route path="painting-enquiries" element={<CrmPaintingEnquiries />} />
           <Route path="customers" element={<CrmCustomers />} />
           <Route path="customers/:id" element={<CrmCustomerDetail />} />
           <Route path="teams" element={<CrmTeams />} />

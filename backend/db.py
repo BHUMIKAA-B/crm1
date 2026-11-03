@@ -80,6 +80,10 @@ def interior_enquiries():
     return get_db()["interior_enquiries"]
 
 
+def painting_enquiries():
+    return get_db()["painting_enquiries"]
+
+
 def service_requests():
     return get_db()["service_requests"]
 

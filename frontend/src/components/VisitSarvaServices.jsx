@@ -78,6 +78,8 @@ const VisitSarvaServices = () => {
   const handleServiceClick = (title) => {
     if (title === "Interior Designing") {
       navigate("/interior-designing");
+    } else if (title === "Painting Services") {
+      navigate("/painting-services");
     } else {
       setSelectedService(title);
     }
