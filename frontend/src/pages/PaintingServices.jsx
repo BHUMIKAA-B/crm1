@@ -29,6 +29,7 @@ export default function PaintingServices() {
   const [form, setForm] = useState({
     customer_name: "",
     mobile: "",
+    services_required: [],
     property_type: "",
     property_size: "",
     painting_requirements: [],
