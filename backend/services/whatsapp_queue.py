@@ -7,7 +7,11 @@ import asyncio
 
 import db
 from models import WhatsAppJob, now_iso, new_id
-from services.whatsapp import send_whatsapp
+
+try:
+    from backend.services.whatsapp import send_whatsapp
+except ModuleNotFoundError:  # pragma: no cover - fallback for backend-dir execution
+    from services.whatsapp import send_whatsapp
 
 log = logging.getLogger("visitsarva.whatsapp_queue")
 

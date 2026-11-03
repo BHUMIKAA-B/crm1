@@ -3,13 +3,21 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parent
+ROOT_DIR = BACKEND_DIR.parent
+for candidate in (str(BACKEND_DIR), str(ROOT_DIR)):
+    if candidate in sys.path:
+        sys.path.remove(candidate)
+for candidate in (str(ROOT_DIR), str(BACKEND_DIR)):
+    sys.path.insert(0, candidate)
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-ROOT_DIR = Path(__file__).parent
 import asyncio
 from backend.services.whatsapp_queue import process_pending_jobs
 
