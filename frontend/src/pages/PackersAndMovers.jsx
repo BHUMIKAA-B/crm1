@@ -61,32 +61,32 @@ const HERO_BACKGROUND = makeIllustration("Packers & Movers", "#eef3f7", "#a9b0bc
 const SERVICE_CARDS = [
   {
     title: "Home Relocation",
-    image: makeIllustration("Home Relocation", "#d7dfe6", "#77829a", "#f8c65b"),
+    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
     description: "Move your home with planned packing, safe loading, and on-time delivery for every room.",
   },
   {
     title: "Office Relocation",
-    image: makeIllustration("Office Relocation", "#dfeaf7", "#7e96b8", "#7dd3fc"),
+    image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80",
     description: "Relocate workstations, equipment, and office essentials with minimal downtime.",
   },
   {
     title: "Local Shifting",
-    image: makeIllustration("Local Shifting", "#d9f1ea", "#5f9e98", "#f4d35e"),
+    image: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80",
     description: "Quick and reliable moving support for same-city moves with flexible scheduling.",
   },
   {
     title: "Domestic Relocation",
-    image: makeIllustration("Domestic Relocation", "#f2e6d7", "#b17b53", "#fbbf24"),
+    image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80",
     description: "Intercity and long-distance moving support with route planning and transit coordination.",
   },
   {
     title: "Packing & Unpacking",
-    image: makeIllustration("Packing & Unpacking", "#e5ebf8", "#7e88b5", "#c084fc"),
+    image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80",
     description: "Secure packing, careful labeling, and neat unpacking for a smoother relocation experience.",
   },
   {
     title: "Furniture and Appliance Shifting",
-    image: makeIllustration("Furniture & Appliance", "#ebebf2", "#7f8aa8", "#f59e0b"),
+    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80",
     description: "Dedicated handling for bulky furniture, appliances, and delicate household items.",
   },
 ];
@@ -427,7 +427,13 @@ export default function PackersAndMovers() {
               {SERVICE_CARDS.map((card) => (
                 <div key={card.title} className="group overflow-hidden rounded-2xl border border-vs-border bg-vs-bg shadow-premium-sm transition duration-300 hover:-translate-y-1 hover:shadow-premium-md">
                   <div className="relative h-52 overflow-hidden">
-                    <img src={card.image} alt={card.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    <img
+                      src={card.image}
+                      alt={card.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
                   </div>
                   <div className="p-5">
