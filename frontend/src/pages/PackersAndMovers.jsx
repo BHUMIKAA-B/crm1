@@ -178,26 +178,12 @@ function normalizeIndianMobile(value) {
 export default function PackersAndMovers() {
   const [form, setForm] = useState(initialForm);
   const [uploads, setUploads] = useState([]);
-  const [otpCode, setOtpCode] = useState("");
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
   const fileInputRef = useRef(null);
 
   const propertyIsCommercial = ["Office", "Commercial Space"].includes(form.property_type);
-
-  useEffect(() => {
-    if (!countdown) return undefined;
-    const timer = window.setInterval(() => {
-      setCountdown((value) => (value > 0 ? value - 1 : 0));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [countdown]);
 
   const filePreviewMap = useMemo(
     () => Object.fromEntries(uploads.map((file) => [file.name, URL.createObjectURL(file)])),
@@ -282,9 +268,6 @@ export default function PackersAndMovers() {
     if (phoneDigits.length !== 10) {
       nextErrors.mobile = "Please enter a valid 10-digit Indian mobile number.";
     }
-    if (!form.mobile_verified) {
-      nextErrors.mobile = "Please verify your mobile number with OTP before submitting.";
-    }
     if (!form.services_required.length) {
       nextErrors.services_required = "Please select at least one service.";
     }
@@ -319,59 +302,6 @@ export default function PackersAndMovers() {
       nextErrors.contact_consent = "Please consent to be contacted by VisitSarva.";
     }
     return nextErrors;
-  };
-
-  const sendOtp = async () => {
-    const normalized = normalizeIndianMobile(form.mobile);
-    if (normalized.length !== 10) {
-      toast.error("Please enter a valid 10-digit Indian mobile number before requesting OTP.");
-      return;
-    }
-
-    setSendingOtp(true);
-    try {
-      await api.post("/otp/send", { mobile: normalized });
-      setOtpSent(true);
-      setCountdown(45);
-      setOtpVerified(false);
-      setForm((prev) => ({ ...prev, mobile_verified: false, otp_verification_ref: "" }));
-      toast.success("OTP sent successfully. Please check your registered email inbox.");
-    } catch (error) {
-      const detail = error?.response?.data?.detail;
-      const message = typeof detail === "string" ? detail : "Unable to send OTP right now.";
-      toast.error(message);
-    } finally {
-      setSendingOtp(false);
-    }
-  };
-
-  const verifyOtp = async () => {
-    const normalized = normalizeIndianMobile(form.mobile);
-    if (normalized.length !== 10) {
-      toast.error("Please enter a valid mobile number first.");
-      return;
-    }
-    if (!otpCode || otpCode.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP.");
-      return;
-    }
-
-    setVerifyingOtp(true);
-    try {
-      const { data } = await api.post("/otp/verify", { mobile: normalized, otp: otpCode });
-      if (data?.verified) {
-        setOtpVerified(true);
-        setForm((prev) => ({ ...prev, mobile_verified: true, otp_verification_ref: data?.message || "otp-verified" }));
-        setErrors((prev) => ({ ...prev, mobile: "" }));
-        toast.success("Mobile number verified successfully.");
-      }
-    } catch (error) {
-      const detail = error?.response?.data?.detail;
-      const message = typeof detail === "string" ? detail : "OTP verification failed.";
-      toast.error(message);
-    } finally {
-      setVerifyingOtp(false);
-    }
   };
 
   const handleSubmit = async (event) => {
@@ -737,34 +667,8 @@ export default function PackersAndMovers() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-vs-text-primary">Indian mobile number</label>
-                  <div className="flex gap-2">
-                    <input value={form.mobile} onChange={(e) => {
-                      const nextValue = e.target.value;
-                      updateField("mobile", nextValue);
-                      setOtpSent(false);
-                      setOtpVerified(false);
-                      setOtpCode("");
-                      setCountdown(0);
-                      setForm((prev) => ({ ...prev, mobile_verified: false, otp_verification_ref: "" }));
-                    }} placeholder="e.g. 9876543210" className="w-full rounded-xl border border-vs-border bg-vs-bg px-3 py-3 text-sm text-vs-text-primary outline-none transition focus:border-vs-gold" />
-                    <button type="button" onClick={sendOtp} disabled={sendingOtp || !form.mobile} className="rounded-xl bg-vs-gold px-3 py-3 text-xs font-semibold text-slate-900 disabled:cursor-not-allowed disabled:opacity-60">
-                      {sendingOtp ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send OTP"}
-                    </button>
-                  </div>
+                  <input value={form.mobile} onChange={(e) => updateField("mobile", e.target.value)} placeholder="e.g. 9876543210" className="w-full rounded-xl border border-vs-border bg-vs-bg px-3 py-3 text-sm text-vs-text-primary outline-none transition focus:border-vs-gold" />
                   {errors.mobile && <p className="text-sm text-red-500">{errors.mobile}</p>}
-                  {countdown > 0 && <p className="text-xs text-vs-text-secondary">OTP sent. Resend available in {countdown}s.</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-vs-text-primary">Enter OTP</label>
-                  <div className="flex gap-2">
-                    <input value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))} maxLength={6} placeholder="6-digit OTP" className="w-full rounded-xl border border-vs-border bg-vs-bg px-3 py-3 text-sm text-vs-text-primary outline-none transition focus:border-vs-gold" />
-                    <button type="button" onClick={verifyOtp} disabled={verifyingOtp || !otpCode || otpCode.length !== 6} className="rounded-xl border border-vs-border bg-vs-bg px-3 py-3 text-xs font-semibold text-vs-text-primary disabled:cursor-not-allowed disabled:opacity-60">
-                      {verifyingOtp ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
-                    </button>
-                  </div>
-                  {otpSent && !otpVerified && <p className="text-xs text-vs-text-secondary">Use the 6-digit OTP sent to your configured email address for verification.</p>}
-                  {otpVerified && <p className="text-xs font-medium text-emerald-600">Mobile number verified successfully.</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -789,10 +693,10 @@ export default function PackersAndMovers() {
 
               <div className="rounded-xl border border-vs-border bg-vs-bg p-4 text-xs text-vs-text-secondary">
                 <div className="flex items-center gap-2 font-medium text-vs-text-primary">
-                  <ShieldCheck className="h-4 w-4 text-vs-gold" /> Secure verification
+                  <ShieldCheck className="h-4 w-4 text-vs-gold" /> Privacy first
                 </div>
                 <p className="mt-2 leading-relaxed">
-                  We only accept a final enquiry once your mobile number is verified through the backend OTP service. No OTP credentials are exposed in the frontend.
+                  We use the contact details you provide to understand your move requirements and respond with the right assistance.
                 </p>
               </div>
             </aside>

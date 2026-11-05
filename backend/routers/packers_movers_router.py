@@ -83,11 +83,11 @@ class PackersMoversEnquiryCreate(BaseModel):
             raise ValueError("This field is required.")
         return value.strip()
 
-    @field_validator("contact_consent", "mobile_verified")
+    @field_validator("contact_consent")
     @classmethod
     def validate_consent(cls, value: bool) -> bool:
         if not value:
-            raise ValueError("Please complete mobile verification and consent to be contacted.")
+            raise ValueError("Please consent to be contacted.")
         return value
 
 
