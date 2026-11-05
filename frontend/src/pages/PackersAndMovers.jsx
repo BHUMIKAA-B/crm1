@@ -26,35 +26,67 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import api from "@/api/client";
 
+const makeIllustration = (title, start, end, accent) => {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="${start}"/>
+          <stop offset="100%" stop-color="${end}"/>
+        </linearGradient>
+        <linearGradient id="panel" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0.05)"/>
+        </linearGradient>
+      </defs>
+      <rect width="800" height="520" fill="url(#bg)"/>
+      <circle cx="110" cy="112" r="56" fill="rgba(255,255,255,0.14)"/>
+      <circle cx="684" cy="112" r="78" fill="rgba(255,255,255,0.12)"/>
+      <path d="M0 384C120 340 178 324 252 338C320 350 380 398 458 396C540 394 622 344 800 390V520H0Z" fill="rgba(15,23,42,0.18)"/>
+      <rect x="120" y="148" width="560" height="220" rx="26" fill="url(#panel)" stroke="rgba(255,255,255,0.30)"/>
+      <rect x="170" y="214" width="180" height="96" rx="18" fill="rgba(255,255,255,0.12)"/>
+      <rect x="382" y="214" width="230" height="18" rx="9" fill="rgba(255,255,255,0.24)"/>
+      <rect x="382" y="252" width="180" height="18" rx="9" fill="rgba(255,255,255,0.16)"/>
+      <rect x="382" y="290" width="140" height="18" rx="9" fill="rgba(255,255,255,0.12)"/>
+      <rect x="164" y="170" width="96" height="18" rx="9" fill="${accent}" opacity="0.9"/>
+      <text x="400" y="430" fill="rgba(255,255,255,0.96)" font-size="40" font-family="Arial, Helvetica, sans-serif" font-weight="700" text-anchor="middle">${title}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
+const HERO_BACKGROUND = makeIllustration("Packers & Movers", "#eef3f7", "#a9b0bc", "#facc15");
+
 const SERVICE_CARDS = [
   {
     title: "Home Relocation",
-    image: "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=900&auto=format&fit=crop&q=80",
+    image: makeIllustration("Home Relocation", "#d7dfe6", "#77829a", "#f8c65b"),
     description: "Move your home with planned packing, safe loading, and on-time delivery for every room.",
   },
   {
     title: "Office Relocation",
-    image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=900&auto=format&fit=crop&q=80",
+    image: makeIllustration("Office Relocation", "#dfeaf7", "#7e96b8", "#7dd3fc"),
     description: "Relocate workstations, equipment, and office essentials with minimal downtime.",
   },
   {
     title: "Local Shifting",
-    image: "https://images.unsplash.com/photo-1556911220-bff31c812dba?w=900&auto=format&fit=crop&q=80",
+    image: makeIllustration("Local Shifting", "#d9f1ea", "#5f9e98", "#f4d35e"),
     description: "Quick and reliable moving support for same-city moves with flexible scheduling.",
   },
   {
     title: "Domestic Relocation",
-    image: "https://images.unsplash.com/photo-1618220179428-22790b461013?w=900&auto=format&fit=crop&q=80",
+    image: makeIllustration("Domestic Relocation", "#f2e6d7", "#b17b53", "#fbbf24"),
     description: "Intercity and long-distance moving support with route planning and transit coordination.",
   },
   {
     title: "Packing & Unpacking",
-    image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=900&auto=format&fit=crop&q=80",
+    image: makeIllustration("Packing & Unpacking", "#e5ebf8", "#7e88b5", "#c084fc"),
     description: "Secure packing, careful labeling, and neat unpacking for a smoother relocation experience.",
   },
   {
     title: "Furniture and Appliance Shifting",
-    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900&auto=format&fit=crop&q=80",
+    image: makeIllustration("Furniture & Appliance", "#ebebf2", "#7f8aa8", "#f59e0b"),
     description: "Dedicated handling for bulky furniture, appliances, and delicate household items.",
   },
 ];
@@ -414,8 +446,7 @@ export default function PackersAndMovers() {
           <div
             className="absolute inset-0 bg-cover bg-center opacity-80"
             style={{
-              backgroundImage:
-                "linear-gradient(to right, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.87) 35%, rgba(255,255,255,0.4) 65%, rgba(255,255,255,0.12) 100%), url('https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1600&q=80')",
+              backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.87) 35%, rgba(255,255,255,0.4) 65%, rgba(255,255,255,0.12) 100%), url("${HERO_BACKGROUND}")`,
             }}
           />
           <div className="relative mx-auto max-w-[80rem] px-6 py-20 lg:py-28 lg:px-12">
