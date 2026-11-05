@@ -63,7 +63,9 @@ from routers.crm_learning_router import router as crm_learning_router
 from routers.crm_loan_enquiries_router import router as crm_loan_enquiries_router
 from routers.crm_interior_router import router as crm_interior_router
 from routers.crm_painting_router import router as crm_painting_router
+from routers.crm_packers_movers_router import router as crm_packers_movers_router
 from routers.painting_router import router as painting_router
+from routers.packers_movers_router import router as packers_movers_router
 from routers.otp_router import router as otp_router
 try:
     from routers.calling_router import router as calling_router  # AI Calling Agent
@@ -159,7 +161,9 @@ app.include_router(crm_learning_router)
 app.include_router(crm_loan_enquiries_router)
 app.include_router(crm_interior_router)
 app.include_router(crm_painting_router)
+app.include_router(crm_packers_movers_router)
 app.include_router(painting_router)
+app.include_router(packers_movers_router)
 app.include_router(otp_router)
 if calling_router is not None:
     app.include_router(calling_router)  # AI Calling Agent

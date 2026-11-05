@@ -80,6 +80,8 @@ const VisitSarvaServices = () => {
       navigate("/interior-designing");
     } else if (title === "Painting Services") {
       navigate("/painting-services");
+    } else if (title === "Packers and Movers") {
+      navigate("/packers-and-movers");
     } else {
       setSelectedService(title);
     }

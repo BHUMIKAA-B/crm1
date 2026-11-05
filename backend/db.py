@@ -84,6 +84,10 @@ def painting_enquiries():
     return get_db()["painting_enquiries"]
 
 
+def packers_movers_enquiries():
+    return get_db()["packers_movers_enquiries"]
+
+
 def service_requests():
     return get_db()["service_requests"]
 
