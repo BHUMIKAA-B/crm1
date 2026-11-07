@@ -26,37 +26,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import api from "@/api/client";
 
-const makeIllustration = (title, start, end, accent) => {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
-      <defs>
-        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stop-color="${start}"/>
-          <stop offset="100%" stop-color="${end}"/>
-        </linearGradient>
-        <linearGradient id="panel" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
-          <stop offset="100%" stop-color="rgba(255,255,255,0.05)"/>
-        </linearGradient>
-      </defs>
-      <rect width="800" height="520" fill="url(#bg)"/>
-      <circle cx="110" cy="112" r="56" fill="rgba(255,255,255,0.14)"/>
-      <circle cx="684" cy="112" r="78" fill="rgba(255,255,255,0.12)"/>
-      <path d="M0 384C120 340 178 324 252 338C320 350 380 398 458 396C540 394 622 344 800 390V520H0Z" fill="rgba(15,23,42,0.18)"/>
-      <rect x="120" y="148" width="560" height="220" rx="26" fill="url(#panel)" stroke="rgba(255,255,255,0.30)"/>
-      <rect x="170" y="214" width="180" height="96" rx="18" fill="rgba(255,255,255,0.12)"/>
-      <rect x="382" y="214" width="230" height="18" rx="9" fill="rgba(255,255,255,0.24)"/>
-      <rect x="382" y="252" width="180" height="18" rx="9" fill="rgba(255,255,255,0.16)"/>
-      <rect x="382" y="290" width="140" height="18" rx="9" fill="rgba(255,255,255,0.12)"/>
-      <rect x="164" y="170" width="96" height="18" rx="9" fill="${accent}" opacity="0.9"/>
-      <text x="400" y="430" fill="rgba(255,255,255,0.96)" font-size="40" font-family="Arial, Helvetica, sans-serif" font-weight="700" text-anchor="middle">${title}</text>
-    </svg>
-  `;
-
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-};
-
-const HERO_BACKGROUND = makeIllustration("Packers & Movers", "#eef3f7", "#a9b0bc", "#facc15");
+const PACKERS_MOVERS_HERO_IMAGE = "/assets/visitsarva-packers-movers-banner.png";
 
 const SERVICE_CARDS = [
   {
@@ -373,41 +343,60 @@ export default function PackersAndMovers() {
 
       <main>
         <section className="relative overflow-hidden border-b border-vs-border bg-vs-surface">
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-80"
-            style={{
-              backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.87) 35%, rgba(255,255,255,0.4) 65%, rgba(255,255,255,0.12) 100%), url("${HERO_BACKGROUND}")`,
-            }}
-          />
-          <div className="relative mx-auto max-w-[80rem] px-6 py-20 lg:py-28 lg:px-12">
-            <div className="max-w-2xl space-y-8">
-              <span className="inline-flex items-center gap-2 rounded-full border border-vs-border bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-vs-gold backdrop-blur-sm">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(250,204,21,0.18),_transparent_38%)]" />
+          <div className="relative mx-auto grid max-w-[80rem] items-center gap-6 px-5 py-6 md:px-8 lg:grid-cols-[minmax(0,1.06fr)_minmax(0,1.14fr)] lg:gap-0 lg:px-12 lg:py-0">
+            <div className="relative z-10 max-w-xl py-8 sm:py-10 lg:py-16">
+              <span className="inline-flex items-center gap-2 rounded-full border border-vs-border bg-white/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-vs-gold backdrop-blur-sm">
                 <Truck className="h-3.5 w-3.5" /> Special Services · Packers & Movers
               </span>
-              <h1 className="font-display text-4xl font-semibold leading-tight text-vs-text-primary md:text-5xl lg:text-[3.5rem]">
+
+              <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.04] text-vs-text-primary sm:text-5xl lg:text-[3.4rem]">
                 Moving Made Easier. <span className="text-vs-gold">Every Step of the Way.</span>
               </h1>
-              <p className="max-w-xl text-lg text-vs-text-secondary leading-relaxed">
+
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-vs-text-secondary md:text-lg">
                 Planning a home or office relocation? Share your moving requirements with VisitSarva and let our team help you connect with suitable packing and moving services.
               </p>
-              <div className="flex flex-wrap gap-4">
-                <button type="button" onClick={scrollToForm} className="inline-flex items-center gap-2 rounded-full bg-vs-gold px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-vs-gold/20 transition hover:opacity-90">
+
+              <div className="mt-8 flex flex-wrap gap-4">
+                <button
+                  type="button"
+                  onClick={scrollToForm}
+                  className="inline-flex items-center gap-2 rounded-full bg-vs-gold px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-vs-gold/20 transition hover:opacity-90"
+                >
                   Get Moving Estimate <ArrowRight className="h-4 w-4" />
                 </button>
-                <a href="#moving-services" className="inline-flex items-center gap-2 rounded-full border border-vs-border bg-white/70 px-6 py-3 text-sm font-semibold text-vs-text-primary transition hover:border-vs-gold/60 hover:text-vs-gold">
+                <a
+                  href="#moving-services"
+                  className="inline-flex items-center gap-2 rounded-full border border-vs-border bg-white/80 px-6 py-3 text-sm font-semibold text-vs-text-primary transition hover:border-vs-gold/60 hover:text-vs-gold"
+                >
                   Explore Our Services <ChevronRight className="h-4 w-4" />
                 </a>
               </div>
-              <div className="flex flex-wrap gap-4 pt-2 text-xs text-vs-text-secondary">
+
+              <div className="mt-7 flex flex-wrap gap-3 text-xs text-vs-text-secondary">
                 {[
                   "Residential and commercial moves",
                   "Trusted coordination support",
                   "End-to-end packing assistance",
                 ].map((item) => (
-                  <span key={item} className="inline-flex items-center gap-2 rounded-full border border-vs-border bg-white/60 px-3 py-1.5">
+                  <span key={item} className="inline-flex items-center gap-2 rounded-full border border-vs-border bg-white/70 px-3 py-1.5 backdrop-blur-sm">
                     <Check className="h-3.5 w-3.5 text-vs-gold" /> {item}
                   </span>
                 ))}
+              </div>
+            </div>
+
+            <div className="relative z-10 lg:justify-self-end">
+              <div className="relative overflow-hidden rounded-[1.8rem] border border-vs-border bg-vs-bg shadow-[0_20px_65px_rgba(15,23,42,0.12)] lg:rounded-l-[2.2rem] lg:rounded-r-none lg:shadow-[0_25px_80px_rgba(15,23,42,0.16)]">
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[28%] bg-gradient-to-r from-vs-surface via-vs-surface/85 to-transparent lg:w-[32%]" />
+                <img
+                  src={PACKERS_MOVERS_HERO_IMAGE}
+                  alt="VisitSarva packers and movers team loading a sofa into a moving truck"
+                  loading="eager"
+                  decoding="async"
+                  className="h-[340px] w-full object-cover object-center sm:h-[420px] md:h-[500px] lg:h-[620px] lg:w-[760px]"
+                />
               </div>
             </div>
           </div>
