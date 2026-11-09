@@ -19,6 +19,7 @@ import HomeLoanAssistance from "@/pages/HomeLoanAssistance";
 import InteriorDesigning from "@/pages/InteriorDesigning";
 import PaintingServices from "@/pages/PaintingServices";
 import PackersAndMovers from "@/pages/PackersAndMovers";
+import RenovationAlteration from "@/pages/RenovationAlteration";
 import SellerDashboard from "@/pages/SellerDashboard";
 import NewListing from "@/pages/NewListing";
 import ListingEdit from "@/pages/ListingEdit";
@@ -64,6 +65,7 @@ import CrmLoanEnquiries from "@/pages/crm/CrmLoanEnquiries";
 import CrmInteriorEnquiries from "@/pages/crm/CrmInteriorEnquiries";
 import CrmPaintingEnquiries from "@/pages/crm/CrmPaintingEnquiries";
 import CrmPackersMoversEnquiries from "@/pages/crm/CrmPackersMoversEnquiries";
+import CrmRenovationEnquiries from "@/pages/crm/CrmRenovationEnquiries";
 import CrmSettings from "@/pages/crm/CrmSettings";
 import CrmSearch from "@/pages/crm/CrmSearch";
 import RequireCrmGateway from "@/components/RequireCrmGateway";
@@ -86,6 +88,7 @@ function AnimatedRoutes() {
         <Route path="/interior-designing" element={<InteriorDesigning />} />
         <Route path="/painting-services" element={<PaintingServices />} />
         <Route path="/packers-and-movers" element={<PackersAndMovers />} />
+        <Route path="/renovation-alteration" element={<RenovationAlteration />} />
 
         {/* Buyer */}
         <Route
@@ -187,6 +190,7 @@ function AnimatedRoutes() {
           <Route path="interior-enquiries" element={<CrmInteriorEnquiries />} />
           <Route path="painting-enquiries" element={<CrmPaintingEnquiries />} />
           <Route path="packers-movers-enquiries" element={<CrmPackersMoversEnquiries />} />
+          <Route path="renovation-enquiries" element={<CrmRenovationEnquiries />} />
           <Route path="customers" element={<CrmCustomers />} />
           <Route path="customers/:id" element={<CrmCustomerDetail />} />
           <Route path="teams" element={<CrmTeams />} />

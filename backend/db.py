@@ -88,6 +88,18 @@ def packers_movers_enquiries():
     return get_db()["packers_movers_enquiries"]
 
 
+def renovation_enquiries():
+    return get_db()["renovation_enquiries"]
+
+
+def renovation_vendors():
+    return get_db()["renovation_vendors"]
+
+
+def renovation_files():
+    return get_db()["renovation_files"]
+
+
 def service_requests():
     return get_db()["service_requests"]
 

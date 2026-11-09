@@ -82,6 +82,8 @@ const VisitSarvaServices = () => {
       navigate("/painting-services");
     } else if (title === "Packers and Movers") {
       navigate("/packers-and-movers");
+    } else if (title === "Renovation / Alteration Services") {
+      navigate("/renovation-alteration");
     } else {
       setSelectedService(title);
     }
