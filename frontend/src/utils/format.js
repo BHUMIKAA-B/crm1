@@ -32,7 +32,7 @@ export const SERVICE_TYPES = [
   { value: "pre_registration", label: "Interior Designing" },
   { value: "khata_assistance", label: "Khata Services" },
   { value: "property_valuation", label: "Encumbrance Certificate" },
-  { value: "land_approval", label: "Certified Sale Deed Copy" },
+  { value: "land_approval", label: "Certified Deed Copy" },
   { value: "plan_approval", label: "Painting Services" },
   { value: "property_conversion", label: "Renovation / Alteration Services" },
   { value: "government_approval", label: "Packers and Movers" },

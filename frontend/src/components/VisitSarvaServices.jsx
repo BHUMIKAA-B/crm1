@@ -41,7 +41,7 @@ const SERVICE_OPTIONS = [
     alt: "Property records and paperwork arranged for review",
   },
   {
-    title: "Certified Sale Deed Copy",
+    title: "Certified Deed Copy",
     Icon: FileText,
     image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=900&auto=format&fit=crop&q=80",
     alt: "A property deed document being reviewed",
@@ -84,6 +84,8 @@ const VisitSarvaServices = () => {
       navigate("/packers-and-movers");
     } else if (title === "Renovation / Alteration Services") {
       navigate("/renovation-alteration");
+    } else if (title === "Certified Deed Copy") {
+      navigate("/certified-deed-copy");
     } else {
       setSelectedService(title);
     }

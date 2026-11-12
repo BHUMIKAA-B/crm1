@@ -64,6 +64,7 @@ from routers.crm_loan_enquiries_router import router as crm_loan_enquiries_route
 from routers.crm_interior_router import router as crm_interior_router
 from routers.crm_painting_router import router as crm_painting_router
 from routers.crm_packers_movers_router import router as crm_packers_movers_router
+from routers.certified_deed_copy_router import router as certified_deed_copy_router, crm_router as crm_certified_deed_copy_router
 from routers.painting_router import router as painting_router
 from routers.packers_movers_router import router as packers_movers_router
 from routers.crm_renovation_router import router as crm_renovation_router
@@ -164,6 +165,8 @@ app.include_router(crm_loan_enquiries_router)
 app.include_router(crm_interior_router)
 app.include_router(crm_painting_router)
 app.include_router(crm_packers_movers_router)
+app.include_router(crm_certified_deed_copy_router)
+app.include_router(certified_deed_copy_router)
 app.include_router(painting_router)
 app.include_router(packers_movers_router)
 app.include_router(crm_renovation_router)

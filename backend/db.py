@@ -92,6 +92,10 @@ def renovation_enquiries():
     return get_db()["renovation_enquiries"]
 
 
+def deed_copy_enquiries():
+    return get_db()["deed_copy_enquiries"]
+
+
 def renovation_vendors():
     return get_db()["renovation_vendors"]
 
