@@ -15,7 +15,11 @@ MONGO_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/visitsarva
 
 # Security
 JWT_SECRET=super_secure_random_string_here
-CORS_ORIGINS=https://visitsarva.com,http://localhost:3000
+CORS_ORIGINS=https://visitsarva.com,https://visitsarva-crm-new.vercel.app,http://localhost:3000
+
+# Production and Deployment URLs
+# Production: https://visitsarva.com
+# Deployment: https://visitsarva-crm-new.vercel.app
 
 # AWS Cognito (Public Auth)
 REACT_APP_COGNITO_DOMAIN=your-cognito-domain.auth.region.amazoncognito.com
