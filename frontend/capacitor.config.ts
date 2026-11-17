@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'VisitSarva',
   webDir: 'build',
   server: {
-    url: 'https://visitsarva.com',
+    url: 'https://visitsarva-crm-new.vercel.app',
     cleartext: true,
     androidScheme: 'https'
   }
