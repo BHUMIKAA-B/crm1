@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
-import { Drama as Instagram, Link as Linkedin, Notebook as Facebook, Battery as Twitter, Mail, Phone, MapPin } from "lucide-react";
+import { Drama as Instagram, Link as Linkedin, Notebook as Facebook, Battery as Twitter, Mail, Phone, MapPin, Newspaper, Heart } from "lucide-react";
 
 const Footer = () => (
   <footer data-testid="footer" className="bg-vs-surface border-t border-vs-border">
@@ -65,6 +65,22 @@ const Footer = () => (
             { to: "#", label: "Terms of Service" },
           ]}
         />
+      </div>
+      <div className="mt-10 flex flex-wrap items-center gap-3">
+        <Link
+          to="/blogs"
+          className="inline-flex items-center gap-2 rounded-full border border-vs-gold/40 bg-vs-gold/10 px-5 py-3 text-sm font-semibold text-vs-gold transition-all duration-300 hover:-translate-y-0.5 hover:bg-vs-gold hover:text-vs-bg"
+          data-testid="footer-blogs"
+        >
+          <Newspaper size={17} /> Blogs
+        </Link>
+        <Link
+          to="/wishlist"
+          className="inline-flex items-center gap-2 rounded-full border border-vs-primary/40 bg-vs-primary/10 px-5 py-3 text-sm font-semibold text-vs-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-vs-primary hover:text-vs-bg"
+          data-testid="footer-wishlist"
+        >
+          <Heart size={17} /> Wishlist
+        </Link>
       </div>
       <div className="mt-14 pt-8 border-t border-vs-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-vs-text-muted">
         <div>© {new Date().getFullYear()} VisitSarva. All rights reserved.</div>

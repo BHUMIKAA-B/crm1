@@ -124,6 +124,14 @@ def otp_verifications():
     return get_db()["otp_verifications"]
 
 
+def blog_categories():
+    return get_db()["blog_categories"]
+
+
+def blog_articles():
+    return get_db()["blog_articles"]
+
+
 # CRM Collections
 def employees():
     return get_db()["employees"]

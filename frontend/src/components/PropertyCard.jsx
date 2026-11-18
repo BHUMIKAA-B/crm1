@@ -1,14 +1,18 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { MapPin, Bed, Maximize2, BadgeCheck, Bookmark, FileDown } from "lucide-react";
+import { MapPin, Bed, Maximize2, BadgeCheck, Heart, FileDown } from "lucide-react";
 import { INR, formatArea, CATEGORY_LABEL } from "@/utils/format";
 import BrochureModal from "@/components/BrochureModal";
+import { useWishlist } from "@/store/wishlistStore";
 
 const fallbackImg =
   "https://images.pexels.com/photos/36676879/pexels-photo-36676879.jpeg?auto=compress&cs=tinysrgb&w=900";
 
 const PropertyCard = ({ property, onSave, isSaved, showBrochure = true }) => {
+  const wishlist = useWishlist();
+  const saved = typeof isSaved === "boolean" ? isSaved : wishlist.isSaved(property.id);
+  const saveProperty = onSave || wishlist.toggle;
   const [brochureOpen, setBrochureOpen] = useState(false);
   const img = property.images?.[0]?.url || fallbackImg;
   const loc = property.location || {};
@@ -50,18 +54,18 @@ const PropertyCard = ({ property, onSave, isSaved, showBrochure = true }) => {
               {property.title}
             </Link>
           </h3>
-          {onSave && (
+          {saveProperty && (
             <button
               data-testid={`property-save-${property.id}`}
-              onClick={() => onSave(property.id)}
+              onClick={() => saveProperty(property.id)}
               className={`rounded-2xl p-2 transition-all duration-300 ${
-                isSaved
+                saved
                   ? "bg-vs-primary/10 text-vs-primary"
                   : "text-vs-text-muted hover:bg-vs-primary/10 hover:text-vs-primary"
               }`}
-              aria-label="Save property"
+              aria-label={saved ? "Remove property from wishlist" : "Save property to wishlist"}
             >
-              <Bookmark size={18} fill={isSaved ? "currentColor" : "none"} />
+              <Heart size={18} fill={saved ? "currentColor" : "none"} />
             </button>
           )}
         </div>

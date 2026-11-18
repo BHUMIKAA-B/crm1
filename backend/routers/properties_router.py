@@ -85,6 +85,21 @@ async def featured():
     return items
 
 
+@router.post("/properties/by-ids")
+async def properties_by_ids(payload: dict):
+    ids = payload.get("property_ids") if isinstance(payload, dict) else None
+    if not isinstance(ids, list):
+        raise HTTPException(status_code=400, detail="property_ids must be a list")
+    clean_ids = list(dict.fromkeys(str(pid) for pid in ids if isinstance(pid, str)))
+    if not clean_ids:
+        return []
+    items = await db.properties().find(
+        {"id": {"$in": clean_ids}, "status": "published"}, {"_id": 0}
+    ).to_list(length=200)
+    by_id = {item["id"]: item for item in items}
+    return [by_id[pid] for pid in clean_ids if pid in by_id]
+
+
 @router.get("/properties/{pid}")
 async def property_detail(
     pid: str,
@@ -116,6 +131,9 @@ async def property_detail(
 async def save_property(
     pid: str, user: dict = Depends(auth_utils.get_current_user)
 ):
+    prop = await db.properties().find_one({"id": pid, "status": "published"})
+    if not prop:
+        raise HTTPException(status_code=404, detail="Property not found")
     await db.users().update_one(
         {"id": user["id"]}, {"$addToSet": {"saved_properties": pid}}
     )
@@ -141,3 +159,32 @@ async def list_saved(user: dict = Depends(auth_utils.get_current_user)):
         {"id": {"$in": ids}, "status": "published"}, {"_id": 0}
     ).to_list(length=200)
     return items
+
+
+@router.post("/users/me/saved/merge")
+async def merge_saved(
+    payload: dict,
+    user: dict = Depends(auth_utils.get_current_user),
+):
+    ids = payload.get("property_ids") if isinstance(payload, dict) else None
+    if not isinstance(ids, list):
+        raise HTTPException(status_code=400, detail="property_ids must be a list")
+    clean_ids = list(dict.fromkeys(str(pid) for pid in ids if isinstance(pid, str)))
+    if clean_ids:
+        valid = await db.properties().find(
+            {"id": {"$in": clean_ids}, "status": "published"},
+            {"id": 1, "_id": 0},
+        ).to_list(length=200)
+        clean_ids = [item["id"] for item in valid]
+        for pid in clean_ids:
+            await db.users().update_one(
+                {"id": user["id"]}, {"$addToSet": {"saved_properties": pid}}
+            )
+    ids = (await db.users().find_one({"id": user["id"]}, {"saved_properties": 1, "_id": 0}) or {}).get("saved_properties", [])
+    return {"property_ids": ids}
+
+
+@router.delete("/users/me/saved")
+async def clear_saved(user: dict = Depends(auth_utils.get_current_user)):
+    await db.users().update_one({"id": user["id"]}, {"$set": {"saved_properties": []}})
+    return {"ok": True}

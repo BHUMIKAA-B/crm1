@@ -11,6 +11,7 @@ Replit Secrets (or .env in local dev) to rotate them without code changes.
 from __future__ import annotations
 
 import os
+import re
 import db
 import auth as auth_utils
 from models import now_iso, new_id
@@ -246,6 +247,67 @@ async def ensure_seed():
                     "updated_at": now_iso(),
                 }},
             )
+
+    # ── Knowledge Centre ───────────────────────────────────────────────────
+    categories = [
+        "Property Documentation", "E-Khata & A-Khata", "Property Buying Guide",
+        "Property Selling Guide", "Legal & Regulations", "Property Tax",
+        "Home Loans", "Real Estate Investment", "Bengaluru Locality Guides",
+        "Market Updates", "Property Tips",
+    ]
+    for name in categories:
+        if not await db.blog_categories().find_one({"name": name}):
+            await db.blog_categories().insert_one({
+                "id": new_id(), "name": name, "description": "",
+                "created_at": now_iso(), "updated_at": now_iso(),
+            })
+
+    initial_articles = [
+        ("What Is E-Khata and How to Apply in Bengaluru?", "E-Khata & A-Khata",
+         "A plain-language introduction to E-Khata, its role in Bengaluru property records, and how to begin checking or applying through the relevant BBMP channels."),
+        ("A-Khata vs B-Khata: Key Differences", "E-Khata & A-Khata",
+         "Understand common distinctions between A-Khata and B-Khata records and why professional verification is important before purchase."),
+        ("How to Apply for an Encumbrance Certificate (EC)?", "Property Documentation",
+         "Learn what an Encumbrance Certificate records, what information is needed to request it, and where buyers can verify current application procedures."),
+        ("Documents Required Before Buying a Property in Bengaluru", "Property Buying Guide",
+         "A practical document checklist to help buyers organise records and perform due diligence before committing to a property."),
+        ("What Is a Certified Copy of a Sale Deed?", "Property Documentation",
+         "An accessible overview of a certified sale deed copy, its use in property verification, and how to obtain or confirm an official copy."),
+        ("How to Verify Property Documents Before Buying?", "Property Buying Guide",
+         "A buyer-focused framework for reviewing ownership, approvals, tax status and encumbrance records with qualified professionals."),
+        ("BBMP Property Tax: A Basic Guide", "Property Tax",
+         "Understand the purpose of property tax records, how to locate owner and assessment information, and how to confirm current payment details."),
+        ("How to Check Whether a Property Has a Clear Title?", "Legal & Regulations",
+         "Review title verification steps, common documentary checks and the importance of independent legal advice."),
+        ("Understanding Sale Deed Registration in Karnataka", "Legal & Regulations",
+         "A high-level guide to the role of a sale deed, registration records and the checks buyers should complete before registration."),
+        ("Important Things to Check Before Buying a Plot in Bengaluru", "Property Tips",
+         "Key planning, documentation and due-diligence points to review before buying a residential or commercial plot."),
+    ]
+    now = now_iso()
+    for index, (title, category, excerpt) in enumerate(initial_articles):
+        slug = re.sub(r"[^\w\s-]", "", title.lower()).strip()
+        slug = re.sub(r"[-\s]+", "-", slug)
+        if not await db.blog_articles().find_one({"slug": slug}):
+            words = excerpt.split()
+            content = (
+                f"<h2>Overview</h2><p>{excerpt}</p>"
+                "<h2>Before you proceed</h2>"
+                "<p>Property rules, forms and government processes can change. Confirm current requirements, timelines and fees directly with the competent authority or a qualified legal professional.</p>"
+                "<h2>Practical checklist</h2>"
+                "<ul><li>Match names and property identifiers across all records.</li><li>Verify documents through official portals or authorised offices.</li><li>Ask a qualified advocate to review title and transaction documents.</li><li>Keep dated copies of each verification step.</li></ul>"
+                "<h2>Get personalised help</h2>"
+                "<p>VisitSarva can help organise property enquiries and connect you with the appropriate assistance. This article is general information and does not replace legal or professional advice.</p>"
+            )
+            await db.blog_articles().insert_one({
+                "id": new_id(), "title": title, "slug": slug, "excerpt": excerpt,
+                "content": content, "category": category, "author_name": "VisitSarva",
+                "cover_image": "", "images": [], "status": "published",
+                "scheduled_at": None, "is_featured": index < 3,
+                "seo_title": title, "meta_description": excerpt,
+                "reading_time": 3, "created_by": None,
+                "published_at": now, "created_at": now, "updated_at": now,
+            })
 
     # ── Demo seller ───────────────────────────────────────────────────────────
     seller = await db.users().find_one({"email": "demo.seller@visitsarva.in"})

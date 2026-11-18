@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import { MapPin, Bed, Bath, Maximize2, Compass, Sofa, BadgeCheck, ArrowLeft, Loader as Loader2, Phone, Mail, MessageSquare, Download, Landmark, ArrowRight } from "lucide-react";
+import { MapPin, Bed, Bath, Maximize2, Compass, Sofa, BadgeCheck, ArrowLeft, Loader as Loader2, Phone, Mail, MessageSquare, Download, Landmark, ArrowRight, Heart } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EMICalculator from "@/components/EMICalculator";
@@ -13,6 +13,7 @@ import { INR, formatArea, CATEGORY_LABEL } from "@/utils/format";
 import { fadeUp, fadeIn, stagger, viewportOnce } from "@/lib/animations";
 import { CONSULTANT } from "@/config/consultant";
 import { downloadBrochureForProperty, buildEmailUrl, buildWhatsAppUrl } from "@/utils/contactActions";
+import { useWishlist } from "@/store/wishlistStore";
 
 // Fix default Leaflet marker icons broken by webpack
 delete L.Icon.Default.prototype._getIconUrl;
@@ -23,6 +24,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const PropertyDetail = () => {
+  const wishlist = useWishlist();
   const { id } = useParams();
   const [p, setP] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -112,6 +114,18 @@ const PropertyDetail = () => {
               <span className="absolute top-4 right-4 chip bg-vs-gold text-vs-bg border-vs-gold">
                 <BadgeCheck size={12} /> Verified by VisitSarva
               </span>
+              <button
+                type="button"
+                onClick={() => wishlist.toggle(p.id)}
+                className={`absolute bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-premium-sm border backdrop-blur transition-all ${
+                  wishlist.isSaved(p.id)
+                    ? "bg-vs-primary text-white border-vs-primary"
+                    : "bg-vs-bg/90 text-vs-text-primary border-vs-border hover:text-vs-primary"
+                }`}
+                aria-label={wishlist.isSaved(p.id) ? "Remove from wishlist" : "Add to wishlist"}
+              >
+                <Heart size={20} fill={wishlist.isSaved(p.id) ? "currentColor" : "none"} />
+              </button>
             </div>
             {images.length > 1 && (
               <div className="mt-3 flex gap-2 overflow-x-auto pb-1">

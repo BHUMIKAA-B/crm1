@@ -6,6 +6,7 @@ import NotificationsDropdown from "@/components/NotificationsDropdown";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAuthStore } from "@/store/authStore";
 import { PROPERTY_CATEGORIES } from "@/utils/format";
+import { useWishlist } from "@/store/wishlistStore";
 
 const PROPERTY_SECTOR_LINKS = PROPERTY_CATEGORIES.map((c) => ({
   label: c.label,
@@ -19,6 +20,7 @@ const SECTOR_LINKS = [
 ];
 
 const Navbar = () => {
+  const wishlist = useWishlist();
   const [open, setOpen] = useState(false);
   const [sectorsOpen, setSectorsOpen] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -214,11 +216,14 @@ const Navbar = () => {
                     {user.role === "buyer" && (
                       <>
                         <Link
-                          to="/saved"
+                          to="/wishlist"
                           onClick={() => setMenu(false)}
                           className="flex items-center gap-3 px-4 py-3 text-sm text-vs-text-secondary hover:text-vs-text-primary hover:bg-vs-bg transition-all duration-200"
                         >
-                          <Bookmark size={16} className="text-vs-gold" /> Saved
+                          <Bookmark size={16} className="text-vs-gold" /> Wishlist
+                          {wishlist.count > 0 && (
+                            <span className="ml-auto rounded-full bg-vs-gold px-2 py-0.5 text-[10px] font-bold text-vs-bg">{wishlist.count}</span>
+                          )}
                         </Link>
                         <Link
                           to="/enquiries"

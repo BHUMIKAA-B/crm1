@@ -78,6 +78,7 @@ except ModuleNotFoundError as exc:
     calling_router = None
     logging.getLogger("visitsarva").warning("Optional AI calling router is not installed")
 from routers.whatsapp_router import router as whatsapp_router  # WhatsApp inbound webhook
+from routers.blogs_router import router as blogs_router
 
 
 app = FastAPI(title="VisitSarva API")
@@ -134,6 +135,7 @@ app.include_router(ai_router)
 app.include_router(cms_router)
 app.include_router(chat_router)
 app.include_router(brochure_router)
+app.include_router(blogs_router)
 
 # CRM Routers
 app.include_router(crm_auth_router)

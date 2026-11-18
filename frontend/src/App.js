@@ -70,6 +70,10 @@ import CrmRenovationEnquiries from "@/pages/crm/CrmRenovationEnquiries";
 import CrmSettings from "@/pages/crm/CrmSettings";
 import CrmSearch from "@/pages/crm/CrmSearch";
 import RequireCrmGateway from "@/components/RequireCrmGateway";
+import { WishlistProvider } from "@/store/wishlistStore";
+import BlogsPage from "@/pages/BlogsPage";
+import BlogArticlePage from "@/pages/BlogArticlePage";
+import WishlistPage from "@/pages/WishlistPage";
 
 
 function AnimatedRoutes() {
@@ -82,6 +86,9 @@ function AnimatedRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/properties" element={<PropertiesList />} />
         <Route path="/properties/:id" element={<PropertyDetail />} />
+        <Route path="/blogs" element={<BlogsPage />} />
+        <Route path="/blogs/:slug" element={<BlogArticlePage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/services" element={<Services />} />
         <Route path="/construction" element={<Construction />} />
         <Route path="/loan-assistance" element={<HomeLoanAssistance />} />
@@ -241,13 +248,15 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <div className="App">
         <BrowserRouter>
-          <AnimatedRoutes />
+          <WishlistProvider>
+            <AnimatedRoutes />
 
           {/* Floating chatbot bubble — visible on all pages except /chat */}
           <ChatBot />
 
           {/* Recurring enquiry reminder — public pages only, 60-s cadence */}
           <EnquiryReminderPopup />
+          </WishlistProvider>
         </BrowserRouter>
         <Toaster
           position="top-right"

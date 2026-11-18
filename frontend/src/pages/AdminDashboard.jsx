@@ -19,6 +19,7 @@ import AdminRejectedProperties    from "./admin/AdminRejectedProperties";
 import AdminBrochureDownloads     from "./admin/AdminBrochureDownloads";
 import AdminHomeLoanEnquiries     from "./admin/AdminHomeLoanEnquiries";
 import api from "@/api/client";
+import AdminBlogs from "@/pages/admin/AdminBlogs";
 
 const NAV = [
   { id: "dashboard",     label: "Dashboard",          icon: LayoutDashboard },
@@ -35,6 +36,7 @@ const NAV = [
   { type: "divider",     label: "OPERATIONS" },
   { id: "enquiries",     label: "Enquiries",           icon: MessageSquare },
   { id: "brochures",     label: "Brochure Downloads",  icon: BookOpen },
+  { id: "blogs",         label: "Blog Management",    icon: BookOpen },
   { id: "loan-enquiries", label: "Home Loan Enquiries", icon: Landmark,    badge: "loanNew" },
   { id: "notifications", label: "Notifications",       icon: Bell,         badge: "notif" },
   { id: "reports",       label: "Reports",             icon: BarChart2 },
@@ -47,6 +49,7 @@ const TITLES = {
   properties: "Properties", sites: "Sites",            enquiries: "Enquiries",
   rejected: "Rejected Properties", brochures: "Brochure Downloads",
   "loan-enquiries": "Home Loan Enquiries",
+  blogs: "Blog Management",
   notifications: "Notifications", reports: "Reports",  settings: "Settings",
 };
 
@@ -190,6 +193,7 @@ export default function AdminDashboard() {
             {section === "enquiries"       && <AdminEnquiries />}
             {section === "rejected"        && <AdminRejectedProperties onAction={refreshStats} />}
             {section === "brochures"       && <AdminBrochureDownloads />}
+            {section === "blogs"           && <AdminBlogs />}
             {section === "loan-enquiries"  && <AdminHomeLoanEnquiries />}
             {section === "notifications"   && <AdminNotifications onRead={refreshStats} />}
             {section === "reports"         && <AdminReports />}
