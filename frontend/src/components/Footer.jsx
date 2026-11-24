@@ -66,7 +66,7 @@ const Footer = () => (
           ]}
         />
       </div>
-      <div className="mt-10 flex flex-wrap items-center gap-3">
+      <div className="mt-10 flex flex-wrap items-center gap-3 min-h-[4rem]">
         <Link
           to="/blogs"
           className="inline-flex items-center gap-2 rounded-full border border-vs-gold/40 bg-vs-gold/10 px-5 py-3 text-sm font-semibold text-vs-gold transition-all duration-300 hover:-translate-y-0.5 hover:bg-vs-gold hover:text-vs-bg"
