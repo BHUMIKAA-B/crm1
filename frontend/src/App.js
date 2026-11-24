@@ -9,6 +9,7 @@ import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import PropertiesList from "@/pages/PropertiesList";
+import BengaluruProperties from "@/pages/BengaluruProperties";
 import PropertyDetail from "@/pages/PropertyDetail";
 import BuyerHome from "@/pages/BuyerHome";
 import SavedProperties from "@/pages/SavedProperties";
@@ -85,6 +86,7 @@ function AnimatedRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/properties" element={<PropertiesList />} />
+        <Route path="/bengaluru-properties" element={<BengaluruProperties />} />
         <Route path="/properties/:id" element={<PropertyDetail />} />
         <Route path="/blogs" element={<BlogsPage />} />
         <Route path="/blogs/:slug" element={<BlogArticlePage />} />

@@ -81,6 +81,13 @@ const Footer = () => (
         >
           <Heart size={17} /> Wishlist
         </Link>
+        <Link
+          to="/bengaluru-properties"
+          className="inline-flex items-center gap-2 rounded-full border border-vs-gold/40 bg-vs-gold/10 px-5 py-3 text-sm font-semibold text-vs-gold transition-all duration-300 hover:-translate-y-0.5 hover:bg-vs-gold hover:text-vs-bg"
+          data-testid="footer-bengaluru"
+        >
+          BENGALURU PROPERTIES
+        </Link>
       </div>
       <div className="mt-14 pt-8 border-t border-vs-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-vs-text-muted">
         <div>© {new Date().getFullYear()} VisitSarva. All rights reserved.</div>
