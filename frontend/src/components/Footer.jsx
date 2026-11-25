@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
 import { Drama as Instagram, Link as Linkedin, Notebook as Facebook, Battery as Twitter, Mail, Phone, MapPin, Newspaper, Heart } from "lucide-react";
 
+// Footer component updated to include Bengaluru button
 const Footer = () => (
   <footer data-testid="footer" className="bg-vs-surface border-t border-vs-border">
     <div className="max-w-[80rem] mx-auto px-6 lg:px-12 py-16">

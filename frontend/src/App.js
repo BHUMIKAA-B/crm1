@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import ScrollToTop from "@/components/ScrollToTop";
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "next-themes";
 import api from "@/api/client";
@@ -250,6 +251,7 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <div className="App">
         <BrowserRouter>
+          <ScrollToTop />
           <WishlistProvider>
             <AnimatedRoutes />
 
