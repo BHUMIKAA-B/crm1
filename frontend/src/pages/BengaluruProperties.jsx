@@ -7,15 +7,14 @@ const BengaluruProperties = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Ensure city filter includes Bengaluru variants on first render
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-useEffect(() => {
+  useEffect(() => {
     const city = searchParams.get('city');
     if (!city) {
       // Regex matching Bengaluru and Bangalore (case‑insensitive)
       searchParams.set('city', 'Bengaluru|Bangalore');
       setSearchParams(searchParams, { replace: true });
     }
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   return (
     <>
